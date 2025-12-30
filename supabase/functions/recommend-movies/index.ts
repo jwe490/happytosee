@@ -45,7 +45,7 @@ serve(async (req) => {
 - Bored → engaging plots, twist endings, unique concepts
 
 📤 Output Format (JSON array):
-Return ONLY a valid JSON array with 6-8 movies. Each movie object must have:
+Return ONLY a valid JSON array with 10-12 movies. Each movie object must have:
 {
   "title": "Movie Title",
   "year": 2020,
@@ -53,12 +53,13 @@ Return ONLY a valid JSON array with 6-8 movies. Each movie object must have:
   "genre": "Drama, Thriller",
   "language": "English",
   "industry": "Hollywood",
-  "posterUrl": "https://image.tmdb.org/t/p/w500/[poster_path]",
+  "posterUrl": "USE PLACEHOLDER",
   "moodMatch": "One sentence explaining why this fits the user's mood"
 }
 
-Use real TMDb poster URLs where possible. For posterUrl, use format: https://image.tmdb.org/t/p/w500/ followed by the poster path.
-If you don't know the exact poster path, use a placeholder: https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500
+IMPORTANT: For posterUrl, always use this exact format with a unique movie-related seed:
+https://picsum.photos/seed/[movie-title-no-spaces]/400/600
+Example: https://picsum.photos/seed/TheShawshankRedemption/400/600
 
 🔁 Smart Rotation Logic:
 - Shift recommendations to different time periods/regions on each request
