@@ -2,12 +2,20 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Star, Clock, Calendar, Play, Users, 
-  Film, DollarSign, TrendingUp, Loader2 
+  Film, DollarSign, TrendingUp, Loader2, Clapperboard
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface SimilarMovie {
+  id: number;
+  title: string;
+  posterUrl: string;
+  rating: number;
+  year: number | null;
+}
 
 interface CastMember {
   id: number;
@@ -34,6 +42,7 @@ interface MovieDetails {
   cast: CastMember[];
   trailerKey: string | null;
   trailerName: string | null;
+  similarMovies: SimilarMovie[];
 }
 
 interface MovieDetailsModalProps {
@@ -43,22 +52,35 @@ interface MovieDetailsModalProps {
 }
 
 const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps) => {
+  const [currentMovieId, setCurrentMovieId] = useState<number | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     if (movieId && isOpen) {
-      fetchMovieDetails(movieId);
+      setCurrentMovieId(movieId);
     }
   }, [movieId, isOpen]);
+
+  useEffect(() => {
+    if (currentMovieId && isOpen) {
+      fetchMovieDetails(currentMovieId);
+    }
+  }, [currentMovieId, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
       setShowTrailer(false);
       setDetails(null);
+      setCurrentMovieId(null);
     }
   }, [isOpen]);
+
+  const handleSimilarMovieClick = (id: number) => {
+    setShowTrailer(false);
+    setCurrentMovieId(id);
+  };
 
   const fetchMovieDetails = async (id: number) => {
     setIsLoading(true);
@@ -302,6 +324,50 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                   <div className="mt-6 text-sm text-muted-foreground">
                     <span className="font-medium">Production: </span>
                     {details.productionCompanies.slice(0, 3).join(", ")}
+                  </div>
+                )}
+
+                {/* Similar Movies */}
+                {details.similarMovies && details.similarMovies.length > 0 && (
+                  <div className="mt-8 space-y-4">
+                    <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
+                      <Clapperboard className="w-5 h-5 text-primary" />
+                      Similar Movies
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                      {details.similarMovies.map((movie) => (
+                        <button
+                          key={movie.id}
+                          onClick={() => handleSimilarMovieClick(movie.id)}
+                          className="group text-left space-y-2 transition-transform hover:scale-105"
+                        >
+                          <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted relative">
+                            <img
+                              src={movie.posterUrl}
+                              alt={movie.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 text-xs text-white">
+                                <Star className="w-3 h-3 fill-primary text-primary" />
+                                <span>{movie.rating}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-medium text-xs text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                              {movie.title}
+                            </p>
+                            {movie.year && (
+                              <p className="text-xs text-muted-foreground">
+                                {movie.year}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
