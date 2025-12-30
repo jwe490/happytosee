@@ -14,10 +14,181 @@ export type Database = {
   }
   public: {
     Tables: {
+      collection_movies: {
+        Row: {
+          added_at: string
+          collection_id: string
+          id: string
+          movie_id: number
+          poster_path: string | null
+          title: string
+        }
+        Insert: {
+          added_at?: string
+          collection_id: string
+          id?: string
+          movie_id: number
+          poster_path?: string | null
+          title: string
+        }
+        Update: {
+          added_at?: string
+          collection_id?: string
+          id?: string
+          movie_id?: number
+          poster_path?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_movies_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collections: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          accent_color: string | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          favorite_genres: string[] | null
+          id: string
+          preferred_languages: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          favorite_genres?: string[] | null
+          id?: string
+          preferred_languages?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          favorite_genres?: string[] | null
+          id?: string
+          preferred_languages?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          movie_id: number
+          movie_poster: string | null
+          movie_title: string
+          rating: number
+          review_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movie_id: number
+          movie_poster?: string | null
+          movie_title: string
+          rating: number
+          review_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movie_id?: number
+          movie_poster?: string | null
+          movie_title?: string
+          rating?: number
+          review_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          id: string
+          movie_id: number
+          poster_path: string | null
+          rating: number | null
+          title: string
+          user_id: string
+          watched_at: string
+        }
+        Insert: {
+          id?: string
+          movie_id: number
+          poster_path?: string | null
+          rating?: number | null
+          title: string
+          user_id: string
+          watched_at?: string
+        }
+        Update: {
+          id?: string
+          movie_id?: number
+          poster_path?: string | null
+          rating?: number | null
+          title?: string
+          user_id?: string
+          watched_at?: string
+        }
+        Relationships: []
+      }
       watchlist: {
         Row: {
           created_at: string
           id: string
+          is_public: boolean | null
           movie_id: number
           overview: string | null
           poster_path: string | null
@@ -29,6 +200,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_public?: boolean | null
           movie_id: number
           overview?: string | null
           poster_path?: string | null
@@ -40,6 +212,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_public?: boolean | null
           movie_id?: number
           overview?: string | null
           poster_path?: string | null
