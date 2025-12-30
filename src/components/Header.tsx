@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Bookmark, LogOut, User, Menu, X, Home, Search } from "lucide-react";
+import { Bookmark, LogOut, User, Menu, X, Home, Search, UserCircle } from "lucide-react";
+import { AccentColorPicker } from "@/components/AccentColorPicker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,13 +101,23 @@ const Header = () => {
                 </button>
 
                 {user && (
-                  <button
-                    onClick={() => handleNavigate("/watchlist")}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                  >
-                    <Bookmark className="w-5 h-5" />
-                    <span className="font-medium">My Watchlist</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleNavigate("/watchlist")}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
+                    >
+                      <Bookmark className="w-5 h-5" />
+                      <span className="font-medium">My Watchlist</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => handleNavigate("/profile")}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
+                    >
+                      <UserCircle className="w-5 h-5" />
+                      <span className="font-medium">My Profile</span>
+                    </button>
+                  </>
                 )}
 
                 <div className="border-t border-border my-4" />
@@ -146,7 +157,10 @@ const Header = () => {
               <div className="absolute bottom-6 left-6 right-6">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Theme</span>
-                  <ThemeToggle />
+                  <div className="flex items-center gap-2">
+                    <AccentColorPicker />
+                    <ThemeToggle />
+                  </div>
                 </div>
               </div>
             </SheetContent>
@@ -165,7 +179,8 @@ const Header = () => {
 
         {/* Desktop Actions */}
         <div className="flex items-center gap-2">
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-1">
+            <AccentColorPicker />
             <ThemeToggle />
           </div>
           {user ? (

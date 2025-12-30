@@ -8,10 +8,13 @@ import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
 import StickyFilterBar from "@/components/StickyFilterBar";
+import { TrendingSection } from "@/components/TrendingSection";
+import { AISearch } from "@/components/AISearch";
+import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, ChevronDown, Film, RotateCcw, Search } from "lucide-react";
-import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
+import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2 } from "lucide-react";
+import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
 
 const moodTaglines: Record<string, string> = {
   happy: "Feeling Happy? Here's something uplifting 🎉",
@@ -34,8 +37,25 @@ const Index = () => {
     duration: "any",
     movieType: "any",
   });
+  
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
+
+  const handleMovieSelect = (movie: any) => {
+    const movieData: Movie = {
+      id: movie.id,
+      title: movie.title,
+      year: movie.year || 0,
+      rating: movie.rating || 0,
+      genre: movie.genre || "",
+      posterUrl: movie.posterUrl || movie.poster_path,
+      moodMatch: movie.matchReason || movie.surpriseReason || "",
+    };
+    setSelectedMovie(movieData);
+    setIsMovieViewOpen(true);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -117,15 +137,24 @@ const Index = () => {
       <HeroSection />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-16 md:pb-20">
-        {/* Tabs for Mood vs Search */}
+        {/* Tabs for Mood vs Search vs AI */}
         <Tabs defaultValue="mood" className="w-full">
-          <TabsList className="grid w-full max-w-xs md:max-w-md mx-auto grid-cols-2 mb-6 md:mb-8 bg-secondary rounded-full p-1">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-6 md:mb-8 bg-secondary rounded-full p-1">
             <TabsTrigger 
               value="mood" 
               className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
             >
               <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
-              By Mood
+              <span className="hidden sm:inline">By Mood</span>
+              <span className="sm:hidden">Mood</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="ai" 
+              className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
+            >
+              <Wand2 className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">AI Find</span>
+              <span className="sm:hidden">AI</span>
             </TabsTrigger>
             <TabsTrigger 
               value="search" 
@@ -137,6 +166,8 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="mood" className="space-y-0">
+            {/* Trending Section */}
+            <TrendingSection onMovieSelect={handleMovieSelect} />
             {/* Mood Selection */}
             <section id="mood-selector" className="py-6 md:py-8 scroll-mt-20 md:scroll-mt-24">
               <motion.div
@@ -230,6 +261,12 @@ const Index = () => {
               />
             </section>
           </TabsContent>
+          
+          <TabsContent value="ai">
+            <section className="py-8">
+              <AISearch onMovieSelect={handleMovieSelect} />
+            </section>
+          </TabsContent>
 
           <TabsContent value="search">
             <section className="py-8">
@@ -238,6 +275,13 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+      
+      {/* Expanded Movie View */}
+      <ExpandedMovieView
+        movie={selectedMovie}
+        isOpen={isMovieViewOpen}
+        onClose={() => setIsMovieViewOpen(false)}
+      />
 
       {/* Footer */}
       <footer className="py-8 border-t border-border bg-secondary/50">

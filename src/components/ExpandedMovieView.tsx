@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Star, Clock, Calendar, Play, Users, 
   Film, DollarSign, TrendingUp, Clapperboard,
-  Bookmark, BookmarkCheck, ChevronLeft
+  Bookmark, BookmarkCheck, ChevronLeft, Eye, EyeOff
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
+import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { Movie } from "@/hooks/useMovieRecommendations";
+import { ReviewSection } from "@/components/ReviewSection";
+import { ShareButton } from "@/components/ShareButton";
 
 interface SimilarMovie {
   id: number;
@@ -67,6 +70,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [showContent, setShowContent] = useState(false);
   const [navigationHistory, setNavigationHistory] = useState<Movie[]>([]);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
+  const { markAsWatched, isWatched } = useWatchHistory();
 
   // Initialize with movie prop
   useEffect(() => {
@@ -297,37 +301,71 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       )}
                       
                       {user && details && (
-                        <Button
-                          variant={isInWatchlist(details.id) ? "secondary" : "outline"}
+                        <>
+                          <Button
+                            variant={isInWatchlist(details.id) ? "secondary" : "outline"}
+                            size="lg"
+                            onClick={() => {
+                              if (isInWatchlist(details.id)) {
+                                removeFromWatchlist(details.id);
+                              } else {
+                                addToWatchlist({
+                                  id: details.id,
+                                  title: details.title,
+                                  poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
+                                  release_date: details.releaseDate,
+                                  vote_average: details.rating,
+                                  overview: details.overview,
+                                });
+                              }
+                            }}
+                            className="gap-2 rounded-full active:scale-95 transition-transform"
+                          >
+                            {isInWatchlist(details.id) ? (
+                              <>
+                                <BookmarkCheck className="w-4 h-4" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="w-4 h-4" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            variant={isWatched(details.id) ? "secondary" : "outline"}
+                            size="lg"
+                            onClick={() => markAsWatched({
+                              id: details.id,
+                              title: details.title,
+                              poster_path: details.posterUrl,
+                            })}
+                            className="gap-2 rounded-full active:scale-95 transition-transform"
+                          >
+                            {isWatched(details.id) ? (
+                              <>
+                                <Eye className="w-4 h-4" />
+                                Watched
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-4 h-4" />
+                                Mark Watched
+                              </>
+                            )}
+                          </Button>
+                        </>
+                      )}
+                      
+                      {details && (
+                        <ShareButton 
+                          title={details.title}
+                          text={`Check out ${details.title} on MoodFlix!`}
                           size="lg"
-                          onClick={() => {
-                            if (isInWatchlist(details.id)) {
-                              removeFromWatchlist(details.id);
-                            } else {
-                              addToWatchlist({
-                                id: details.id,
-                                title: details.title,
-                                poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
-                                release_date: details.releaseDate,
-                                vote_average: details.rating,
-                                overview: details.overview,
-                              });
-                            }
-                          }}
-                          className="gap-2 rounded-full active:scale-95 transition-transform"
-                        >
-                          {isInWatchlist(details.id) ? (
-                            <>
-                              <BookmarkCheck className="w-4 h-4" />
-                              Saved
-                            </>
-                          ) : (
-                            <>
-                              <Bookmark className="w-4 h-4" />
-                              Save
-                            </>
-                          )}
-                        </Button>
+                          variant="outline"
+                        />
                       )}
                     </div>
 
@@ -484,6 +522,15 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {/* Reviews Section */}
+                    {details && (
+                      <ReviewSection
+                        movieId={details.id}
+                        movieTitle={details.title}
+                        moviePoster={details.posterUrl || undefined}
+                      />
                     )}
                   </motion.div>
                 )}
