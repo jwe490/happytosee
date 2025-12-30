@@ -31,18 +31,24 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ 
+        delay: index * 0.08, 
+        duration: 0.4, 
+        ease: [0.25, 0.46, 0.45, 0.94]
+      }}
+      whileHover={{ y: -8, transition: { duration: 0.25 } }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="group relative bg-card rounded-2xl overflow-hidden border border-border hover:border-foreground/30 transition-all duration-500 hover-lift cursor-pointer shadow-card"
+      className="group relative bg-card rounded-3xl overflow-hidden border border-border/50 hover:border-border transition-all duration-300 cursor-pointer shadow-soft hover:shadow-card-hover"
     >
-      {/* Poster Image */}
-      <div className="relative aspect-[2/3] overflow-hidden bg-secondary">
+      {/* Image Container with rounded inner corners */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-secondary m-2 md:m-3 rounded-2xl">
         <img
           src={movie.posterUrl}
           alt={movie.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = `https://picsum.photos/seed/${encodeURIComponent(movie.title.replace(/\s+/g, ''))}/400/600`;
@@ -50,23 +56,25 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
           loading="lazy"
         />
         
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent opacity-80" />
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
         
-        {/* Rating Badge */}
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/90 backdrop-blur-sm">
-          <Star className="w-4 h-4 fill-background text-background" />
-          <span className="text-sm font-bold text-background">{movie.rating}</span>
+        {/* Rating Badge - Floating pill */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground/90 backdrop-blur-md shadow-lg">
+          <Star className="w-3 h-3 fill-background text-background" />
+          <span className="text-xs font-bold text-background">{movie.rating}</span>
         </div>
 
         {/* Watchlist Button */}
         {user && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={handleWatchlistClick}
-            className={`absolute top-4 left-4 p-2 rounded-full transition-all ${
+            className={`absolute top-3 left-3 p-2 rounded-full transition-all duration-200 shadow-lg ${
               inWatchlist 
                 ? "bg-accent text-accent-foreground" 
-                : "bg-background/80 text-foreground opacity-0 group-hover:opacity-100"
+                : "bg-background/80 backdrop-blur-md text-foreground opacity-0 group-hover:opacity-100"
             }`}
           >
             {inWatchlist ? (
@@ -74,45 +82,55 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
             ) : (
               <Bookmark className="w-4 h-4" />
             )}
-          </button>
+          </motion.button>
         )}
+
+        {/* Play indicator on hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <motion.div 
+            initial={{ scale: 0 }}
+            whileHover={{ scale: 1.1 }}
+            className="w-14 h-14 rounded-full bg-background/90 backdrop-blur-md flex items-center justify-center shadow-xl group-hover:scale-100 transition-transform duration-300"
+          >
+            <Film className="w-6 h-6 text-foreground ml-0.5" />
+          </motion.div>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 md:p-5 space-y-2 md:space-y-3">
-        <h3 className="font-display text-base md:text-xl font-semibold text-foreground line-clamp-2">
+      {/* Content Section - Clean and minimal */}
+      <div className="px-3 md:px-4 pb-3 md:pb-4 pt-1 space-y-2">
+        {/* Meta tags */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {movie.year}
+          </span>
+          <span className="w-1 h-1 rounded-full bg-border" />
+          <span className="truncate">{movie.genre}</span>
+        </div>
+
+        {/* Title */}
+        <h3 className="font-display text-sm md:text-base font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {movie.title}
         </h3>
         
-        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-            <span>{movie.year}</span>
+        {/* Mood Match - Compact pill */}
+        <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-accent/10 text-accent">
+            <Sparkles className="w-3 h-3" />
+            <span className="text-[10px] md:text-xs font-medium truncate max-w-[120px] md:max-w-[160px]">
+              {movie.moodMatch?.split(' ').slice(0, 3).join(' ')}...
+            </span>
           </div>
-          <div className="flex items-center gap-1 hidden sm:flex">
-            <Film className="w-3 h-3 md:w-4 md:h-4" />
-            <span>{movie.genre}</span>
-          </div>
-          {movie.language && (
-            <div className="flex items-center gap-1 hidden md:flex">
-              <Globe className="w-3 h-3 md:w-4 md:h-4" />
-              <span>{movie.language}</span>
-            </div>
-          )}
         </div>
 
-        {/* Mood Match - Hidden on small screens */}
-        <div className="hidden sm:flex items-start gap-2 pt-2 border-t border-border/50">
-          <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-accent mt-0.5 flex-shrink-0" />
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
-            {movie.moodMatch}
-          </p>
-        </div>
-      </div>
-
-      {/* Hover Glow Effect */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-accent/5 to-transparent" />
+        {/* Language tag - subtle */}
+        {movie.language && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+            <Globe className="w-2.5 h-2.5" />
+            <span>{movie.language}</span>
+          </div>
+        )}
       </div>
     </motion.div>
   );
