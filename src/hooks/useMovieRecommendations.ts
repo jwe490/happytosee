@@ -6,12 +6,13 @@ export interface Movie {
   id: number;
   title: string;
   rating: number;
-  year: number;
+  year: number | string;
   genre: string;
   language?: string;
   industry?: string;
   posterUrl: string;
   moodMatch: string;
+  overview?: string;
 }
 
 export interface RecommendationParams {
