@@ -14,11 +14,20 @@ const movieImagePool = [
   "https://image.tmdb.org/t/p/w300/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
 ];
 
-const imagePositions = [
-  { position: "top-20 left-[5%]", size: "w-32 md:w-44 h-20 md:h-28", rotation: "-rotate-3" },
-  { position: "top-32 right-[8%]", size: "w-28 md:w-40 h-18 md:h-24", rotation: "rotate-2" },
-  { position: "bottom-40 left-[12%]", size: "w-36 md:w-48 h-22 md:h-30", rotation: "rotate-1" },
-  { position: "bottom-28 right-[10%]", size: "w-30 md:w-42 h-20 md:h-26", rotation: "-rotate-2" },
+// Desktop positions
+const desktopPositions = [
+  { position: "top-20 left-[5%]", size: "w-44 h-28", rotation: "-rotate-3" },
+  { position: "top-32 right-[8%]", size: "w-40 h-24", rotation: "rotate-2" },
+  { position: "bottom-40 left-[12%]", size: "w-48 h-30", rotation: "rotate-1" },
+  { position: "bottom-28 right-[10%]", size: "w-42 h-26", rotation: "-rotate-2" },
+];
+
+// Mobile positions - corners, smaller sizes
+const mobilePositions = [
+  { position: "top-4 left-2", size: "w-16 h-10", rotation: "-rotate-6" },
+  { position: "top-8 right-2", size: "w-14 h-9", rotation: "rotate-6" },
+  { position: "bottom-32 left-3", size: "w-16 h-10", rotation: "rotate-3" },
+  { position: "bottom-28 right-2", size: "w-14 h-9", rotation: "-rotate-3" },
 ];
 
 const animationClasses = ["animate-float", "animate-float-delayed", "animate-float-slow", "animate-float"];
@@ -40,24 +49,47 @@ const HeroSection = () => {
     return shuffledImages.map((url, index) => ({
       id: index + 1,
       url,
-      ...imagePositions[index],
+      desktop: desktopPositions[index],
+      mobile: mobilePositions[index],
       animation: animationClasses[index],
     }));
   }, []);
 
   return (
-    <section className="relative min-h-[45vh] sm:min-h-[55vh] md:min-h-[80vh] flex flex-col items-center justify-center overflow-hidden grid-pattern px-4 pt-4 pb-8 sm:pb-12 md:pb-8">
-      {/* Floating Movie Images - Hidden on mobile and tablet */}
+    <section className="relative min-h-[50vh] sm:min-h-[55vh] md:min-h-[80vh] flex flex-col items-center justify-center overflow-hidden grid-pattern px-4 pt-4 pb-8 sm:pb-12 md:pb-8">
+      {/* Floating Movie Images - Mobile Version */}
       {floatingImages.map((img, index) => (
         <motion.div
-          key={img.id}
+          key={`mobile-${img.id}`}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.6, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.3 + index * 0.15 }}
+          className={`absolute ${img.mobile.position} ${img.animation} lg:hidden z-0`}
+        >
+          <div 
+            className={`${img.mobile.size} ${img.mobile.rotation} rounded-lg overflow-hidden shadow-md opacity-50`}
+          >
+            <img 
+              src={img.url} 
+              alt="Movie scene"
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Floating Movie Images - Desktop Version */}
+      {floatingImages.map((img, index) => (
+        <motion.div
+          key={`desktop-${img.id}`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.3 + index * 0.15 }}
-          className={`absolute ${img.position} ${img.animation} hidden lg:block`}
+          className={`absolute ${img.desktop.position} ${img.animation} hidden lg:block`}
         >
           <div 
-            className={`${img.size} ${img.rotation} rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300`}
+            className={`${img.desktop.size} ${img.desktop.rotation} rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300`}
           >
             <img 
               src={img.url} 
