@@ -15,20 +15,20 @@ const movieImagePool = [
   "https://image.tmdb.org/t/p/w300/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
 ];
 
-// Desktop positions - larger posters, subtle arrangement
+// Desktop positions - more dynamic arrangement
 const desktopPositions = [
-  { position: "top-20 left-[6%]", size: "w-44 h-64", rotation: "-rotate-6" },
-  { position: "top-28 right-[8%]", size: "w-40 h-56", rotation: "rotate-6" },
-  { position: "bottom-36 left-[12%]", size: "w-36 h-52", rotation: "rotate-3" },
-  { position: "bottom-28 right-[10%]", size: "w-40 h-56", rotation: "-rotate-3" },
+  { position: "top-16 left-[8%]", size: "w-36 h-52", rotation: "-rotate-6" },
+  { position: "top-24 right-[10%]", size: "w-32 h-48", rotation: "rotate-6" },
+  { position: "bottom-32 left-[15%]", size: "w-28 h-40", rotation: "rotate-3" },
+  { position: "bottom-24 right-[12%]", size: "w-32 h-48", rotation: "-rotate-3" },
 ];
 
-// Mobile positions - slightly larger, better visibility
+// Mobile positions - corners, smaller sizes
 const mobilePositions = [
-  { position: "top-8 left-2", size: "w-20 h-28", rotation: "-rotate-12" },
-  { position: "top-12 right-2", size: "w-16 h-24", rotation: "rotate-12" },
-  { position: "bottom-32 left-2", size: "w-16 h-24", rotation: "rotate-6" },
-  { position: "bottom-28 right-2", size: "w-20 h-28", rotation: "-rotate-6" },
+  { position: "top-4 left-2", size: "w-14 h-20", rotation: "-rotate-12" },
+  { position: "top-6 right-2", size: "w-12 h-18", rotation: "rotate-12" },
+  { position: "bottom-28 left-3", size: "w-12 h-18", rotation: "rotate-6" },
+  { position: "bottom-24 right-2", size: "w-14 h-20", rotation: "-rotate-6" },
 ];
 
 // Fisher-Yates shuffle
@@ -55,40 +55,52 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-12">
-      {/* Subtle Background - No Green */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/20" />
+      {/* Animated Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/30 to-background" />
       
-      {/* Very Subtle Ambient Glow */}
+      {/* Animated Glow Orbs */}
       <motion.div
         animate={{ 
-          opacity: [0.05, 0.1, 0.05]
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.5, 0.3]
         }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-foreground/5 blur-3xl"
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-accent/20 blur-3xl"
       />
+      <motion.div
+        animate={{ 
+          scale: [1.2, 1, 1.2],
+          opacity: [0.2, 0.4, 0.2]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/10 blur-3xl"
+      />
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 grid-pattern opacity-50" />
 
       {/* Floating Movie Posters - Mobile */}
       {floatingImages.map((img, index) => (
         <motion.div
           key={`mobile-${img.id}`}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.6, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.5, y: 50 }}
+          animate={{ opacity: 0.7, scale: 1, y: 0 }}
           transition={{ 
-            duration: 1, 
-            delay: 0.3 + index * 0.1,
-            ease: "easeOut"
+            duration: 0.8, 
+            delay: 0.5 + index * 0.15,
+            ease: [0.25, 0.46, 0.45, 0.94]
           }}
           className={`absolute ${img.mobile.position} lg:hidden z-0`}
         >
           <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 5 + index, repeat: Infinity, ease: "easeInOut" }}
-            className={`${img.mobile.size} ${img.mobile.rotation} rounded-xl overflow-hidden shadow-lg border border-border/30`}
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 4 + index, repeat: Infinity, ease: "easeInOut" }}
+            className={`${img.mobile.size} ${img.mobile.rotation} rounded-xl overflow-hidden shadow-card bg-card/50 backdrop-blur-sm border border-white/10`}
           >
             <img 
               src={img.url} 
               alt="Movie poster"
-              className="w-full h-full object-cover opacity-70"
+              className="w-full h-full object-cover opacity-80"
               loading="lazy"
             />
           </motion.div>
@@ -99,20 +111,20 @@ const HeroSection = () => {
       {floatingImages.map((img, index) => (
         <motion.div
           key={`desktop-${img.id}`}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 0.8, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.5, y: 100 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ 
-            duration: 1.2, 
-            delay: 0.2 + index * 0.1,
-            ease: "easeOut"
+            duration: 1, 
+            delay: 0.3 + index * 0.15,
+            ease: [0.25, 0.46, 0.45, 0.94]
           }}
           className={`absolute ${img.desktop.position} hidden lg:block z-0`}
         >
           <motion.div
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 7 + index, repeat: Infinity, ease: "easeInOut" }}
-            whileHover={{ scale: 1.03 }}
-            className={`${img.desktop.size} ${img.desktop.rotation} rounded-2xl overflow-hidden shadow-xl border border-border/40 cursor-pointer`}
+            animate={{ y: [0, -20, 0], rotate: [0, 2, -2, 0] }}
+            transition={{ duration: 6 + index, repeat: Infinity, ease: "easeInOut" }}
+            whileHover={{ scale: 1.05, rotate: 0 }}
+            className={`${img.desktop.size} ${img.desktop.rotation} rounded-2xl overflow-hidden shadow-card-hover bg-card/30 backdrop-blur-sm border border-white/20 cursor-pointer`}
           >
             <img 
               src={img.url} 
@@ -120,6 +132,8 @@ const HeroSection = () => {
               className="w-full h-full object-cover"
               loading="lazy"
             />
+            {/* Shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
           </motion.div>
         </motion.div>
       ))}
@@ -152,7 +166,9 @@ const HeroSection = () => {
             Mood
           </motion.span>
           <motion.span 
-            className="block text-foreground"
+            className="block bg-gradient-to-r from-foreground via-accent to-foreground bg-clip-text text-transparent bg-[length:200%_100%]"
+            animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
             whileHover={{ scale: 1.02 }}
           >
             Flix
