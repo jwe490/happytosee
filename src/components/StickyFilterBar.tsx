@@ -217,37 +217,46 @@ const StickyFilterBar = ({
           ))}
         </div>
 
-        {/* Mobile Primary CTA - Fixed & Properly Aligned */}
-        <div className="sm:hidden pt-3">
+        {/* Mobile Primary CTA - Fixed & Properly Contained */}
+        <div className="sm:hidden pt-2 px-0">
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={onGetRecommendations}
             disabled={isLoading || !selectedMood}
-            className="relative w-full h-14 rounded-2xl font-semibold text-base overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="relative w-full max-w-full h-12 rounded-xl font-semibold text-sm overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-lg border border-primary/20"
+            style={{ minWidth: 0 }}
           >
             {/* Animated Gradient Background */}
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_100%]"
+              className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]"
               animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+            />
+            
+            {/* Shimmer overlay */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
             />
             
             {/* Inner content */}
-            <span className="relative flex items-center justify-center gap-2.5 text-background font-display">
+            <span className="relative z-10 flex items-center justify-center gap-2 text-primary-foreground font-medium truncate px-4">
               {isLoading ? (
                 <>
                   <motion.span
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="text-base"
                   >
                     🎬
                   </motion.span>
-                  Finding Movies...
+                  <span className="truncate">Finding...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
-                  Get My Recommendations
+                  <Sparkles className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">Get Recommendations</span>
                 </>
               )}
             </span>
