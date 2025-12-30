@@ -45,18 +45,18 @@ const MovieGrid = ({ movies, isLoading }: MovieGridProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="space-y-8"
+        className="space-y-6 md:space-y-8"
       >
-        <div className="text-center space-y-2">
-          <h2 className="font-display text-3xl md:text-4xl font-semibold text-foreground">
+        <div className="text-center space-y-1 md:space-y-2">
+          <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-semibold text-foreground">
             Your Personalized Picks
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {movies.length} movies curated just for your current mood
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
           {movies.map((movie, index) => (
             <MovieCard 
               key={movie.id} 

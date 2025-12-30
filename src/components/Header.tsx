@@ -39,16 +39,16 @@ const Header = () => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full py-4 px-6 md:px-8 sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
+      className="w-full py-3 px-4 md:py-4 md:px-8 sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <button 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-foreground hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-1.5 md:gap-2 text-foreground hover:text-muted-foreground transition-colors"
           >
-            <div className="w-0 h-0 border-l-[8px] border-l-accent border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent" />
-            <span className="font-display text-sm font-semibold tracking-wide uppercase">Menu</span>
+            <div className="w-0 h-0 border-l-[6px] md:border-l-[8px] border-l-accent border-t-[4px] md:border-t-[5px] border-t-transparent border-b-[4px] md:border-b-[5px] border-b-transparent" />
+            <span className="font-display text-xs md:text-sm font-semibold tracking-wide uppercase hidden sm:inline">Menu</span>
           </button>
         </div>
 
@@ -56,7 +56,7 @@ const Header = () => {
           onClick={() => navigate("/")}
           className="absolute left-1/2 -translate-x-1/2"
         >
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight hover:text-foreground/80 transition-colors">
+          <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold text-foreground tracking-tight hover:text-foreground/80 transition-colors">
             MoodFlix
           </h1>
         </button>
@@ -102,7 +102,7 @@ const Header = () => {
             <>
               <button 
                 onClick={() => navigate("/auth")}
-                className="font-display text-sm font-medium text-foreground hover:text-muted-foreground transition-colors tracking-wide uppercase"
+                className="font-display text-xs md:text-sm font-medium text-foreground hover:text-muted-foreground transition-colors tracking-wide uppercase hidden sm:block"
               >
                 Log-in
               </button>
@@ -110,7 +110,7 @@ const Header = () => {
                 variant="default" 
                 size="sm"
                 onClick={() => navigate("/auth")}
-                className="font-display text-xs font-semibold tracking-wide uppercase rounded-full px-5"
+                className="font-display text-[10px] md:text-xs font-semibold tracking-wide uppercase rounded-full px-3 md:px-5"
               >
                 Sign-up
               </Button>
