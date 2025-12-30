@@ -35,7 +35,7 @@ const Index = () => {
     movieType: "any",
   });
 
-  const { movies, isLoading, getRecommendations, clearHistory, recommendedCount } = useMovieRecommendations();
+  const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -221,7 +221,13 @@ const Index = () => {
 
             {/* Movie Recommendations */}
             <section className="py-12">
-              <MovieGrid movies={movies} isLoading={isLoading} />
+              <MovieGrid 
+                movies={movies} 
+                isLoading={isLoading}
+                isLoadingMore={isLoadingMore}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+              />
             </section>
           </TabsContent>
 
