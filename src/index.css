@@ -64,9 +64,19 @@
     --foreground: 40 20% 95%;
     --card: 0 0% 10%;
     --card-foreground: 40 20% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 40 20% 95%;
+    --primary: 40 20% 95%;
+    --primary-foreground: 0 0% 6%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 40 20% 95%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
-    --border: 0 0% 18%;
+    --accent: 145 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 40 20% 95%;
     --grid-color: hsl(0 0% 100% / 0.05);
   }
 }
