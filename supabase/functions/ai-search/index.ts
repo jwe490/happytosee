@@ -14,7 +14,9 @@ serve(async (req) => {
   }
 
   try {
-    const { description, type } = await req.json();
+    // Parse body ONCE at the start
+    const body = await req.json();
+    const { description, type, movieTitle, movieOverview, watchHistory, mood } = body;
     
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -30,6 +32,15 @@ serve(async (req) => {
     console.log("AI search request:", { description, type });
 
     if (type === "describe") {
+      if (!description) {
+        return new Response(JSON.stringify({ 
+          movies: [],
+          message: "Please provide a description of the movie you're looking for."
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Use AI to identify movie from description
       const aiPrompt = `The user is trying to find a movie. They described it as: "${description}"
 
@@ -67,6 +78,12 @@ Only include movies you're fairly confident about. Maximum 5 movies.`;
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+        if (aiResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "AI service payment required." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         throw new Error("AI service error");
       }
 
@@ -91,7 +108,7 @@ Only include movies you're fairly confident about. Maximum 5 movies.`;
 
       // Search TMDb for identified movies
       const movies = [];
-      for (const movie of (parsed.movies || []).slice(0, 5)) {
+      for (const movie of (parsed?.movies || []).slice(0, 5)) {
         const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(movie.title)}&year=${movie.year || ""}`;
         const searchResponse = await fetch(searchUrl);
         
@@ -117,7 +134,7 @@ Only include movies you're fairly confident about. Maximum 5 movies.`;
 
       return new Response(JSON.stringify({ 
         movies,
-        searchTerms: parsed.searchTerms || [],
+        searchTerms: parsed?.searchTerms || [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -125,10 +142,12 @@ Only include movies you're fairly confident about. Maximum 5 movies.`;
 
     if (type === "summary") {
       // Generate AI summary for a movie
-      const { movieTitle, movieOverview } = await req.json();
+      if (!movieTitle) {
+        throw new Error("Movie title is required for summary");
+      }
       
       const summaryPrompt = `Provide a brief, engaging 2-sentence summary of the movie "${movieTitle}". 
-Original overview: ${movieOverview}
+Original overview: ${movieOverview || "No overview provided"}
 
 Make it sound exciting and highlight what makes this movie special. Don't spoil any plot twists.`;
 
@@ -157,19 +176,16 @@ Make it sound exciting and highlight what makes this movie special. Don't spoil 
     }
 
     if (type === "surprise") {
-      // Surprise me - random recommendation based on user's history
-      const { watchHistory, mood } = await req.json();
-      
-      const surprisePrompt = `Based on the user's watch history and mood, suggest ONE unexpected movie they might love.
+      // Surprise me - random recommendation
+      const surprisePrompt = `Suggest ONE amazing movie that's often overlooked but is critically acclaimed or a hidden gem.
+${watchHistory?.length > 0 ? `The user has watched: ${watchHistory.slice(0, 5).map((m: any) => m.title).join(", ")}` : ""}
+${mood ? `Current mood: ${mood}` : "They want to be surprised"}
 
-Watch history: ${watchHistory?.slice(0, 10).map((m: any) => m.title).join(", ") || "None"}
-Current mood: ${mood || "adventurous"}
-
-Suggest something they wouldn't typically pick but would likely enjoy. Return JSON:
+Suggest something they wouldn't typically pick but would likely enjoy. Return ONLY a JSON object (no markdown):
 {
   "title": "Movie Title",
   "year": 2020,
-  "reason": "Why they'll love it despite not expecting to"
+  "reason": "Why they'll love it"
 }`;
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -185,20 +201,28 @@ Suggest something they wouldn't typically pick but would likely enjoy. Return JS
       });
 
       if (!aiResponse.ok) {
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         throw new Error("AI service error");
       }
 
       const aiData = await aiResponse.json();
       const content = aiData.choices?.[0]?.message?.content || "";
       
+      console.log("AI surprise response:", content);
+      
       let parsed;
       try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const jsonMatch = content.match(/\{[\s\S]*?\}/);
         if (jsonMatch) {
           parsed = JSON.parse(jsonMatch[0]);
         }
       } catch (e) {
-        console.error("Failed to parse AI response");
+        console.error("Failed to parse AI response:", e);
       }
 
       if (parsed?.title) {
@@ -230,13 +254,13 @@ Suggest something they wouldn't typically pick but would likely enjoy. Return JS
 
       return new Response(JSON.stringify({ 
         movie: null,
-        message: "Couldn't find a surprise recommendation"
+        message: "Couldn't find a surprise recommendation. Try again!"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ error: "Invalid type" }), {
+    return new Response(JSON.stringify({ error: "Invalid type. Use 'describe', 'summary', or 'surprise'." }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

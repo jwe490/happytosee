@@ -29,7 +29,8 @@ const Profile = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!user && !profileLoading) {
+    // Only redirect when we're sure there's no user (not while loading)
+    if (!profileLoading && !user) {
       navigate("/auth");
     }
   }, [user, profileLoading, navigate]);
