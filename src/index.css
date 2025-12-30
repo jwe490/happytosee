@@ -40,14 +40,14 @@
     --gradient-hero: linear-gradient(180deg, hsl(40 33% 96%) 0%, hsl(40 25% 94%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(145 60% 45%) 0%, hsl(145 55% 40%) 100%);
     
-    --shadow-soft: 0 4px 20px hsl(0 0% 0% / 0.08);
-    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.06);
-    --shadow-card-hover: 0 16px 48px hsl(0 0% 0% / 0.1);
+    --shadow-soft: 0 4px 20px hsl(0 0% 0% / 0.06);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.08);
+    --shadow-card-hover: 0 20px 60px hsl(0 0% 0% / 0.12);
 
-    --glass-bg: hsl(0 0% 100% / 0.8);
-    --glass-border: hsl(0 0% 0% / 0.08);
+    --glass-bg: hsl(0 0% 100% / 0.85);
+    --glass-border: hsl(0 0% 0% / 0.06);
 
-    --grid-color: hsl(0 0% 0% / 0.06);
+    --grid-color: hsl(0 0% 0% / 0.04);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -127,15 +127,15 @@
   }
 
   .animate-fade-up {
-    animation: fadeUp 0.6s ease-out forwards;
+    animation: fadeUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+    animation: fadeIn 0.3s ease-out forwards;
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.3s ease-out forwards;
+    animation: scaleIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
   .animate-float {
@@ -153,11 +153,43 @@
   }
 
   .hover-lift {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease;
   }
 
   .hover-lift:hover {
-    transform: translateY(-8px);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Global snappy click animation */
+  .click-scale {
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .click-scale:active {
+    transform: scale(0.97);
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Shadow utilities using design tokens */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card-hover {
     box-shadow: var(--shadow-card-hover);
   }
 }
