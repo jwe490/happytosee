@@ -1,16 +1,7 @@
 import { motion } from "framer-motion";
 import MovieCard from "./MovieCard";
 import { Loader2 } from "lucide-react";
-
-interface Movie {
-  id: number;
-  title: string;
-  rating: number;
-  year: number;
-  genre: string;
-  posterUrl: string;
-  moodMatch: string;
-}
+import { Movie } from "@/hooks/useMovieRecommendations";
 
 interface MovieGridProps {
   movies: Movie[];

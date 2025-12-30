@@ -5,65 +5,8 @@ import MoodSelector from "@/components/MoodSelector";
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ChevronDown, Film } from "lucide-react";
-
-// Sample movie data - in production this would come from an API
-const sampleMovies = [
-  {
-    id: 1,
-    title: "The Shawshank Redemption",
-    rating: 9.3,
-    year: 1994,
-    genre: "Drama",
-    posterUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=600&fit=crop",
-    moodMatch: "A powerful story of hope and resilience that will lift your spirits and remind you that good things come to those who wait."
-  },
-  {
-    id: 2,
-    title: "Amélie",
-    rating: 8.3,
-    year: 2001,
-    genre: "Romance",
-    posterUrl: "https://images.unsplash.com/photo-1518676590629-3dcbd9c5a5c9?w=400&h=600&fit=crop",
-    moodMatch: "A whimsical French film perfect for feeling good about life's simple pleasures and unexpected connections."
-  },
-  {
-    id: 3,
-    title: "Interstellar",
-    rating: 8.6,
-    year: 2014,
-    genre: "Sci-Fi",
-    posterUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&h=600&fit=crop",
-    moodMatch: "An epic space adventure that combines emotional depth with stunning visuals, perfect for when you want to dream big."
-  },
-  {
-    id: 4,
-    title: "The Grand Budapest Hotel",
-    rating: 8.1,
-    year: 2014,
-    genre: "Comedy",
-    posterUrl: "https://images.unsplash.com/photo-1518109050801-587f1cb64e1d?w=400&h=600&fit=crop",
-    moodMatch: "Wes Anderson's visual masterpiece delivers quirky humor and heartwarming moments in equal measure."
-  },
-  {
-    id: 5,
-    title: "Spirited Away",
-    rating: 8.6,
-    year: 2001,
-    genre: "Animation",
-    posterUrl: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop",
-    moodMatch: "Studio Ghibli's enchanting tale of courage and growth that speaks to the child in all of us."
-  },
-  {
-    id: 6,
-    title: "La La Land",
-    rating: 8.0,
-    year: 2016,
-    genre: "Musical",
-    posterUrl: "https://images.unsplash.com/photo-1509281373149-e957c6296406?w=400&h=600&fit=crop",
-    moodMatch: "A modern musical celebrating dreams, love, and the bittersweet nature of chasing your passions."
-  },
-];
+import { Sparkles, ChevronDown, Film, RotateCcw } from "lucide-react";
+import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
 
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -74,8 +17,8 @@ const Index = () => {
     duration: "any",
     movieType: "any",
   });
-  const [movies, setMovies] = useState<typeof sampleMovies>([]);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const { movies, isLoading, getRecommendations, clearHistory, recommendedCount } = useMovieRecommendations();
 
   const handleMoodSelect = (mood: string) => {
     setSelectedMood(mood);
@@ -87,11 +30,15 @@ const Index = () => {
   };
 
   const handleGetRecommendations = async () => {
-    setIsLoading(true);
-    // Simulate API call - in production this would call your AI backend
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setMovies(sampleMovies);
-    setIsLoading(false);
+    if (!selectedMood) return;
+    
+    await getRecommendations({
+      mood: selectedMood,
+      languages: preferences.language === "any" ? [] : [preferences.language],
+      genres: preferences.genres,
+      industries: preferences.movieType === "any" ? [] : [preferences.movieType],
+      duration: preferences.duration,
+    });
   };
 
   return (
@@ -162,7 +109,7 @@ const Index = () => {
                   onUpdatePreferences={updatePreferences}
                 />
 
-                <div className="mt-10 flex justify-center">
+                <div className="mt-10 flex flex-col items-center gap-4">
                   <Button 
                     variant="cinema" 
                     size="xl"
@@ -171,9 +118,19 @@ const Index = () => {
                     className="group"
                   >
                     <Film className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                    Get My Recommendations
+                    {isLoading ? "Finding Movies..." : "Get My Recommendations"}
                     <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
                   </Button>
+
+                  {recommendedCount > 0 && (
+                    <button
+                      onClick={clearHistory}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Clear history ({recommendedCount} movies tracked)
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.section>
