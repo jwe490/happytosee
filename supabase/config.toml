@@ -11,3 +11,7 @@ verify_jwt = false
 
 [functions.ai-search]
 verify_jwt = false
+
+[functions.trending-movies]
+verify_jwt = false
+
