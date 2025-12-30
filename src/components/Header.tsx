@@ -12,10 +12,10 @@ const Header = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cinema-gold to-cinema-amber shadow-glow">
-              <Film className="w-6 h-6 text-primary-foreground" />
+            <div className="p-2.5 rounded-xl bg-secondary border border-border">
+              <Film className="w-6 h-6 text-foreground" />
             </div>
-            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-pulse" />
+            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-foreground/60 animate-pulse" />
           </div>
           <div>
             <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">
@@ -29,7 +29,7 @@ const Header = () => {
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="hidden md:inline">Powered by</span>
-          <span className="text-primary font-medium">AI</span>
+          <span className="text-foreground font-medium">AI</span>
         </div>
       </div>
     </motion.header>
