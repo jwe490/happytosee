@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import MoodSelector from "@/components/MoodSelector";
+import FloatingMoodSelector from "@/components/FloatingMoodSelector";
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
@@ -12,10 +13,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search } from "lucide-react";
 import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
 
+const moodTaglines: Record<string, string> = {
+  happy: "Feeling Happy? Here's something uplifting 🎉",
+  sad: "Feeling Sad? Comfort movies for you 💙",
+  romantic: "In the mood for love? 💕",
+  excited: "Ready for action? 🔥",
+  bored: "Let's surprise you! 🎲",
+  relaxed: "Chill vibes only 🌿",
+  nostalgic: "A trip down memory lane ✨",
+};
+
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [hasScrolledPastMood, setHasScrolledPastMood] = useState(false);
   const [preferences, setPreferences] = useState({
     language: "any",
     genres: [] as string[],
@@ -29,16 +41,33 @@ const Index = () => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       setShowStickyBar(scrollY > 400 && movies.length > 0);
+      setHasScrolledPastMood(scrollY > 600);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [movies.length]);
 
-  const handleMoodSelect = (mood: string) => {
+  // Real-time mood update with debounce
+  const handleMoodSelect = useCallback((mood: string) => {
     setSelectedMood(mood);
     setShowPreferences(true);
-  };
+  }, []);
+
+  // Floating mood selector - triggers instant recommendations
+  const handleFloatingMoodSelect = useCallback(async (mood: string) => {
+    setSelectedMood(mood);
+    setShowPreferences(true);
+    
+    // Instantly fetch recommendations
+    await getRecommendations({
+      mood: mood,
+      languages: preferences.language === "any" ? [] : [preferences.language],
+      genres: preferences.genres,
+      industries: preferences.movieType === "any" ? [] : [preferences.movieType],
+      duration: preferences.duration,
+    });
+  }, [getRecommendations, preferences]);
 
   const updatePreferences = (key: string, value: string | string[]) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
@@ -59,6 +88,17 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Header />
+
+      {/* Floating Mood Selector - always visible after scrolling */}
+      <AnimatePresence>
+        {hasScrolledPastMood && (
+          <FloatingMoodSelector
+            selectedMood={selectedMood}
+            onSelectMood={handleFloatingMoodSelect}
+            isLoading={isLoading}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sticky Filter Bar */}
       <AnimatePresence>
@@ -126,6 +166,20 @@ const Index = () => {
                   transition={{ duration: 0.5 }}
                   className="py-8 md:py-12 space-y-6 md:space-y-8"
                 >
+                  {/* Dynamic Mood Tagline */}
+                  {selectedMood && (
+                    <motion.div
+                      key={selectedMood}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-center"
+                    >
+                      <p className="text-lg md:text-xl font-display font-semibold text-foreground">
+                        {moodTaglines[selectedMood] || "Great choice!"}
+                      </p>
+                    </motion.div>
+                  )}
+
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <ChevronDown className="w-4 h-4 md:w-5 md:h-5 animate-bounce" />
                     <span className="text-xs md:text-sm font-medium">Customize your preferences</span>
