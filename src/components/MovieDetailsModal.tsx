@@ -128,20 +128,21 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border">
+        {/* Sticky Close Button - Outside scrollable area */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 p-2.5 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg transition-colors z-[60] border border-border"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5 text-foreground" />
+        </button>
+
         {isLoading ? (
           <div className="flex items-center justify-center h-96">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
           </div>
         ) : details ? (
           <div className="relative max-h-[90vh] overflow-y-auto">
-            {/* Sticky Close Button */}
-            <button
-              onClick={onClose}
-              className="fixed top-4 right-4 md:absolute md:top-4 md:right-4 p-2.5 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background shadow-lg transition-colors z-50 border border-border"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5 text-foreground" />
-            </button>
 
             {/* Backdrop Image */}
             {details.backdropUrl && (
