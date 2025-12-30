@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import MovieCard from "./MovieCard";
-import MovieDetailsModal from "./MovieDetailsModal";
+import MovieExpandedView from "./MovieExpandedView";
 import { Loader2, Film, Sparkles, ArrowUp } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,11 @@ const MovieGrid = ({
   hasMore = true,
   onLoadMore 
 }: MovieGridProps) => {
-  const [selectedMovieId, setSelectedMovieId] = useState<number | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Show back to top button after scrolling
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 1000);
@@ -35,21 +34,21 @@ const MovieGrid = ({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleMovieClick = (movieId: number) => {
-    setSelectedMovieId(movieId);
-    setIsModalOpen(true);
+  const handleMovieClick = (movie: Movie) => {
+    setSelectedMovie(movie);
+    setIsExpanded(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedMovieId(null);
+  const handleClose = () => {
+    setIsExpanded(false);
+    // Delay clearing selected movie to allow exit animation
+    setTimeout(() => setSelectedMovie(null), 300);
   };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Skeleton loader for Load More
   const SkeletonCards = () => (
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 mt-6">
       {[...Array(4)].map((_, i) => (
@@ -81,7 +80,7 @@ const MovieGrid = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
         className="space-y-6 md:space-y-8"
       >
         <div className="text-center space-y-1 md:space-y-2">
@@ -99,15 +98,13 @@ const MovieGrid = ({
               key={`${movie.id}-${index}`} 
               movie={movie} 
               index={index} 
-              onClick={() => handleMovieClick(movie.id)}
+              onClick={() => handleMovieClick(movie)}
             />
           ))}
         </div>
 
-        {/* Loading More Skeleton */}
         {isLoadingMore && <SkeletonCards />}
 
-        {/* Load More Section */}
         <div ref={loadMoreRef} className="flex flex-col items-center gap-4 pt-6 md:pt-8">
           {hasMore && onLoadMore ? (
             <Button
@@ -115,12 +112,12 @@ const MovieGrid = ({
               disabled={isLoadingMore}
               variant="outline"
               size="lg"
-              className="rounded-full px-8 py-6 text-base font-display font-semibold gap-2 hover:bg-foreground hover:text-background transition-all duration-300"
+              className="rounded-full px-8 py-6 text-base font-display font-semibold gap-2 hover:bg-foreground hover:text-background transition-all duration-200"
             >
               {isLoadingMore ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Loading more movies...
+                  Loading more...
                 </>
               ) : (
                 <>
@@ -154,17 +151,18 @@ const MovieGrid = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           onClick={scrollToTop}
-          className="fixed bottom-20 left-4 sm:left-6 z-40 p-3 rounded-full bg-card border border-border shadow-lg hover:shadow-xl transition-all duration-300"
+          className="fixed bottom-20 left-4 sm:left-6 z-40 p-3 rounded-full bg-card border border-border shadow-lg hover:shadow-xl transition-shadow duration-200"
           aria-label="Back to top"
         >
           <ArrowUp className="w-5 h-5 text-foreground" />
         </motion.button>
       )}
 
-      <MovieDetailsModal
-        movieId={selectedMovieId}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+      {/* Expanded View with Seamless Animation */}
+      <MovieExpandedView
+        movie={selectedMovie}
+        isOpen={isExpanded}
+        onClose={handleClose}
       />
     </>
   );
