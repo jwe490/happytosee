@@ -185,29 +185,52 @@ const Index = () => {
                     <span className="text-xs md:text-sm font-medium">Customize your preferences</span>
                   </div>
 
-                  <div className="max-w-3xl mx-auto bg-card rounded-2xl md:rounded-3xl p-4 md:p-8 border border-border shadow-card">
+                  <div className="max-w-3xl mx-auto bg-card rounded-2xl md:rounded-3xl p-4 md:p-6 lg:p-8 border border-border shadow-card">
                     <PreferencesForm 
                       preferences={preferences}
                       onUpdatePreferences={updatePreferences}
                     />
 
-                    <div className="mt-10 flex flex-col items-center gap-4">
-                      <Button 
-                        variant="default" 
-                        size="xl"
+                    {/* CTA Button - Properly Aligned */}
+                    <div className="mt-8 md:mt-10 px-0 md:px-4">
+                      <motion.button
+                        whileTap={{ scale: 0.96 }}
                         onClick={handleGetRecommendations}
                         disabled={isLoading}
-                        className="group rounded-full"
+                        className="group relative w-full h-14 rounded-2xl font-semibold text-base overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed bg-foreground"
                       >
-                        <Film className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                        {isLoading ? "Finding Movies..." : "Get My Recommendations"}
-                        <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
-                      </Button>
+                        {/* RGB Grainy effect on active */}
+                        <div className="absolute inset-0 bg-foreground group-active:bg-gradient-to-r group-active:from-rose-500 group-active:via-violet-500 group-active:to-cyan-500 group-active:animate-gradient-x transition-all duration-150" />
+                        
+                        {/* Grain overlay */}
+                        <div className="absolute inset-0 opacity-0 group-active:opacity-20 bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')] transition-opacity duration-150" />
+                        
+                        {/* Content */}
+                        <span className="relative flex items-center justify-center gap-3 text-background font-display">
+                          {isLoading ? (
+                            <>
+                              <motion.span
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                              >
+                                🎬
+                              </motion.span>
+                              Finding Movies...
+                            </>
+                          ) : (
+                            <>
+                              <Film className="w-5 h-5" />
+                              Get My Recommendations
+                              <Sparkles className="w-5 h-5" />
+                            </>
+                          )}
+                        </span>
+                      </motion.button>
 
                       {recommendedCount > 0 && (
                         <button
                           onClick={clearHistory}
-                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          className="w-full mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
                         >
                           <RotateCcw className="w-4 h-4" />
                           Clear history ({recommendedCount} movies tracked)

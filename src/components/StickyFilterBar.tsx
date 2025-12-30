@@ -217,23 +217,22 @@ const StickyFilterBar = ({
           ))}
         </div>
 
-        {/* Mobile Primary CTA - Fixed & Properly Aligned */}
-        <div className="sm:hidden pt-3">
+        {/* Mobile Primary CTA - Fixed Alignment with Grainy RGB Click Effect */}
+        <div className="sm:hidden pt-2 px-1">
           <motion.button
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.96 }}
             onClick={onGetRecommendations}
             disabled={isLoading || !selectedMood}
-            className="relative w-full h-14 rounded-2xl font-semibold text-base overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="group relative w-full h-12 rounded-xl font-semibold text-sm overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed bg-foreground"
           >
-            {/* Animated Gradient Background */}
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_100%]"
-              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
+            {/* RGB Grainy effect on active/click */}
+            <div className="absolute inset-0 bg-foreground group-active:bg-gradient-to-r group-active:from-rose-500 group-active:via-violet-500 group-active:to-cyan-500 group-active:animate-gradient-x transition-all duration-150" />
             
-            {/* Inner content */}
-            <span className="relative flex items-center justify-center gap-2.5 text-background font-display">
+            {/* Grain texture overlay */}
+            <div className="absolute inset-0 opacity-0 group-active:opacity-20 bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')] transition-opacity duration-150" />
+            
+            {/* Content */}
+            <span className="relative flex items-center justify-center gap-2 text-background font-display">
               {isLoading ? (
                 <>
                   <motion.span
@@ -242,12 +241,13 @@ const StickyFilterBar = ({
                   >
                     🎬
                   </motion.span>
-                  Finding Movies...
+                  Finding...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
+                  <span className="text-base">🎬</span>
                   Get My Recommendations
+                  <Sparkles className="w-4 h-4" />
                 </>
               )}
             </span>
