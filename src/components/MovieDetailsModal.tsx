@@ -116,7 +116,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border">
         {isLoading ? (
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-10 h-10 text-foreground animate-spin" />
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
           </div>
         ) : details ? (
           <ScrollArea className="max-h-[90vh]">
@@ -168,8 +168,8 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
 
                     {/* Meta Info */}
                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 text-foreground">
-                        <Star className="w-4 h-4 fill-foreground" />
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 text-primary">
+                        <Star className="w-4 h-4 fill-primary" />
                         <span className="font-semibold">{details.rating}</span>
                         <span className="text-muted-foreground">
                           ({details.voteCount.toLocaleString()} votes)
@@ -243,7 +243,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                 {/* Synopsis */}
                 <div className="mt-8 space-y-3">
                   <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                    <Film className="w-5 h-5 text-foreground" />
+                    <Film className="w-5 h-5 text-primary" />
                     Synopsis
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">
@@ -255,7 +255,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                 {details.cast.length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                      <Users className="w-5 h-5 text-foreground" />
+                      <Users className="w-5 h-5 text-primary" />
                       Cast
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -331,7 +331,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                 {details.similarMovies && details.similarMovies.length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                      <Clapperboard className="w-5 h-5 text-foreground" />
+                      <Clapperboard className="w-5 h-5 text-primary" />
                       Similar Movies
                     </h3>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -349,14 +349,14 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-1 text-xs text-foreground">
-                                <Star className="w-3 h-3 fill-foreground text-foreground" />
+                              <div className="flex items-center gap-1 text-xs text-white">
+                                <Star className="w-3 h-3 fill-primary text-primary" />
                                 <span>{movie.rating}</span>
                               </div>
                             </div>
                           </div>
                           <div>
-                            <p className="font-medium text-xs text-foreground line-clamp-2 group-hover:text-foreground/70 transition-colors">
+                            <p className="font-medium text-xs text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                               {movie.title}
                             </p>
                             {movie.year && (

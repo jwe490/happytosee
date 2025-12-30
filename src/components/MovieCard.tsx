@@ -15,7 +15,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
       onClick={onClick}
-      className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-foreground/30 transition-all duration-500 hover-lift cursor-pointer"
+      className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-500 hover-lift cursor-pointer"
     >
       {/* Poster Image */}
       <div className="relative aspect-[2/3] overflow-hidden bg-muted">
@@ -34,9 +34,9 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent opacity-80" />
         
         {/* Rating Badge */}
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/90 backdrop-blur-sm">
-          <Star className="w-4 h-4 fill-background text-background" />
-          <span className="text-sm font-bold text-background">{movie.rating}</span>
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm">
+          <Star className="w-4 h-4 fill-primary-foreground text-primary-foreground" />
+          <span className="text-sm font-bold text-primary-foreground">{movie.rating}</span>
         </div>
       </div>
 
@@ -63,8 +63,9 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
           )}
         </div>
 
+        {/* Mood Match */}
         <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-          <Sparkles className="w-4 h-4 text-foreground/70 mt-0.5 flex-shrink-0" />
+          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-sm text-muted-foreground leading-relaxed">
             {movie.moodMatch}
           </p>
@@ -73,7 +74,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
       {/* Hover Glow Effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent" />
       </div>
     </motion.div>
   );

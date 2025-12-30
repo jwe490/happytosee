@@ -88,7 +88,7 @@ const Index = () => {
 
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
             What's Your
-            <span className="block text-primary">Movie Mood?</span>
+            <span className="block text-gradient-gold">Movie Mood?</span>
           </h1>
 
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
