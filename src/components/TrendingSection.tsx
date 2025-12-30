@@ -28,35 +28,15 @@ export function TrendingSection({ onMovieSelect }: TrendingSectionProps) {
   const fetchTrending = async () => {
     setIsLoading(true);
     try {
-      const TMDB_API_KEY = "2a2e2c74af2e08b56456ab150ebf99c8"; // Public API key for demo
-      const endpoints = {
-        trending: `https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY}`,
-        top_rated: `https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_API_KEY}`,
-        upcoming: `https://api.themoviedb.org/3/movie/upcoming?api_key=${TMDB_API_KEY}`,
-      };
+      const { data, error } = await supabase.functions.invoke("trending-movies", {
+        body: { category: activeTab },
+      });
 
-      const response = await fetch(endpoints[activeTab]);
-      const data = await response.json();
-
-      const genreMap: Record<number, string> = {
-        28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
-        99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
-        27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi",
-        10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western"
-      };
-
-      const movies: TrendingMovie[] = (data.results || []).slice(0, 10).map((m: any) => ({
-        id: m.id,
-        title: m.title,
-        year: m.release_date ? new Date(m.release_date).getFullYear() : null,
-        rating: Math.round(m.vote_average * 10) / 10,
-        posterUrl: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-        genre: m.genre_ids?.slice(0, 2).map((id: number) => genreMap[id] || "").filter(Boolean).join(", ") || "Drama",
-      }));
-
-      setTrendingMovies(movies);
+      if (error) throw error;
+      setTrendingMovies(data?.movies || []);
     } catch (error) {
       console.error("Error fetching trending:", error);
+      setTrendingMovies([]);
     } finally {
       setIsLoading(false);
     }
@@ -120,8 +100,8 @@ export function TrendingSection({ onMovieSelect }: TrendingSectionProps) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold text-white flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                  <div className="absolute top-2 left-2 bg-background/70 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold text-foreground flex items-center gap-1 border border-border/60">
+                    <Star className="w-3 h-3 fill-accent text-accent" />
                     {movie.rating}
                   </div>
                   {activeTab === "trending" && (

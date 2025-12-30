@@ -31,7 +31,8 @@ const Profile = () => {
   useEffect(() => {
     // Only redirect when we're sure there's no user (not while loading)
     if (!profileLoading && !user) {
-      navigate("/auth");
+      const redirect = encodeURIComponent("/profile");
+      navigate(`/auth?redirect=${redirect}`);
     }
   }, [user, profileLoading, navigate]);
 

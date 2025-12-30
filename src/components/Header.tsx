@@ -206,6 +206,10 @@ const Header = () => {
                     {user.email}
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    My Profile
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/watchlist")}>
                     <Bookmark className="w-4 h-4 mr-2" />
                     My Watchlist
