@@ -5,15 +5,17 @@ import { Movie } from "@/hooks/useMovieRecommendations";
 interface MovieCardProps {
   movie: Movie;
   index: number;
+  onClick: () => void;
 }
 
-const MovieCard = ({ movie, index }: MovieCardProps) => {
+const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
-      className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-500 hover-lift"
+      onClick={onClick}
+      className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-500 hover-lift cursor-pointer"
     >
       {/* Poster Image */}
       <div className="relative aspect-[2/3] overflow-hidden bg-muted">
