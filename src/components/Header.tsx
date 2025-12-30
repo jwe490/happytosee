@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Film, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Header = () => {
   return (
@@ -7,29 +8,33 @@ const Header = () => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full py-6 px-6 md:px-8"
+      className="w-full py-4 px-6 md:px-8 sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cinema-gold to-cinema-amber shadow-glow">
-              <Film className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-pulse" />
-          </div>
-          <div>
-            <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">
-              MoodFlix
-            </h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              AI-Powered Movie Recommendations
-            </p>
-          </div>
+        <div className="flex items-center gap-4">
+          <button className="flex items-center gap-2 text-foreground hover:text-muted-foreground transition-colors">
+            <div className="w-0 h-0 border-l-[8px] border-l-accent border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent" />
+            <span className="font-display text-sm font-semibold tracking-wide uppercase">Menu</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="hidden md:inline">Powered by</span>
-          <span className="text-primary font-medium">AI</span>
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+            MoodFlix
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="font-display text-sm font-medium text-foreground hover:text-muted-foreground transition-colors tracking-wide uppercase">
+            Log-in
+          </button>
+          <Button 
+            variant="default" 
+            size="sm"
+            className="font-display text-xs font-semibold tracking-wide uppercase rounded-full px-5"
+          >
+            Sign-up
+          </Button>
         </div>
       </div>
     </motion.header>

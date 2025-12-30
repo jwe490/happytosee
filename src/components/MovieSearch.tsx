@@ -85,8 +85,8 @@ const MovieSearch = () => {
         <Button
           onClick={handleSearch}
           disabled={query.trim().length < 2 || isSearching}
-          variant="cinema"
-          className="h-12 px-6"
+          variant="default"
+          className="h-12 px-6 rounded-full"
         >
           {isSearching ? (
             <Loader2 className="w-5 h-5 animate-spin" />

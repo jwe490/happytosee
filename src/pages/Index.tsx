@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
+import HeroSection from "@/components/HeroSection";
 import MoodSelector from "@/components/MoodSelector";
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search } from "lucide-react";
 import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
+
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -23,11 +25,9 @@ const Index = () => {
 
   const { movies, isLoading, getRecommendations, clearHistory, recommendedCount } = useMovieRecommendations();
 
-  // Show sticky bar when scrolling past preferences and there are movies
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      // Show sticky bar after scrolling 400px and when movies exist
       setShowStickyBar(scrollY > 400 && movies.length > 0);
     };
 
@@ -57,7 +57,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
 
       {/* Sticky Filter Bar */}
@@ -73,38 +73,24 @@ const Index = () => {
         )}
       </AnimatePresence>
 
+      {/* Hero Section */}
+      <HeroSection />
+
       <main className="max-w-7xl mx-auto px-6 md:px-8 pb-20">
-        {/* Hero Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-center py-12 md:py-20 space-y-6"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary/30 text-sm text-primary">
-            <Sparkles className="w-4 h-4" />
-            <span>AI-Powered Recommendations</span>
-          </div>
-
-          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
-            What's Your
-            <span className="block text-gradient-gold">Movie Mood?</span>
-          </h1>
-
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
-            Tell us how you're feeling, and we'll curate the perfect movies 
-            for your current state of mind. No more endless scrolling.
-          </p>
-        </motion.section>
-
         {/* Tabs for Mood vs Search */}
         <Tabs defaultValue="mood" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
-            <TabsTrigger value="mood" className="gap-2">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-secondary rounded-full p-1">
+            <TabsTrigger 
+              value="mood" 
+              className="gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-sm uppercase tracking-wide"
+            >
               <Sparkles className="w-4 h-4" />
               By Mood
             </TabsTrigger>
-            <TabsTrigger value="search" className="gap-2">
+            <TabsTrigger 
+              value="search" 
+              className="gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-sm uppercase tracking-wide"
+            >
               <Search className="w-4 h-4" />
               Search
             </TabsTrigger>
@@ -119,7 +105,7 @@ const Index = () => {
                 transition={{ delay: 0.4 }}
                 className="space-y-6"
               >
-                <h2 className="font-display text-2xl md:text-3xl font-semibold text-center text-foreground">
+                <h2 className="font-display text-2xl md:text-3xl font-bold text-center text-foreground">
                   How are you feeling right now?
                 </h2>
                 
@@ -142,10 +128,10 @@ const Index = () => {
                 >
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <ChevronDown className="w-5 h-5 animate-bounce" />
-                    <span>Customize your preferences</span>
+                    <span className="text-sm font-medium">Customize your preferences</span>
                   </div>
 
-                  <div className="max-w-3xl mx-auto glass rounded-3xl p-8 border border-border">
+                  <div className="max-w-3xl mx-auto bg-card rounded-3xl p-8 border border-border shadow-card">
                     <PreferencesForm 
                       preferences={preferences}
                       onUpdatePreferences={updatePreferences}
@@ -153,11 +139,11 @@ const Index = () => {
 
                     <div className="mt-10 flex flex-col items-center gap-4">
                       <Button 
-                        variant="cinema" 
+                        variant="default" 
                         size="xl"
                         onClick={handleGetRecommendations}
                         disabled={isLoading}
-                        className="group"
+                        className="group rounded-full"
                       >
                         <Film className="w-5 h-5 transition-transform group-hover:rotate-12" />
                         {isLoading ? "Finding Movies..." : "Get My Recommendations"}
@@ -194,7 +180,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-8 border-t border-border bg-secondary/50">
         <div className="max-w-7xl mx-auto px-6 md:px-8 text-center text-sm text-muted-foreground">
           <p>Movie data sourced from IMDb, TMDb, and other reliable sources.</p>
         </div>

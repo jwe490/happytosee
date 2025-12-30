@@ -31,10 +31,10 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             transition={{ delay: index * 0.1, duration: 0.4 }}
             onClick={() => onSelectMood(mood.id)}
             className={`
-              relative group p-6 rounded-2xl glass border transition-all duration-300
+              relative group p-6 rounded-2xl bg-card border transition-all duration-300 shadow-sm
               ${isSelected 
-                ? "border-primary shadow-glow scale-105" 
-                : "border-border hover:border-primary/50 hover:scale-102"
+                ? "border-foreground shadow-card scale-105" 
+                : "border-border hover:border-foreground/30 hover:shadow-card hover:scale-102"
               }
             `}
           >
