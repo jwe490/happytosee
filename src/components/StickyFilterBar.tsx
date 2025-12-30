@@ -153,10 +153,10 @@ const StickyFilterBar = ({
           {/* Update Button */}
           <Button
             size="sm"
-            variant="cinema"
+            variant="default"
             onClick={onGetRecommendations}
             disabled={isLoading || !selectedMood}
-            className="h-9 gap-2"
+            className="h-9 gap-2 rounded-full"
           >
             <Film className="w-4 h-4" />
             {isLoading ? "Loading..." : "Update"}

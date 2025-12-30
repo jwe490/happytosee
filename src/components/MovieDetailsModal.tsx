@@ -206,7 +206,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                     {/* Trailer Button */}
                     {details.trailerKey && (
                       <Button
-                        variant="cinema"
+                        variant="default"
                         size="lg"
                         onClick={() => setShowTrailer(true)}
                         className="gap-2"

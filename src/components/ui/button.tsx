@@ -9,15 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-border bg-transparent text-foreground hover:bg-muted hover:border-primary/50",
+        outline: "border border-border bg-transparent text-foreground hover:bg-muted hover:border-foreground/50",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "text-foreground hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        cinema: "bg-gradient-to-r from-[hsl(38_92%_55%)] to-[hsl(28_90%_50%)] text-primary-foreground font-semibold shadow-glow hover:shadow-[0_0_40px_hsl(38_92%_55%/0.4)] hover:scale-105",
-        glass: "bg-[hsl(222_40%_12%/0.7)] backdrop-blur-md text-foreground hover:bg-muted/50 border border-[hsl(40_20%_95%/0.1)]",
-        mood: "bg-muted/50 text-foreground border border-border hover:border-primary hover:bg-muted transition-all duration-300",
+        accent: "bg-accent text-accent-foreground font-semibold hover:bg-accent/90 hover:scale-105",
+        glass: "bg-background/80 backdrop-blur-md text-foreground hover:bg-muted/50 border border-border",
+        mood: "bg-secondary text-foreground border border-border hover:border-foreground hover:bg-muted transition-all duration-300",
       },
       size: {
         default: "h-10 px-4 py-2",
