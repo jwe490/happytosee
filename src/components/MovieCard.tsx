@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Star, Calendar, Film, Sparkles, Globe } from "lucide-react";
+import { Star, Calendar, Film, Sparkles, Globe, Bookmark, BookmarkCheck } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface MovieCardProps {
   movie: Movie;
@@ -9,16 +10,35 @@ interface MovieCardProps {
 }
 
 const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
+  const inWatchlist = isInWatchlist(movie.id);
+
+  const handleWatchlistClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inWatchlist) {
+      await removeFromWatchlist(movie.id);
+    } else {
+      await addToWatchlist({
+        id: movie.id,
+        title: movie.title,
+        poster_path: movie.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
+        release_date: String(movie.year),
+        vote_average: movie.rating,
+        overview: movie.moodMatch,
+      });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
       onClick={onClick}
-      className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-500 hover-lift cursor-pointer"
+      className="group relative bg-card rounded-2xl overflow-hidden border border-border hover:border-foreground/30 transition-all duration-500 hover-lift cursor-pointer shadow-card"
     >
       {/* Poster Image */}
-      <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+      <div className="relative aspect-[2/3] overflow-hidden bg-secondary">
         <img
           src={movie.posterUrl}
           alt={movie.title}
@@ -34,10 +54,28 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent opacity-80" />
         
         {/* Rating Badge */}
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm">
-          <Star className="w-4 h-4 fill-primary-foreground text-primary-foreground" />
-          <span className="text-sm font-bold text-primary-foreground">{movie.rating}</span>
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/90 backdrop-blur-sm">
+          <Star className="w-4 h-4 fill-background text-background" />
+          <span className="text-sm font-bold text-background">{movie.rating}</span>
         </div>
+
+        {/* Watchlist Button */}
+        {user && (
+          <button
+            onClick={handleWatchlistClick}
+            className={`absolute top-4 left-4 p-2 rounded-full transition-all ${
+              inWatchlist 
+                ? "bg-accent text-accent-foreground" 
+                : "bg-background/80 text-foreground opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            {inWatchlist ? (
+              <BookmarkCheck className="w-4 h-4" />
+            ) : (
+              <Bookmark className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -65,7 +103,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
         {/* Mood Match */}
         <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <Sparkles className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
           <p className="text-sm text-muted-foreground leading-relaxed">
             {movie.moodMatch}
           </p>
@@ -74,7 +112,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
       {/* Hover Glow Effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-accent/5 to-transparent" />
       </div>
     </motion.div>
   );

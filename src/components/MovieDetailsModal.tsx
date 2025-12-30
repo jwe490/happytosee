@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Star, Clock, Calendar, Play, Users, 
-  Film, DollarSign, TrendingUp, Loader2, Clapperboard
+  Film, DollarSign, TrendingUp, Loader2, Clapperboard,
+  Bookmark, BookmarkCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface SimilarMovie {
   id: number;
@@ -56,6 +58,7 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
 
   useEffect(() => {
     if (movieId && isOpen) {
@@ -203,18 +206,54 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
                       ))}
                     </div>
 
-                    {/* Trailer Button */}
-                    {details.trailerKey && (
-                      <Button
-                        variant="default"
-                        size="lg"
-                        onClick={() => setShowTrailer(true)}
-                        className="gap-2"
-                      >
-                        <Play className="w-5 h-5 fill-current" />
-                        Watch Trailer
-                      </Button>
-                    )}
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      {details.trailerKey && (
+                        <Button
+                          variant="default"
+                          size="lg"
+                          onClick={() => setShowTrailer(true)}
+                          className="gap-2"
+                        >
+                          <Play className="w-5 h-5 fill-current" />
+                          Watch Trailer
+                        </Button>
+                      )}
+                      
+                      {user && (
+                        <Button
+                          variant={isInWatchlist(details.id) ? "secondary" : "outline"}
+                          size="lg"
+                          onClick={() => {
+                            if (isInWatchlist(details.id)) {
+                              removeFromWatchlist(details.id);
+                            } else {
+                              addToWatchlist({
+                                id: details.id,
+                                title: details.title,
+                                poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
+                                release_date: details.releaseDate,
+                                vote_average: details.rating,
+                                overview: details.overview,
+                              });
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          {isInWatchlist(details.id) ? (
+                            <>
+                              <BookmarkCheck className="w-5 h-5" />
+                              In Watchlist
+                            </>
+                          ) : (
+                            <>
+                              <Bookmark className="w-5 h-5" />
+                              Add to Watchlist
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
