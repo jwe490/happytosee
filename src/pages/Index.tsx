@@ -4,11 +4,12 @@ import Header from "@/components/Header";
 import MoodSelector from "@/components/MoodSelector";
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
+import MovieSearch from "@/components/MovieSearch";
 import StickyFilterBar from "@/components/StickyFilterBar";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ChevronDown, Film, RotateCcw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, ChevronDown, Film, RotateCcw, Search } from "lucide-react";
 import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
-
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -96,78 +97,100 @@ const Index = () => {
           </p>
         </motion.section>
 
-        {/* Mood Selection */}
-        <section className="py-8">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-6"
-          >
-            <h2 className="font-display text-2xl md:text-3xl font-semibold text-center text-foreground">
-              How are you feeling right now?
-            </h2>
-            
-            <MoodSelector 
-              selectedMood={selectedMood} 
-              onSelectMood={handleMoodSelect} 
-            />
-          </motion.div>
-        </section>
+        {/* Tabs for Mood vs Search */}
+        <Tabs defaultValue="mood" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+            <TabsTrigger value="mood" className="gap-2">
+              <Sparkles className="w-4 h-4" />
+              By Mood
+            </TabsTrigger>
+            <TabsTrigger value="search" className="gap-2">
+              <Search className="w-4 h-4" />
+              Search
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Preferences Section */}
-        <AnimatePresence>
-          {showPreferences && (
-            <motion.section
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.5 }}
-              className="py-12 space-y-8"
-            >
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <ChevronDown className="w-5 h-5 animate-bounce" />
-                <span>Customize your preferences</span>
-              </div>
-
-              <div className="max-w-3xl mx-auto glass rounded-3xl p-8 border border-border">
-                <PreferencesForm 
-                  preferences={preferences}
-                  onUpdatePreferences={updatePreferences}
+          <TabsContent value="mood" className="space-y-0">
+            {/* Mood Selection */}
+            <section className="py-8">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="space-y-6"
+              >
+                <h2 className="font-display text-2xl md:text-3xl font-semibold text-center text-foreground">
+                  How are you feeling right now?
+                </h2>
+                
+                <MoodSelector 
+                  selectedMood={selectedMood} 
+                  onSelectMood={handleMoodSelect} 
                 />
+              </motion.div>
+            </section>
 
-                <div className="mt-10 flex flex-col items-center gap-4">
-                  <Button 
-                    variant="cinema" 
-                    size="xl"
-                    onClick={handleGetRecommendations}
-                    disabled={isLoading}
-                    className="group"
-                  >
-                    <Film className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                    {isLoading ? "Finding Movies..." : "Get My Recommendations"}
-                    <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
-                  </Button>
+            {/* Preferences Section */}
+            <AnimatePresence>
+              {showPreferences && (
+                <motion.section
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="py-12 space-y-8"
+                >
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <ChevronDown className="w-5 h-5 animate-bounce" />
+                    <span>Customize your preferences</span>
+                  </div>
 
-                  {recommendedCount > 0 && (
-                    <button
-                      onClick={clearHistory}
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Clear history ({recommendedCount} movies tracked)
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+                  <div className="max-w-3xl mx-auto glass rounded-3xl p-8 border border-border">
+                    <PreferencesForm 
+                      preferences={preferences}
+                      onUpdatePreferences={updatePreferences}
+                    />
 
-        {/* Movie Recommendations */}
-        <section className="py-12">
-          <MovieGrid movies={movies} isLoading={isLoading} />
-        </section>
+                    <div className="mt-10 flex flex-col items-center gap-4">
+                      <Button 
+                        variant="cinema" 
+                        size="xl"
+                        onClick={handleGetRecommendations}
+                        disabled={isLoading}
+                        className="group"
+                      >
+                        <Film className="w-5 h-5 transition-transform group-hover:rotate-12" />
+                        {isLoading ? "Finding Movies..." : "Get My Recommendations"}
+                        <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
+                      </Button>
+
+                      {recommendedCount > 0 && (
+                        <button
+                          onClick={clearHistory}
+                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Clear history ({recommendedCount} movies tracked)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.section>
+              )}
+            </AnimatePresence>
+
+            {/* Movie Recommendations */}
+            <section className="py-12">
+              <MovieGrid movies={movies} isLoading={isLoading} />
+            </section>
+          </TabsContent>
+
+          <TabsContent value="search">
+            <section className="py-8">
+              <MovieSearch />
+            </section>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Footer */}
