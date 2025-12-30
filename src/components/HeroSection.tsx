@@ -91,6 +91,12 @@ const HeroSection = () => {
         >
           <Button 
             size="lg"
+            onClick={() => {
+              document.getElementById('mood-selector')?.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }}
             className="rounded-full px-8 py-6 text-base font-display font-semibold tracking-wide bg-foreground text-background hover:bg-foreground/90 gap-3"
           >
             <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">

@@ -98,7 +98,7 @@ const Index = () => {
 
           <TabsContent value="mood" className="space-y-0">
             {/* Mood Selection */}
-            <section className="py-8">
+            <section id="mood-selector" className="py-8 scroll-mt-24">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
