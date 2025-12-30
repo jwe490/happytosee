@@ -31,22 +31,26 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
   return (
     <motion.div
+      layoutId={`movie-card-${movie.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
-        delay: index * 0.04, 
-        duration: 0.3, 
+        delay: index * 0.03, 
+        duration: 0.25, 
         ease: "easeOut"
       }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className="group cursor-pointer"
     >
-      {/* Clean Card Container */}
-      <div className="relative bg-card/40 backdrop-blur-md rounded-2xl overflow-hidden border border-border/20 shadow-sm hover:shadow-md transition-shadow duration-200">
+      {/* Glass Card Container */}
+      <div className="relative bg-white/60 dark:bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/40 dark:border-white/10 shadow-sm hover:shadow-lg transition-shadow duration-200">
         
-        {/* Large Poster - Full Focus */}
-        <div className="relative aspect-[2/3] overflow-hidden">
+        {/* Poster Section - Clean, no overlays */}
+        <motion.div 
+          layoutId={`movie-poster-${movie.id}`}
+          className="relative aspect-[2/3] overflow-hidden"
+        >
           <img
             src={movie.posterUrl}
             alt={movie.title}
@@ -58,24 +62,15 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
             loading="lazy"
           />
           
-          {/* Subtle gradient at bottom only */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
-          
-          {/* Rating - Small, bottom corner, non-intrusive */}
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm">
-            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span className="text-[11px] font-semibold text-white">{movie.rating}</span>
-          </div>
-
           {/* Watchlist Button - Top left, appears on hover */}
           {user && (
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleWatchlistClick}
-              className={`absolute top-3 left-3 p-2 rounded-full transition-all duration-150 ${
+              className={`absolute top-2 left-2 p-2 rounded-full transition-all duration-150 ${
                 inWatchlist 
                   ? "bg-accent text-accent-foreground" 
-                  : "bg-black/40 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100"
+                  : "bg-black/30 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100"
               }`}
             >
               {inWatchlist ? (
@@ -86,29 +81,41 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
             </motion.button>
           )}
 
-          {/* Title overlay at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h3 className="font-display text-sm md:text-base font-bold text-white line-clamp-2 leading-tight">
+          {/* Title overlay at bottom of poster */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+            <motion.h3 
+              layoutId={`movie-title-${movie.id}`}
+              className="font-display text-sm md:text-base font-bold text-white line-clamp-2 leading-tight"
+            >
               {movie.title}
-            </h3>
+            </motion.h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-white/70">{movie.year}</span>
+              <span className="text-[10px] text-white/80">{movie.year}</span>
               <span className="text-[10px] text-white/50">•</span>
-              <span className="text-[10px] text-white/70 truncate">{movie.genre}</span>
+              <span className="text-[10px] text-white/80 truncate">{movie.genre}</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Minimal Info Section */}
-        <div className="p-3 bg-card/60 backdrop-blur-sm">
+        {/* Glass Info Section - Rating moved here */}
+        <div className="p-3 bg-white/80 dark:bg-card/80 backdrop-blur-sm space-y-2">
+          {/* Rating in white section */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+              <span className="text-sm font-semibold text-foreground">{movie.rating}</span>
+            </div>
+            {movie.language && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">
+                {movie.language}
+              </span>
+            )}
+          </div>
+          
+          {/* Mood match */}
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
             {movie.moodMatch}
           </p>
-          {movie.language && (
-            <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-secondary/50 text-muted-foreground">
-              {movie.language}
-            </span>
-          )}
         </div>
       </div>
     </motion.div>
