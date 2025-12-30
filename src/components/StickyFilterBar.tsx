@@ -218,7 +218,7 @@ const StickyFilterBar = ({
         </div>
 
         {/* Mobile Primary CTA - Fixed & Properly Contained */}
-        <div className="sm:hidden pt-2 px-0">
+        <div className="sm:hidden pt-2 pb-1 px-4">
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={onGetRecommendations}
