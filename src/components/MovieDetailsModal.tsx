@@ -149,18 +149,24 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border rounded-3xl">
-        {/* Sticky Close Button */}
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={onClose}
-          className="absolute top-3 right-3 p-2.5 rounded-full bg-background/95 backdrop-blur-md hover:bg-background shadow-lg transition-colors z-[60] border border-border/50"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5 text-foreground" />
-        </motion.button>
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border/50 rounded-3xl shadow-2xl">
+            {/* Sticky Close Button */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="absolute top-3 right-3 p-2.5 rounded-full bg-background/95 backdrop-blur-md hover:bg-background shadow-lg transition-colors z-[60] border border-border/50"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5 text-foreground" />
+            </motion.button>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96 gap-6">
@@ -537,8 +543,10 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
             </div>
           </motion.div>
         ) : null}
-      </DialogContent>
-    </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
 
