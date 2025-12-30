@@ -1,15 +1,6 @@
 import { motion } from "framer-motion";
-import { Star, Calendar, Film, Sparkles } from "lucide-react";
-
-interface Movie {
-  id: number;
-  title: string;
-  rating: number;
-  year: number;
-  genre: string;
-  posterUrl: string;
-  moodMatch: string;
-}
+import { Star, Calendar, Film, Sparkles, Globe } from "lucide-react";
+import { Movie } from "@/hooks/useMovieRecommendations";
 
 interface MovieCardProps {
   movie: Movie;
@@ -48,7 +39,7 @@ const MovieCard = ({ movie, index }: MovieCardProps) => {
           {movie.title}
         </h3>
         
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />
             <span>{movie.year}</span>
@@ -57,6 +48,12 @@ const MovieCard = ({ movie, index }: MovieCardProps) => {
             <Film className="w-4 h-4" />
             <span>{movie.genre}</span>
           </div>
+          {movie.language && (
+            <div className="flex items-center gap-1.5">
+              <Globe className="w-4 h-4" />
+              <span>{movie.language}</span>
+            </div>
+          )}
         </div>
 
         {/* Mood Match */}
