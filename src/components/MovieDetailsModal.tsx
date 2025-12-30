@@ -8,7 +8,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface SimilarMovie {
@@ -80,6 +79,18 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
     }
   }, [isOpen]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const handleSimilarMovieClick = (id: number) => {
     setShowTrailer(false);
     setCurrentMovieId(id);
@@ -122,296 +133,297 @@ const MovieDetailsModal = ({ movieId, isOpen, onClose }: MovieDetailsModalProps)
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
           </div>
         ) : details ? (
-          <ScrollArea className="max-h-[90vh]">
-            <div className="relative">
-              {/* Backdrop Image */}
-              {details.backdropUrl && (
-                <div className="relative h-64 md:h-80 overflow-hidden">
+          <div className="relative max-h-[90vh] overflow-y-auto">
+            {/* Sticky Close Button */}
+            <button
+              onClick={onClose}
+              className="fixed top-4 right-4 md:absolute md:top-4 md:right-4 p-2.5 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background shadow-lg transition-colors z-50 border border-border"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5 text-foreground" />
+            </button>
+
+            {/* Backdrop Image */}
+            {details.backdropUrl && (
+              <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden">
+                <img
+                  src={details.backdropUrl}
+                  alt={details.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="relative px-4 sm:px-6 pb-6 -mt-16 sm:-mt-20 md:-mt-32 z-10">
+              <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
+                {/* Poster */}
+                <div className="flex-shrink-0 flex justify-center md:justify-start">
                   <img
-                    src={details.backdropUrl}
+                    src={details.posterUrl || "/placeholder.svg"}
                     alt={details.title}
-                    className="w-full h-full object-cover"
+                    className="w-32 sm:w-40 md:w-48 rounded-xl shadow-2xl border border-border"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 space-y-4 text-center md:text-left">
+                  <div>
+                    <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+                      {details.title}
+                    </h2>
+                    {details.tagline && (
+                      <p className="text-muted-foreground italic mt-1 text-sm sm:text-base">
+                        "{details.tagline}"
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Meta Info */}
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 text-primary">
+                      <Star className="w-4 h-4 fill-primary" />
+                      <span className="font-semibold">{details.rating}</span>
+                      <span className="text-muted-foreground hidden sm:inline">
+                        ({details.voteCount.toLocaleString()} votes)
+                      </span>
+                    </div>
+                    
+                    {details.releaseDate && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span>{new Date(details.releaseDate).getFullYear()}</span>
+                      </div>
+                    )}
+                    
+                    {details.runtime > 0 && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatRuntime(details.runtime)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Genres */}
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                    {details.genres.map((genre) => (
+                      <span
+                        key={genre}
+                        className="px-3 py-1 text-xs sm:text-sm rounded-full bg-muted text-muted-foreground"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                    {details.trailerKey && (
+                      <Button
+                        variant="default"
+                        size="default"
+                        onClick={() => setShowTrailer(true)}
+                        className="gap-2"
+                      >
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                        <span className="text-sm sm:text-base">Watch Trailer</span>
+                      </Button>
+                    )}
+                    
+                    {user && (
+                      <Button
+                        variant={isInWatchlist(details.id) ? "secondary" : "outline"}
+                        size="default"
+                        onClick={() => {
+                          if (isInWatchlist(details.id)) {
+                            removeFromWatchlist(details.id);
+                          } else {
+                            addToWatchlist({
+                              id: details.id,
+                              title: details.title,
+                              poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
+                              release_date: details.releaseDate,
+                              vote_average: details.rating,
+                              overview: details.overview,
+                            });
+                          }
+                        }}
+                        className="gap-2"
+                      >
+                        {isInWatchlist(details.id) ? (
+                          <>
+                            <BookmarkCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <span className="text-sm sm:text-base">In Watchlist</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <span className="text-sm sm:text-base">Add to Watchlist</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Trailer Player */}
+              <AnimatePresence>
+                {showTrailer && details.trailerKey && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-6 overflow-hidden"
+                  >
+                    <div className="relative pt-[56.25%] rounded-xl overflow-hidden">
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1`}
+                        title={details.trailerName || "Movie Trailer"}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Synopsis */}
+              <div className="mt-6 sm:mt-8 space-y-3">
+                <h3 className="font-display text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                  <Film className="w-5 h-5 text-primary" />
+                  Synopsis
+                </h3>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                  {details.overview || "No synopsis available."}
+                </p>
+              </div>
+
+              {/* Cast */}
+              {details.cast.length > 0 && (
+                <div className="mt-6 sm:mt-8 space-y-4">
+                  <h3 className="font-display text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    Cast
+                  </h3>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+                    {details.cast.slice(0, 5).map((member) => (
+                      <div
+                        key={member.id}
+                        className="text-center space-y-2"
+                      >
+                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted">
+                          {member.profileUrl ? (
+                            <img
+                              src={member.profileUrl}
+                              alt={member.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <Users className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-xs sm:text-sm text-foreground line-clamp-1">
+                            {member.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {member.character}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Close Button */}
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 p-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors z-10"
-              >
-                <X className="w-5 h-5 text-foreground" />
-              </button>
-
-              {/* Content */}
-              <div className="relative px-6 pb-6 -mt-20 md:-mt-32 z-10">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Poster */}
-                  <div className="flex-shrink-0">
-                    <img
-                      src={details.posterUrl || "/placeholder.svg"}
-                      alt={details.title}
-                      className="w-40 md:w-48 rounded-xl shadow-2xl border border-border"
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-                        {details.title}
-                      </h2>
-                      {details.tagline && (
-                        <p className="text-muted-foreground italic mt-1">
-                          "{details.tagline}"
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Meta Info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 text-primary">
-                        <Star className="w-4 h-4 fill-primary" />
-                        <span className="font-semibold">{details.rating}</span>
-                        <span className="text-muted-foreground">
-                          ({details.voteCount.toLocaleString()} votes)
-                        </span>
+              {/* Box Office */}
+              {(details.budget > 0 || details.revenue > 0) && (
+                <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+                  {details.budget > 0 && (
+                    <div className="p-3 sm:p-4 rounded-xl bg-muted/50 space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <DollarSign className="w-4 h-4" />
+                        <span className="text-xs sm:text-sm">Budget</span>
                       </div>
-                      
-                      {details.releaseDate && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          <span>{new Date(details.releaseDate).getFullYear()}</span>
-                        </div>
-                      )}
-                      
-                      {details.runtime > 0 && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatRuntime(details.runtime)}</span>
-                        </div>
-                      )}
+                      <p className="text-lg sm:text-xl font-semibold text-foreground">
+                        {formatMoney(details.budget)}
+                      </p>
                     </div>
-
-                    {/* Genres */}
-                    <div className="flex flex-wrap gap-2">
-                      {details.genres.map((genre) => (
-                        <span
-                          key={genre}
-                          className="px-3 py-1 text-sm rounded-full bg-muted text-muted-foreground"
-                        >
-                          {genre}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-3">
-                      {details.trailerKey && (
-                        <Button
-                          variant="default"
-                          size="lg"
-                          onClick={() => setShowTrailer(true)}
-                          className="gap-2"
-                        >
-                          <Play className="w-5 h-5 fill-current" />
-                          Watch Trailer
-                        </Button>
-                      )}
-                      
-                      {user && (
-                        <Button
-                          variant={isInWatchlist(details.id) ? "secondary" : "outline"}
-                          size="lg"
-                          onClick={() => {
-                            if (isInWatchlist(details.id)) {
-                              removeFromWatchlist(details.id);
-                            } else {
-                              addToWatchlist({
-                                id: details.id,
-                                title: details.title,
-                                poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
-                                release_date: details.releaseDate,
-                                vote_average: details.rating,
-                                overview: details.overview,
-                              });
-                            }
-                          }}
-                          className="gap-2"
-                        >
-                          {isInWatchlist(details.id) ? (
-                            <>
-                              <BookmarkCheck className="w-5 h-5" />
-                              In Watchlist
-                            </>
-                          ) : (
-                            <>
-                              <Bookmark className="w-5 h-5" />
-                              Add to Watchlist
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trailer Player */}
-                <AnimatePresence>
-                  {showTrailer && details.trailerKey && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-6 overflow-hidden"
-                    >
-                      <div className="relative pt-[56.25%] rounded-xl overflow-hidden">
-                        <iframe
-                          className="absolute inset-0 w-full h-full"
-                          src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1`}
-                          title={details.trailerName || "Movie Trailer"}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    </motion.div>
                   )}
-                </AnimatePresence>
-
-                {/* Synopsis */}
-                <div className="mt-8 space-y-3">
-                  <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                    <Film className="w-5 h-5 text-primary" />
-                    Synopsis
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {details.overview || "No synopsis available."}
-                  </p>
-                </div>
-
-                {/* Cast */}
-                {details.cast.length > 0 && (
-                  <div className="mt-8 space-y-4">
-                    <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                      <Users className="w-5 h-5 text-primary" />
-                      Cast
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                      {details.cast.map((member) => (
-                        <div
-                          key={member.id}
-                          className="text-center space-y-2"
-                        >
-                          <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted">
-                            {member.profileUrl ? (
-                              <img
-                                src={member.profileUrl}
-                                alt={member.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                <Users className="w-8 h-8" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm text-foreground line-clamp-1">
-                              {member.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {member.character}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                  {details.revenue > 0 && (
+                    <div className="p-3 sm:p-4 rounded-xl bg-muted/50 space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="text-xs sm:text-sm">Box Office</span>
+                      </div>
+                      <p className="text-lg sm:text-xl font-semibold text-foreground">
+                        {formatMoney(details.revenue)}
+                      </p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
 
-                {/* Box Office */}
-                {(details.budget > 0 || details.revenue > 0) && (
-                  <div className="mt-8 grid grid-cols-2 gap-4">
-                    {details.budget > 0 && (
-                      <div className="p-4 rounded-xl bg-muted/50 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <DollarSign className="w-4 h-4" />
-                          <span className="text-sm">Budget</span>
-                        </div>
-                        <p className="text-xl font-semibold text-foreground">
-                          {formatMoney(details.budget)}
-                        </p>
-                      </div>
-                    )}
-                    {details.revenue > 0 && (
-                      <div className="p-4 rounded-xl bg-muted/50 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <TrendingUp className="w-4 h-4" />
-                          <span className="text-sm">Box Office</span>
-                        </div>
-                        <p className="text-xl font-semibold text-foreground">
-                          {formatMoney(details.revenue)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {/* Production Companies */}
+              {details.productionCompanies.length > 0 && (
+                <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
+                  <span className="font-medium">Production: </span>
+                  {details.productionCompanies.slice(0, 3).join(", ")}
+                </div>
+              )}
 
-                {/* Production Companies */}
-                {details.productionCompanies.length > 0 && (
-                  <div className="mt-6 text-sm text-muted-foreground">
-                    <span className="font-medium">Production: </span>
-                    {details.productionCompanies.slice(0, 3).join(", ")}
-                  </div>
-                )}
-
-                {/* Similar Movies */}
-                {details.similarMovies && details.similarMovies.length > 0 && (
-                  <div className="mt-8 space-y-4">
-                    <h3 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                      <Clapperboard className="w-5 h-5 text-primary" />
-                      Similar Movies
-                    </h3>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                      {details.similarMovies.map((movie) => (
-                        <button
-                          key={movie.id}
-                          onClick={() => handleSimilarMovieClick(movie.id)}
-                          className="group text-left space-y-2 transition-transform hover:scale-105"
-                        >
-                          <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted relative">
-                            <img
-                              src={movie.posterUrl}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-1 text-xs text-white">
-                                <Star className="w-3 h-3 fill-primary text-primary" />
-                                <span>{movie.rating}</span>
-                              </div>
+              {/* Similar Movies */}
+              {details.similarMovies && details.similarMovies.length > 0 && (
+                <div className="mt-6 sm:mt-8 space-y-4">
+                  <h3 className="font-display text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Clapperboard className="w-5 h-5 text-primary" />
+                    Similar Movies
+                  </h3>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
+                    {details.similarMovies.slice(0, 6).map((movie) => (
+                      <button
+                        key={movie.id}
+                        onClick={() => handleSimilarMovieClick(movie.id)}
+                        className="group text-left space-y-2 transition-transform hover:scale-105"
+                      >
+                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted relative">
+                          <img
+                            src={movie.posterUrl}
+                            alt={movie.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 text-xs text-white">
+                              <Star className="w-3 h-3 fill-primary text-primary" />
+                              <span>{movie.rating}</span>
                             </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-xs text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                              {movie.title}
+                        </div>
+                        <div>
+                          <p className="font-medium text-xs text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                            {movie.title}
+                          </p>
+                          {movie.year && (
+                            <p className="text-xs text-muted-foreground">
+                              {movie.year}
                             </p>
-                            {movie.year && (
-                              <p className="text-xs text-muted-foreground">
-                                {movie.year}
-                              </p>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          </ScrollArea>
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>
