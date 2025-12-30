@@ -36,14 +36,16 @@ const MovieGrid = ({ movies, isLoading }: MovieGridProps) => {
           Your Personalized Picks
         </h2>
         <p className="text-muted-foreground">
-          Movies curated just for your current mood
+          {movies.length} movies curated just for your current mood
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {movies.map((movie, index) => (
-          <MovieCard key={movie.id} movie={movie} index={index} />
-        ))}
+      <div className="max-h-[800px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-4">
+          {movies.map((movie, index) => (
+            <MovieCard key={movie.id} movie={movie} index={index} />
+          ))}
+        </div>
       </div>
     </motion.div>
   );

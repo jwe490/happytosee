@@ -16,11 +16,16 @@ const MovieCard = ({ movie, index }: MovieCardProps) => {
       className="group relative glass rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-500 hover-lift"
     >
       {/* Poster Image */}
-      <div className="relative aspect-[2/3] overflow-hidden">
+      <div className="relative aspect-[2/3] overflow-hidden bg-muted">
         <img
           src={movie.posterUrl}
           alt={movie.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://picsum.photos/seed/${encodeURIComponent(movie.title.replace(/\s+/g, ''))}/400/600`;
+          }}
+          loading="lazy"
         />
         
         {/* Gradient Overlay */}
