@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Sparkles, X, ChevronDown } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 
 interface Preferences {
   language: string;
@@ -69,7 +68,7 @@ const StickyFilterBar = ({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: -100, opacity: 0 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-soft"
+      className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50"
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">
         {/* Desktop & Tablet Layout */}
@@ -79,10 +78,10 @@ const StickyFilterBar = ({
             value={preferences.language}
             onValueChange={(value) => onUpdatePreferences("language", value)}
           >
-            <SelectTrigger className="w-[120px] md:w-[140px] h-9 text-xs md:text-sm bg-card border-border rounded-xl">
+            <SelectTrigger className="w-[120px] md:w-[140px] h-9 text-xs md:text-sm bg-card/80 backdrop-blur-sm border-border/50 rounded-xl">
               <SelectValue placeholder="Language" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-[60] rounded-xl">
+            <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50 z-[60] rounded-xl">
               {languages.map((lang) => (
                 <SelectItem key={lang.value} value={lang.value} className="hover:bg-muted rounded-lg">
                   {lang.label}
@@ -96,10 +95,10 @@ const StickyFilterBar = ({
             value={preferences.movieType}
             onValueChange={(value) => onUpdatePreferences("movieType", value)}
           >
-            <SelectTrigger className="w-[130px] md:w-[150px] h-9 text-xs md:text-sm bg-card border-border rounded-xl">
+            <SelectTrigger className="w-[130px] md:w-[150px] h-9 text-xs md:text-sm bg-card/80 backdrop-blur-sm border-border/50 rounded-xl">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-[60] rounded-xl">
+            <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50 z-[60] rounded-xl">
               {movieTypes.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="hover:bg-muted rounded-lg">
                   {type.label}
@@ -141,7 +140,7 @@ const StickyFilterBar = ({
                 <SelectTrigger className="w-[90px] md:w-[100px] h-7 text-[10px] md:text-xs bg-muted/50 border-dashed border-border rounded-full">
                   <span className="text-muted-foreground">+ Genre</span>
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border z-[60] rounded-xl">
+                <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50 z-[60] rounded-xl">
                   {genres
                     .filter(g => !preferences.genres.includes(g))
                     .map((genre) => (
@@ -154,17 +153,21 @@ const StickyFilterBar = ({
             )}
           </div>
 
-          {/* Desktop Update Button */}
-          <Button
-            size="default"
-            variant="default"
+          {/* Desktop Update Button with Gradient */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onGetRecommendations}
             disabled={isLoading || !selectedMood}
-            className="h-10 gap-2 rounded-full px-6 ml-auto font-semibold"
+            className="relative h-10 px-6 rounded-full font-semibold text-sm overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           >
-            <Sparkles className="w-4 h-4" />
-            {isLoading ? "Finding..." : "Update"}
-          </Button>
+            {/* Animated Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%] animate-gradient-x" />
+            <span className="relative flex items-center gap-2 text-primary-foreground">
+              <Sparkles className="w-4 h-4" />
+              {isLoading ? "Finding..." : "Update"}
+            </span>
+          </motion.button>
         </div>
 
         {/* Mobile Layout - Filters */}
@@ -173,10 +176,10 @@ const StickyFilterBar = ({
             value={preferences.language}
             onValueChange={(value) => onUpdatePreferences("language", value)}
           >
-            <SelectTrigger className="min-w-[100px] h-8 text-xs bg-card border-border rounded-xl flex-shrink-0">
+            <SelectTrigger className="min-w-[100px] h-8 text-xs bg-card/80 backdrop-blur-sm border-border/50 rounded-xl flex-shrink-0">
               <SelectValue placeholder="Language" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-[60] rounded-xl">
+            <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50 z-[60] rounded-xl">
               {languages.map((lang) => (
                 <SelectItem key={lang.value} value={lang.value} className="hover:bg-muted rounded-lg">
                   {lang.label}
@@ -189,10 +192,10 @@ const StickyFilterBar = ({
             value={preferences.movieType}
             onValueChange={(value) => onUpdatePreferences("movieType", value)}
           >
-            <SelectTrigger className="min-w-[110px] h-8 text-xs bg-card border-border rounded-xl flex-shrink-0">
+            <SelectTrigger className="min-w-[110px] h-8 text-xs bg-card/80 backdrop-blur-sm border-border/50 rounded-xl flex-shrink-0">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-[60] rounded-xl">
+            <SelectContent className="bg-card/95 backdrop-blur-xl border-border/50 z-[60] rounded-xl">
               {movieTypes.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="hover:bg-muted rounded-lg">
                   {type.label}
@@ -214,35 +217,41 @@ const StickyFilterBar = ({
           ))}
         </div>
 
-        {/* Mobile Primary CTA - Properly Responsive */}
-        <div className="sm:hidden pt-2">
-          <motion.div
-            whileTap={{ scale: 0.98 }}
+        {/* Mobile Primary CTA - Fixed & Properly Aligned */}
+        <div className="sm:hidden pt-3">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onGetRecommendations}
+            disabled={isLoading || !selectedMood}
+            className="relative w-full h-14 rounded-2xl font-semibold text-base overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
-            <Button
-              size="lg"
-              variant="default"
-              onClick={onGetRecommendations}
-              disabled={isLoading || !selectedMood}
-              className="w-full h-12 gap-2.5 rounded-2xl text-base font-semibold shadow-lg"
-            >
-              <Sparkles className="w-5 h-5" />
+            {/* Animated Gradient Background */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_100%]"
+              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            
+            {/* Inner content */}
+            <span className="relative flex items-center justify-center gap-2.5 text-background font-display">
               {isLoading ? (
-                <span className="flex items-center gap-2">
+                <>
                   <motion.span
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="inline-block"
                   >
                     🎬
                   </motion.span>
                   Finding Movies...
-                </span>
+                </>
               ) : (
-                "Get My Recommendations"
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Get My Recommendations
+                </>
               )}
-            </Button>
-          </motion.div>
+            </span>
+          </motion.button>
         </div>
       </div>
     </motion.div>
