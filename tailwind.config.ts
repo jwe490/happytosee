@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['"Playfair Display"', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +51,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        cinema: {
+          gold: "hsl(38 92% 55%)",
+          amber: "hsl(28 90% 50%)",
+          teal: "hsl(180 50% 35%)",
+          dark: "hsl(222 47% 6%)",
+        },
+        mood: {
+          happy: "hsl(45 100% 60%)",
+          sad: "hsl(210 60% 50%)",
+          romantic: "hsl(340 70% 55%)",
+          excited: "hsl(15 90% 55%)",
+          nostalgic: "hsl(30 50% 45%)",
+          stressed: "hsl(170 50% 45%)",
+          bored: "hsl(260 40% 50%)",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -65,25 +84,31 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shimmer: "shimmer 2s infinite linear",
+      },
+      backgroundImage: {
+        "gradient-cinema": "var(--gradient-cinema)",
+        "gradient-gold": "var(--gradient-gold)",
+      },
+      boxShadow: {
+        glow: "var(--shadow-glow)",
+        card: "var(--shadow-card)",
+        "card-hover": "var(--shadow-card-hover)",
       },
     },
   },
