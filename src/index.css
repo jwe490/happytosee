@@ -6,66 +6,67 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 40 20% 95%;
+    /* Black & Off-White Theme */
+    --background: 226 71% 4%;
+    --foreground: 220 9% 91%;
 
-    --card: 222 40% 10%;
-    --card-foreground: 40 20% 95%;
+    --card: 221 39% 11%;
+    --card-foreground: 220 9% 91%;
 
-    --popover: 222 40% 10%;
-    --popover-foreground: 40 20% 95%;
+    --popover: 221 39% 11%;
+    --popover-foreground: 220 9% 91%;
 
-    --primary: 38 92% 55%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 226 71% 4%;
 
-    --secondary: 180 50% 35%;
-    --secondary-foreground: 40 20% 95%;
+    --secondary: 221 39% 16%;
+    --secondary-foreground: 220 9% 91%;
 
-    --muted: 222 30% 15%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 221 39% 14%;
+    --muted-foreground: 218 11% 65%;
 
-    --accent: 38 80% 45%;
-    --accent-foreground: 40 20% 95%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 226 71% 4%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 9% 91%;
 
-    --border: 222 30% 18%;
-    --input: 222 30% 18%;
-    --ring: 38 92% 55%;
+    --border: 207 25% 16%;
+    --input: 207 25% 16%;
+    --ring: 38 92% 50%;
 
     --radius: 0.75rem;
 
-    /* Custom tokens */
-    --gradient-cinema: linear-gradient(135deg, hsl(222 47% 8%) 0%, hsl(222 40% 12%) 50%, hsl(230 35% 10%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(38 92% 55%) 0%, hsl(28 90% 50%) 100%);
-    --gradient-mood-happy: linear-gradient(135deg, hsl(45 100% 60%) 0%, hsl(35 95% 55%) 100%);
-    --gradient-mood-sad: linear-gradient(135deg, hsl(210 60% 50%) 0%, hsl(220 50% 40%) 100%);
-    --gradient-mood-romantic: linear-gradient(135deg, hsl(340 70% 55%) 0%, hsl(350 65% 50%) 100%);
-    --gradient-mood-excited: linear-gradient(135deg, hsl(15 90% 55%) 0%, hsl(25 85% 50%) 100%);
-    --gradient-mood-nostalgic: linear-gradient(135deg, hsl(30 50% 45%) 0%, hsl(25 45% 40%) 100%);
-    --gradient-mood-stressed: linear-gradient(135deg, hsl(170 50% 45%) 0%, hsl(180 45% 40%) 100%);
+    /* Custom tokens - refined for cinema feel */
+    --gradient-cinema: linear-gradient(180deg, hsl(226 71% 4%) 0%, hsl(221 39% 8%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 85% 45%) 100%);
+    --gradient-mood-happy: linear-gradient(135deg, hsl(45 90% 55%) 0%, hsl(38 85% 50%) 100%);
+    --gradient-mood-sad: linear-gradient(135deg, hsl(210 50% 45%) 0%, hsl(220 45% 38%) 100%);
+    --gradient-mood-romantic: linear-gradient(135deg, hsl(340 60% 50%) 0%, hsl(350 55% 45%) 100%);
+    --gradient-mood-excited: linear-gradient(135deg, hsl(15 80% 50%) 0%, hsl(25 75% 45%) 100%);
+    --gradient-mood-nostalgic: linear-gradient(135deg, hsl(30 45% 40%) 0%, hsl(25 40% 35%) 100%);
+    --gradient-mood-stressed: linear-gradient(135deg, hsl(170 45% 40%) 0%, hsl(180 40% 35%) 100%);
     
-    --shadow-glow: 0 0 60px hsl(38 92% 55% / 0.15);
-    --shadow-card: 0 8px 32px hsl(222 47% 4% / 0.4);
-    --shadow-card-hover: 0 16px 48px hsl(222 47% 4% / 0.6);
+    --shadow-glow: 0 0 40px hsl(38 92% 50% / 0.1);
+    --shadow-card: 0 4px 24px hsl(226 71% 2% / 0.5);
+    --shadow-card-hover: 0 8px 32px hsl(226 71% 2% / 0.7);
 
-    --glass-bg: hsl(222 40% 12% / 0.7);
-    --glass-border: hsl(40 20% 95% / 0.1);
+    --glass-bg: hsl(221 39% 11% / 0.8);
+    --glass-border: hsl(220 9% 91% / 0.08);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 221 39% 11%;
+    --sidebar-foreground: 220 9% 91%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 226 71% 4%;
+    --sidebar-accent: 221 39% 16%;
+    --sidebar-accent-foreground: 220 9% 91%;
+    --sidebar-border: 207 25% 16%;
+    --sidebar-ring: 38 92% 50%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 40 20% 95%;
+    --background: 226 71% 4%;
+    --foreground: 220 9% 91%;
   }
 }
 
