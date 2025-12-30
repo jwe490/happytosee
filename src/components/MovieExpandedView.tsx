@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Star, Clock, Calendar, Play, Users, 
-  Film, Bookmark, BookmarkCheck
+  Film, Bookmark, BookmarkCheck, ChevronLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,9 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
     } else {
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
   const fetchMovieDetails = async (id: number) => {
@@ -74,6 +76,7 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
         body: { movieId: id },
       });
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
       setDetails(data);
     } catch (error) {
       console.error("Error fetching movie details:", error);
@@ -93,97 +96,124 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
-        >
+        <>
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
-          {/* Modal Content */}
+          {/* Expanded Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-4xl max-h-[90vh] bg-card rounded-3xl overflow-hidden shadow-2xl z-10"
+            layoutId={`movie-card-${movie.id}`}
+            className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-card rounded-3xl overflow-hidden shadow-2xl"
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
           >
             {/* Close Button */}
-            <button
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
               onClick={onClose}
-              className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+              className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors"
             >
-              <X className="w-5 h-5" />
-            </button>
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Back</span>
+            </motion.button>
 
-            <div className="h-full max-h-[90vh] overflow-y-auto">
-              {/* Hero with Backdrop */}
-              <div className="relative h-56 sm:h-72 md:h-80">
+            <div className="h-full overflow-y-auto">
+              {/* Hero Section with Backdrop */}
+              <div className="relative h-64 sm:h-80 md:h-96">
                 {details?.backdropUrl ? (
-                  <img
+                  <motion.img
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     src={details.backdropUrl}
                     alt={movie.title}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-secondary to-muted" />
+                  <div className="w-full h-full bg-gradient-to-br from-muted to-secondary" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
 
-                {/* Poster & Title Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-5 flex gap-4">
-                  <div className="flex-shrink-0 w-24 sm:w-32 rounded-xl overflow-hidden shadow-xl border border-white/20">
+                {/* Poster & Title */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 flex gap-5">
+                  <motion.div 
+                    layoutId={`movie-poster-${movie.id}`}
+                    className="flex-shrink-0 w-28 sm:w-36 md:w-44 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+                  >
                     <img
                       src={movie.posterUrl}
                       alt={movie.title}
                       className="w-full aspect-[2/3] object-cover"
                     />
-                  </div>
+                  </motion.div>
 
-                  <div className="flex-1 flex flex-col justify-end min-w-0">
-                    <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate">
+                  <div className="flex-1 flex flex-col justify-end pb-2">
+                    <motion.h1 
+                      layoutId={`movie-title-${movie.id}`}
+                      className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-foreground"
+                    >
                       {movie.title}
-                    </h1>
+                    </motion.h1>
                     {details?.tagline && (
-                      <p className="text-muted-foreground italic text-sm mt-1 line-clamp-1">
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-muted-foreground italic mt-1 text-sm"
+                      >
                         "{details.tagline}"
-                      </p>
+                      </motion.p>
                     )}
 
-                    {/* Meta */}
-                    <div className="flex flex-wrap items-center gap-3 mt-2">
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-sm">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span className="font-semibold">{movie.rating}</span>
+                    {/* Quick Info */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="flex flex-wrap items-center gap-3 mt-3"
+                    >
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-600 dark:text-yellow-400">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="font-semibold text-sm">{movie.rating}</span>
                       </div>
-                      <span className="text-muted-foreground text-sm flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {movie.year}
-                      </span>
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                        <Calendar className="w-4 h-4" />
+                        <span>{movie.year}</span>
+                      </div>
                       {details?.runtime > 0 && (
-                        <span className="text-muted-foreground text-sm flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatRuntime(details.runtime)}
-                        </span>
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatRuntime(details.runtime)}</span>
+                        </div>
                       )}
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
 
-              {/* Body Content */}
-              <div className="p-5 space-y-5">
-                {/* Loading */}
+              {/* Content */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="p-6 space-y-6"
+              >
+                {/* Loading State */}
                 {isLoading && (
-                  <div className="flex items-center justify-center py-6 gap-2">
-                    <Film className="w-5 h-5 text-primary animate-spin" />
-                    <span className="text-muted-foreground text-sm">Loading details...</span>
+                  <div className="flex items-center justify-center py-8 gap-3">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    >
+                      <Film className="w-6 h-6 text-primary" />
+                    </motion.div>
+                    <span className="text-muted-foreground">Loading details...</span>
                   </div>
                 )}
 
@@ -191,7 +221,10 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
                 {details?.genres && details.genres.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {details.genres.map((genre) => (
-                      <span key={genre} className="px-3 py-1 text-xs rounded-full bg-secondary text-muted-foreground">
+                      <span
+                        key={genre}
+                        className="px-3 py-1 text-sm rounded-full bg-secondary text-muted-foreground"
+                      >
                         {genre}
                       </span>
                     ))}
@@ -199,17 +232,19 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
                 )}
 
                 {/* Actions */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {details?.trailerKey && (
-                    <Button onClick={() => setShowTrailer(true)} size="sm" className="gap-2 rounded-full">
+                    <Button
+                      onClick={() => setShowTrailer(true)}
+                      className="gap-2 rounded-full"
+                    >
                       <Play className="w-4 h-4 fill-current" />
-                      Trailer
+                      Watch Trailer
                     </Button>
                   )}
                   {user && (
                     <Button
                       variant={isInWatchlist(movie.id) ? "secondary" : "outline"}
-                      size="sm"
                       onClick={() => {
                         if (isInWatchlist(movie.id)) {
                           removeFromWatchlist(movie.id);
@@ -227,73 +262,100 @@ const MovieExpandedView = ({ movie, isOpen, onClose }: MovieExpandedViewProps) =
                       className="gap-2 rounded-full"
                     >
                       {isInWatchlist(movie.id) ? (
-                        <><BookmarkCheck className="w-4 h-4" /> Saved</>
+                        <>
+                          <BookmarkCheck className="w-4 h-4" />
+                          Saved
+                        </>
                       ) : (
-                        <><Bookmark className="w-4 h-4" /> Save</>
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          Save to Watchlist
+                        </>
                       )}
                     </Button>
                   )}
                 </div>
 
                 {/* Trailer */}
-                {showTrailer && details?.trailerKey && (
-                  <div className="space-y-2">
-                    <div className="relative pt-[56.25%] rounded-xl overflow-hidden bg-black">
-                      <iframe
-                        className="absolute inset-0 w-full h-full"
-                        src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1`}
-                        title="Trailer"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                    <button onClick={() => setShowTrailer(false)} className="text-xs text-muted-foreground hover:text-foreground">
-                      Close trailer
-                    </button>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {showTrailer && details?.trailerKey && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="relative pt-[56.25%] rounded-2xl overflow-hidden bg-black">
+                        <iframe
+                          className="absolute inset-0 w-full h-full"
+                          src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1`}
+                          title={details.trailerName || "Movie Trailer"}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                      <button
+                        onClick={() => setShowTrailer(false)}
+                        className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Close trailer
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Synopsis */}
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                    <Film className="w-4 h-4 text-primary" />
+                <div className="space-y-2">
+                  <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Film className="w-5 h-5 text-primary" />
                     Synopsis
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed">
                     {details?.overview || movie.moodMatch || "No synopsis available."}
                   </p>
                 </div>
 
                 {/* Cast */}
                 {details?.cast && details.cast.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
+                  <div className="space-y-3">
+                    <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary" />
                       Cast
                     </h3>
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
                       {details.cast.slice(0, 6).map((member) => (
-                        <div key={member.id} className="text-center">
-                          <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted mb-1.5">
+                        <div key={member.id} className="text-center space-y-2">
+                          <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted">
                             {member.profileUrl ? (
-                              <img src={member.profileUrl} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
+                              <img
+                                src={member.profileUrl}
+                                alt={member.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                <Users className="w-5 h-5" />
+                                <Users className="w-6 h-6" />
                               </div>
                             )}
                           </div>
-                          <p className="text-xs font-medium text-foreground line-clamp-1">{member.name}</p>
-                          <p className="text-[10px] text-muted-foreground line-clamp-1">{member.character}</p>
+                          <div>
+                            <p className="font-medium text-xs text-foreground line-clamp-1">
+                              {member.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1">
+                              {member.character}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
