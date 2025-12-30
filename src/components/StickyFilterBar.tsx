@@ -71,7 +71,8 @@ const StickyFilterBar = ({
       transition={{ duration: 0.3 }}
       className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-lg"
     >
-      <div className="max-w-7xl mx-auto px-3 md:px-6 py-2 md:py-3">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-3">
+        {/* Filters Row */}
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {/* Language Select */}
           <Select
@@ -150,17 +151,30 @@ const StickyFilterBar = ({
             )}
           </div>
 
-          {/* Update Button */}
+          {/* Desktop Update Button */}
           <Button
             size="sm"
             variant="default"
             onClick={onGetRecommendations}
             disabled={isLoading || !selectedMood}
-            className="h-8 md:h-9 gap-1 md:gap-2 rounded-full text-xs md:text-sm ml-auto"
+            className="hidden sm:flex h-9 gap-2 rounded-full text-sm ml-auto"
           >
-            <Film className="w-3 h-3 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">{isLoading ? "Loading..." : "Update"}</span>
-            <span className="sm:hidden">{isLoading ? "..." : "Go"}</span>
+            <Film className="w-4 h-4" />
+            {isLoading ? "Loading..." : "Update"}
+          </Button>
+        </div>
+
+        {/* Mobile Primary CTA - Full Width */}
+        <div className="sm:hidden mt-3">
+          <Button
+            size="lg"
+            variant="default"
+            onClick={onGetRecommendations}
+            disabled={isLoading || !selectedMood}
+            className="w-full h-12 gap-2 rounded-full text-base font-semibold shadow-lg active:scale-[0.98] transition-transform"
+          >
+            <Film className="w-5 h-5" />
+            {isLoading ? "Finding Movies..." : "Get My Recommendations ✨"}
           </Button>
         </div>
       </div>
