@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import MoodSelector from "@/components/MoodSelector";
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
+import StickyFilterBar from "@/components/StickyFilterBar";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ChevronDown, Film, RotateCcw } from "lucide-react";
 import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
@@ -11,6 +12,7 @@ import { useMovieRecommendations } from "@/hooks/useMovieRecommendations";
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showStickyBar, setShowStickyBar] = useState(false);
   const [preferences, setPreferences] = useState({
     language: "any",
     genres: [] as string[],
@@ -19,6 +21,18 @@ const Index = () => {
   });
 
   const { movies, isLoading, getRecommendations, clearHistory, recommendedCount } = useMovieRecommendations();
+
+  // Show sticky bar when scrolling past preferences and there are movies
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      // Show sticky bar after scrolling 400px and when movies exist
+      setShowStickyBar(scrollY > 400 && movies.length > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [movies.length]);
 
   const handleMoodSelect = (mood: string) => {
     setSelectedMood(mood);
@@ -44,6 +58,19 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Header />
+
+      {/* Sticky Filter Bar */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <StickyFilterBar
+            preferences={preferences}
+            onUpdatePreferences={updatePreferences}
+            onGetRecommendations={handleGetRecommendations}
+            isLoading={isLoading}
+            selectedMood={selectedMood}
+          />
+        )}
+      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-6 md:px-8 pb-20">
         {/* Hero Section */}
