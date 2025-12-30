@@ -38,15 +38,15 @@ const floatingImages = [
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden grid-pattern">
-      {/* Floating Movie Images */}
+    <section className="relative min-h-[70vh] md:min-h-[85vh] flex flex-col items-center justify-center overflow-hidden grid-pattern px-4">
+      {/* Floating Movie Images - Hidden on mobile */}
       {floatingImages.map((img, index) => (
         <motion.div
           key={img.id}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.3 + index * 0.15 }}
-          className={`absolute ${img.position} ${img.animation} hidden md:block`}
+          className={`absolute ${img.position} ${img.animation} hidden lg:block`}
         >
           <div 
             className={`${img.size} ${img.rotation} rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300`}
@@ -61,12 +61,12 @@ const HeroSection = () => {
       ))}
 
       {/* Main Content */}
-      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="font-display text-[4rem] md:text-[8rem] lg:text-[10rem] font-bold text-foreground leading-[0.85] tracking-tight"
+          className="font-display text-[3rem] sm:text-[4rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-bold text-foreground leading-[0.85] tracking-tight"
         >
           Mood
           <span className="block">Flix</span>
@@ -76,7 +76,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-8 text-lg md:text-xl text-muted-foreground max-w-lg mx-auto font-medium italic"
+          className="mt-6 md:mt-8 text-base md:text-lg lg:text-xl text-muted-foreground max-w-md md:max-w-lg mx-auto font-medium italic"
         >
           The Creative Sidekick<br />
           Made for Movie Lovers.<br />
@@ -87,7 +87,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-10"
+          className="mt-8 md:mt-10"
         >
           <Button 
             size="lg"
@@ -97,10 +97,10 @@ const HeroSection = () => {
                 block: 'start'
               });
             }}
-            className="rounded-full px-8 py-6 text-base font-display font-semibold tracking-wide bg-foreground text-background hover:bg-foreground/90 gap-3"
+            className="rounded-full px-6 md:px-8 py-5 md:py-6 text-sm md:text-base font-display font-semibold tracking-wide bg-foreground text-background hover:bg-foreground/90 gap-2 md:gap-3"
           >
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <span className="text-lg">🎬</span>
+            <div className="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-accent flex items-center justify-center">
+              <span className="text-sm md:text-lg">🎬</span>
             </div>
             Get Started Now
           </Button>
@@ -112,12 +112,12 @@ const HeroSection = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.8 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4"
+        className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 md:gap-4"
       >
-        <div className="px-6 py-3 rounded-full bg-secondary text-muted-foreground text-sm font-medium">
+        <div className="px-4 md:px-6 py-2 md:py-3 rounded-full bg-secondary text-muted-foreground text-xs md:text-sm font-medium">
           Discover by mood
         </div>
-        <div className="px-6 py-3 rounded-full border border-border bg-background text-foreground text-sm font-medium">
+        <div className="px-4 md:px-6 py-2 md:py-3 rounded-full border border-border bg-background text-foreground text-xs md:text-sm font-medium">
           Search
         </div>
       </motion.div>

@@ -79,32 +79,32 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
       </div>
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 space-y-3">
-        <h3 className="font-display text-xl font-semibold text-foreground line-clamp-2">
+      <div className="absolute bottom-0 left-0 right-0 p-3 md:p-5 space-y-2 md:space-y-3">
+        <h3 className="font-display text-base md:text-xl font-semibold text-foreground line-clamp-2">
           {movie.title}
         </h3>
         
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-4 h-4" />
+        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3 md:w-4 md:h-4" />
             <span>{movie.year}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Film className="w-4 h-4" />
+          <div className="flex items-center gap-1 hidden sm:flex">
+            <Film className="w-3 h-3 md:w-4 md:h-4" />
             <span>{movie.genre}</span>
           </div>
           {movie.language && (
-            <div className="flex items-center gap-1.5">
-              <Globe className="w-4 h-4" />
+            <div className="flex items-center gap-1 hidden md:flex">
+              <Globe className="w-3 h-3 md:w-4 md:h-4" />
               <span>{movie.language}</span>
             </div>
           )}
         </div>
 
-        {/* Mood Match */}
-        <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-          <Sparkles className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-muted-foreground leading-relaxed">
+        {/* Mood Match - Hidden on small screens */}
+        <div className="hidden sm:flex items-start gap-2 pt-2 border-t border-border/50">
+          <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-accent mt-0.5 flex-shrink-0" />
+          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
             {movie.moodMatch}
           </p>
         </div>
