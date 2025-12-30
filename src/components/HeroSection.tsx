@@ -1,8 +1,7 @@
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useEffect, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Sparkles } from "lucide-react";
-
 // Pool of movie images to randomly select from
 const movieImagePool = [
   "https://image.tmdb.org/t/p/w300/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
@@ -42,6 +41,15 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 const HeroSection = () => {
+  const { scrollY } = useScroll();
+  
+  // Parallax transforms for each poster (different speeds for depth)
+  const y1 = useTransform(scrollY, [0, 500], [0, -80]);
+  const y2 = useTransform(scrollY, [0, 500], [0, -120]);
+  const y3 = useTransform(scrollY, [0, 500], [0, -60]);
+  const y4 = useTransform(scrollY, [0, 500], [0, -100]);
+  const parallaxValues = [y1, y2, y3, y4];
+
   // Randomize images on each page load/refresh
   const floatingImages = useMemo(() => {
     const shuffledImages = shuffleArray(movieImagePool).slice(0, 4);
@@ -52,7 +60,6 @@ const HeroSection = () => {
       mobile: mobilePositions[index],
     }));
   }, []);
-
   return (
     <section className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-12">
       {/* Animated Background Gradient */}
@@ -79,12 +86,13 @@ const HeroSection = () => {
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 grid-pattern opacity-50" />
 
-      {/* Floating Movie Posters - Mobile */}
+      {/* Floating Movie Posters - Mobile with Parallax */}
       {floatingImages.map((img, index) => (
         <motion.div
           key={`mobile-${img.id}`}
           initial={{ opacity: 0, scale: 0.5, y: 50 }}
-          animate={{ opacity: 0.7, scale: 1, y: 0 }}
+          animate={{ opacity: 0.7, scale: 1 }}
+          style={{ y: parallaxValues[index] }}
           transition={{ 
             duration: 0.8, 
             delay: 0.5 + index * 0.15,
@@ -107,12 +115,13 @@ const HeroSection = () => {
         </motion.div>
       ))}
 
-      {/* Floating Movie Posters - Desktop */}
+      {/* Floating Movie Posters - Desktop with Parallax */}
       {floatingImages.map((img, index) => (
         <motion.div
           key={`desktop-${img.id}`}
-          initial={{ opacity: 0, scale: 0.5, y: 100 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{ y: parallaxValues[index] }}
           transition={{ 
             duration: 1, 
             delay: 0.3 + index * 0.15,
