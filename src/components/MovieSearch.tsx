@@ -106,7 +106,7 @@ const MovieSearch = () => {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-12 gap-4"
           >
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <Loader2 className="w-8 h-8 text-foreground animate-spin" />
             <p className="text-muted-foreground">Searching movies...</p>
           </motion.div>
         ) : hasSearched && results.length === 0 ? (
