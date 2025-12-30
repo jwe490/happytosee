@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,17 +26,30 @@ export interface RecommendationParams {
 export function useMovieRecommendations() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [previouslyRecommended, setPreviouslyRecommended] = useState<string[]>([]);
+  const lastParamsRef = useRef<RecommendationParams | null>(null);
   const { toast } = useToast();
 
-  const getRecommendations = useCallback(async (params: RecommendationParams) => {
-    setIsLoading(true);
+  const getRecommendations = useCallback(async (params: RecommendationParams, append = false) => {
+    // If not appending, this is a fresh request - reset state
+    if (!append) {
+      setIsLoading(true);
+      setHasMore(true);
+      setPreviouslyRecommended([]);
+      lastParamsRef.current = params;
+    } else {
+      setIsLoadingMore(true);
+    }
     
     try {
+      const previousTitles = append ? previouslyRecommended : [];
+      
       const { data, error } = await supabase.functions.invoke("recommend-movies", {
         body: {
           ...params,
-          previouslyRecommended,
+          previouslyRecommended: previousTitles,
         },
       });
 
@@ -49,16 +62,35 @@ export function useMovieRecommendations() {
       }
 
       const newMovies = data.movies as Movie[];
-      setMovies(newMovies);
       
-      // Track recommended movies to avoid repetition
-      const newTitles = newMovies.map((m) => m.title);
-      setPreviouslyRecommended((prev) => [...prev, ...newTitles].slice(-50)); // Keep last 50
+      // Check if we've reached the end
+      if (newMovies.length === 0) {
+        setHasMore(false);
+        if (append) {
+          toast({
+            title: "You've reached the end! 🎉",
+            description: "No more movies for this mood. Try changing your filters!",
+          });
+        }
+      } else {
+        // Append or replace movies
+        if (append) {
+          setMovies((prev) => [...prev, ...newMovies]);
+        } else {
+          setMovies(newMovies);
+        }
+        
+        // Track recommended movies to avoid repetition
+        const newTitles = newMovies.map((m) => m.title);
+        setPreviouslyRecommended((prev) => [...prev, ...newTitles]);
 
-      toast({
-        title: "Fresh recommendations!",
-        description: `Found ${newMovies.length} movies matching your ${params.mood} mood`,
-      });
+        if (!append) {
+          toast({
+            title: "Fresh recommendations!",
+            description: `Found ${newMovies.length} movies matching your ${params.mood} mood`,
+          });
+        }
+      }
 
     } catch (error: any) {
       console.error("Error getting recommendations:", error);
@@ -77,22 +109,40 @@ export function useMovieRecommendations() {
       });
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [previouslyRecommended, toast]);
 
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || !lastParamsRef.current) return;
+    await getRecommendations(lastParamsRef.current, true);
+  }, [getRecommendations, isLoadingMore, hasMore]);
+
   const clearHistory = useCallback(() => {
     setPreviouslyRecommended([]);
+    setHasMore(true);
     toast({
       title: "History cleared",
       description: "You may see previously recommended movies again",
     });
   }, [toast]);
 
+  const resetAll = useCallback(() => {
+    setMovies([]);
+    setPreviouslyRecommended([]);
+    setHasMore(true);
+    lastParamsRef.current = null;
+  }, []);
+
   return {
     movies,
     isLoading,
+    isLoadingMore,
+    hasMore,
     getRecommendations,
+    loadMore,
     clearHistory,
+    resetAll,
     recommendedCount: previouslyRecommended.length,
   };
 }
