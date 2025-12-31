@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
@@ -40,6 +40,10 @@ const Index = () => {
   
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
+  
+  // Refs for throttled scroll
+  const ticking = useRef(false);
+  const lastScrollY = useRef(0);
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
 
@@ -57,14 +61,26 @@ const Index = () => {
     setIsMovieViewOpen(true);
   };
 
+  // Throttled scroll handler using requestAnimationFrame
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setShowStickyBar(scrollY > 400 && movies.length > 0);
-      setHasScrolledPastMood(scrollY > 600);
+      lastScrollY.current = window.scrollY;
+      
+      if (!ticking.current) {
+        requestAnimationFrame(() => {
+          const scrollY = lastScrollY.current;
+          const shouldShowSticky = scrollY > 400 && movies.length > 0;
+          const shouldShowFloat = scrollY > 600;
+          
+          setShowStickyBar(shouldShowSticky);
+          setHasScrolledPastMood(shouldShowFloat);
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [movies.length]);
 

@@ -1,7 +1,8 @@
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useRef, useEffect, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Sparkles } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Pool of movie images to randomly select from
 const movieImagePool = [
@@ -42,6 +43,21 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 const HeroSection = () => {
+  const isMobile = useIsMobile();
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { amount: 0.1 });
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
   // Randomize images on each page load/refresh
   const floatingImages = useMemo(() => {
     const shuffledImages = shuffleArray(movieImagePool).slice(0, 4);
@@ -53,90 +69,97 @@ const HeroSection = () => {
     }));
   }, []);
 
+  // Get the correct positions based on screen size
+  const positions = isMobile ? mobilePositions : desktopPositions;
+
+  // Only animate when in view and not reduced motion
+  const shouldAnimate = isInView && !prefersReducedMotion;
+
   return (
-    <section className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-12">
+    <section 
+      ref={sectionRef}
+      className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-12"
+    >
       {/* Animated Background Gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/30 to-background" />
       
-      {/* Animated Glow Orbs */}
-      <motion.div
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3]
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-accent/20 blur-3xl"
-      />
-      <motion.div
-        animate={{ 
-          scale: [1.2, 1, 1.2],
-          opacity: [0.2, 0.4, 0.2]
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/10 blur-3xl"
-      />
+      {/* Animated Glow Orbs - only animate when in view */}
+      {shouldAnimate ? (
+        <>
+          <motion.div
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-accent/20 blur-3xl will-change-transform"
+          />
+          <motion.div
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.2, 0.4, 0.2]
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/10 blur-3xl will-change-transform"
+          />
+        </>
+      ) : (
+        <>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-accent/20 blur-3xl opacity-40" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/10 blur-3xl opacity-30" />
+        </>
+      )}
 
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 grid-pattern opacity-50" />
 
-      {/* Floating Movie Posters - Mobile */}
-      {floatingImages.map((img, index) => (
-        <motion.div
-          key={`mobile-${img.id}`}
-          initial={{ opacity: 0, scale: 0.5, y: 50 }}
-          animate={{ opacity: 0.7, scale: 1, y: 0 }}
-          transition={{ 
-            duration: 0.8, 
-            delay: 0.5 + index * 0.15,
-            ease: [0.25, 0.46, 0.45, 0.94]
-          }}
-          className={`absolute ${img.mobile.position} lg:hidden z-0`}
-        >
+      {/* Floating Movie Posters - render only mobile OR desktop, not both */}
+      {floatingImages.map((img, index) => {
+        const pos = isMobile ? img.mobile : img.desktop;
+        return (
           <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 4 + index, repeat: Infinity, ease: "easeInOut" }}
-            className={`${img.mobile.size} ${img.mobile.rotation} rounded-xl overflow-hidden shadow-card bg-card/50 backdrop-blur-sm border border-white/10`}
+            key={img.id}
+            initial={{ opacity: 0, scale: 0.5, y: isMobile ? 50 : 100 }}
+            animate={{ opacity: isMobile ? 0.7 : 1, scale: 1, y: 0 }}
+            transition={{ 
+              duration: isMobile ? 0.8 : 1, 
+              delay: 0.3 + index * 0.15,
+              ease: [0.25, 0.46, 0.45, 0.94]
+            }}
+            className={`absolute ${pos.position} z-0`}
           >
-            <img 
-              src={img.url} 
-              alt="Movie poster"
-              className="w-full h-full object-cover opacity-80"
-              loading="lazy"
-            />
+            <motion.div
+              animate={shouldAnimate ? { 
+                y: [0, isMobile ? -10 : -20, 0], 
+                rotate: isMobile ? undefined : [0, 2, -2, 0] 
+              } : undefined}
+              transition={{ 
+                duration: 6 + index, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              whileHover={!isMobile ? { scale: 1.05, rotate: 0 } : undefined}
+              className={`
+                ${pos.size} ${pos.rotation} rounded-xl overflow-hidden shadow-card 
+                bg-card/30 border border-white/10
+                ${!isMobile ? 'cursor-pointer backdrop-blur-[2px]' : ''}
+                transform-gpu will-change-transform
+              `}
+            >
+              <img 
+                src={img.url} 
+                alt="Movie poster"
+                className={`w-full h-full object-cover ${isMobile ? 'opacity-80' : ''}`}
+                loading="lazy"
+              />
+              {/* Shine effect - desktop only */}
+              {!isMobile && (
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+              )}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      ))}
-
-      {/* Floating Movie Posters - Desktop */}
-      {floatingImages.map((img, index) => (
-        <motion.div
-          key={`desktop-${img.id}`}
-          initial={{ opacity: 0, scale: 0.5, y: 100 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ 
-            duration: 1, 
-            delay: 0.3 + index * 0.15,
-            ease: [0.25, 0.46, 0.45, 0.94]
-          }}
-          className={`absolute ${img.desktop.position} hidden lg:block z-0`}
-        >
-          <motion.div
-            animate={{ y: [0, -20, 0], rotate: [0, 2, -2, 0] }}
-            transition={{ duration: 6 + index, repeat: Infinity, ease: "easeInOut" }}
-            whileHover={{ scale: 1.05, rotate: 0 }}
-            className={`${img.desktop.size} ${img.desktop.rotation} rounded-2xl overflow-hidden shadow-card-hover bg-card/30 backdrop-blur-sm border border-white/20 cursor-pointer`}
-          >
-            <img 
-              src={img.url} 
-              alt="Movie poster"
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            {/* Shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
-          </motion.div>
-        </motion.div>
-      ))}
+        );
+      })}
 
       {/* Main Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
@@ -167,7 +190,7 @@ const HeroSection = () => {
           </motion.span>
           <motion.span 
             className="block bg-gradient-to-r from-foreground via-accent to-foreground bg-clip-text text-transparent bg-[length:200%_100%]"
-            animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+            animate={shouldAnimate ? { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] } : undefined}
             transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
             whileHover={{ scale: 1.02 }}
           >
@@ -210,14 +233,14 @@ const HeroSection = () => {
               {/* Animated gradient background */}
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground/80 to-foreground"
-                animate={{ backgroundPosition: ["0% 50%", "100% 50%"] }}
+                animate={shouldAnimate ? { backgroundPosition: ["0% 50%", "100% 50%"] } : undefined}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               />
               <span className="relative flex items-center gap-3 text-background">
                 <span className="text-xl">🎬</span>
                 Get Started Now
                 <motion.span
-                  animate={{ y: [0, 3, 0] }}
+                  animate={shouldAnimate ? { y: [0, 3, 0] } : undefined}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
                   <ArrowDown className="w-5 h-5" />
@@ -259,14 +282,14 @@ const HeroSection = () => {
         className="absolute bottom-6 left-1/2 -translate-x-1/2"
       >
         <motion.div
-          animate={{ y: [0, 8, 0] }}
+          animate={shouldAnimate ? { y: [0, 8, 0] } : undefined}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-col items-center gap-2 text-muted-foreground"
         >
           <span className="text-xs font-medium hidden sm:block">Scroll to explore</span>
           <div className="w-6 h-10 rounded-full border-2 border-border flex items-start justify-center p-2">
             <motion.div
-              animate={{ y: [0, 12, 0] }}
+              animate={shouldAnimate ? { y: [0, 12, 0] } : undefined}
               transition={{ duration: 1.5, repeat: Infinity }}
               className="w-1.5 h-1.5 rounded-full bg-foreground"
             />
