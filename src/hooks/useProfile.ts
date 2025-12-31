@@ -20,21 +20,38 @@ export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const { toast } = useToast();
 
+  // Initialize auth state
   useEffect(() => {
+    let mounted = true;
+
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setAuthReady(true);
+      }
     });
 
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setAuthReady(true);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = useCallback(async () => {
+    if (!authReady) return;
+    
     if (!user) {
       setProfile(null);
       setIsLoading(false);
@@ -48,21 +65,40 @@ export function useProfile() {
         .eq('user_id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
-      }
+      if (error && error.code === 'PGRST116') {
+        // No profile exists, create one
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            display_name: user.email?.split('@')[0] || 'User',
+            accent_color: '#8B5CF6',
+          })
+          .select()
+          .single();
 
-      setProfile(data);
+        if (createError) {
+          console.error('Error creating profile:', createError);
+        } else {
+          setProfile(newProfile);
+        }
+      } else if (error) {
+        console.error('Error fetching profile:', error);
+      } else {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, authReady]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (authReady) {
+      fetchProfile();
+    }
+  }, [fetchProfile, authReady]);
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('Not authenticated') };
@@ -94,6 +130,7 @@ export function useProfile() {
     profile,
     user,
     isLoading,
+    authReady,
     updateProfile,
     updateAccentColor,
     refetch: fetchProfile,
