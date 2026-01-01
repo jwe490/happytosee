@@ -12,6 +12,7 @@ export interface Profile {
   accent_color: string;
   favorite_genres: string[] | null;
   preferred_languages: string[] | null;
+  is_public: boolean;
   created_at: string;
   updated_at: string;
 }
