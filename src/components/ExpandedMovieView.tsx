@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Star, Clock, Calendar, Play, Users, 
-  Film, DollarSign, TrendingUp, Clapperboard,
-  Bookmark, BookmarkCheck, ChevronLeft, Eye, EyeOff
+  Film, Clapperboard, Bookmark, BookmarkCheck, 
+  ChevronLeft, Eye, EyeOff, Tv, ExternalLink, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { ReviewSection } from "@/components/ReviewSection";
 import { ShareButton } from "@/components/ShareButton";
+import { AddToCollectionButton } from "@/components/AddToCollectionButton";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface SimilarMovie {
   id: number;
@@ -26,6 +28,24 @@ interface CastMember {
   name: string;
   character: string;
   profileUrl: string | null;
+}
+
+interface WatchProvider {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+}
+
+interface PersonDetails {
+  id: number;
+  name: string;
+  biography: string | null;
+  birthday: string | null;
+  deathday: string | null;
+  placeOfBirth: string | null;
+  profileUrl: string | null;
+  knownFor: string;
+  filmography: SimilarMovie[];
 }
 
 interface MovieDetails {
@@ -47,6 +67,12 @@ interface MovieDetails {
   trailerKey: string | null;
   trailerName: string | null;
   similarMovies: SimilarMovie[];
+  watchProviders?: {
+    link: string | null;
+    flatrate: WatchProvider[];
+    rent: WatchProvider[];
+    buy: WatchProvider[];
+  };
 }
 
 interface ExpandedMovieViewProps {
@@ -69,10 +95,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const [showContent, setShowContent] = useState(false);
   const [navigationHistory, setNavigationHistory] = useState<Movie[]>([]);
+  const [selectedPerson, setSelectedPerson] = useState<PersonDetails | null>(null);
+  const [personLoading, setPersonLoading] = useState(false);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
-  // Initialize with movie prop
   useEffect(() => {
     if (movie && isOpen) {
       setCurrentMovie(movie);
@@ -80,7 +107,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     }
   }, [movie, isOpen]);
 
-  // Fetch details when current movie changes
   useEffect(() => {
     if (currentMovie && isOpen) {
       fetchMovieDetails(currentMovie.id);
@@ -129,7 +155,41 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     }
   };
 
-  // Handle clicking on a similar movie
+  const fetchPersonDetails = async (personId: number) => {
+    setPersonLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("person-details", {
+        body: { personId },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      setSelectedPerson(data);
+    } catch (error) {
+      console.error("Error fetching person details:", error);
+    } finally {
+      setPersonLoading(false);
+    }
+  };
+
+  const handleCastClick = (member: CastMember) => {
+    fetchPersonDetails(member.id);
+  };
+
+  const handleFilmographyClick = (film: SimilarMovie) => {
+    setSelectedPerson(null);
+    const newMovie: Movie = {
+      id: film.id,
+      title: film.title,
+      rating: film.rating,
+      year: film.year || 0,
+      genre: "",
+      posterUrl: film.posterUrl,
+      moodMatch: "",
+    };
+    setNavigationHistory(prev => [...prev, newMovie]);
+    setCurrentMovie(newMovie);
+  };
+
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
     const newMovie: Movie = {
       id: similar.id,
@@ -142,12 +202,10 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     };
     setNavigationHistory(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
-    // Scroll to top of modal
     const container = document.querySelector('.expanded-movie-scroll');
     if (container) container.scrollTop = 0;
   }, []);
 
-  // Handle back navigation
   const handleBack = useCallback(() => {
     if (navigationHistory.length > 1) {
       const newHistory = [...navigationHistory];
@@ -165,9 +223,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     return `${hours}h ${mins}m`;
   };
 
-  const formatMoney = (amount: number) => {
-    if (amount === 0) return "N/A";
-    return `$${(amount / 1000000).toFixed(1)}M`;
+  const calculateAge = (birthday: string, deathday?: string | null) => {
+    const birth = new Date(birthday);
+    const end = deathday ? new Date(deathday) : new Date();
+    let age = end.getFullYear() - birth.getFullYear();
+    const m = end.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && end.getDate() < birth.getDate())) age--;
+    return age;
   };
 
   if (!currentMovie) return null;
@@ -356,6 +418,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                               </>
                             )}
                           </Button>
+
+                          <AddToCollectionButton
+                            movie={{
+                              id: details.id,
+                              title: details.title,
+                              poster_path: details.posterUrl,
+                            }}
+                          />
                         </>
                       )}
                       
@@ -409,6 +479,62 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       </div>
                     )}
 
+                    {/* Where to Watch */}
+                    {details?.watchProviders && (details.watchProviders.flatrate.length > 0 || details.watchProviders.rent.length > 0) && (
+                      <div className="space-y-3">
+                        <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+                          <Tv className="w-4 h-4 text-primary" />
+                          Where to Watch
+                        </h3>
+                        <div className="space-y-3">
+                          {details.watchProviders.flatrate.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Stream</p>
+                              <div className="flex flex-wrap gap-2">
+                                {details.watchProviders.flatrate.map((provider) => (
+                                  <a
+                                    key={provider.id}
+                                    href={details.watchProviders?.link || "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-card rounded-lg border border-border hover:bg-muted transition-colors"
+                                  >
+                                    {provider.logoUrl && (
+                                      <img src={provider.logoUrl} alt={provider.name} className="w-6 h-6 rounded" />
+                                    )}
+                                    <span className="text-sm">{provider.name}</span>
+                                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {details.watchProviders.rent.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Rent / Buy</p>
+                              <div className="flex flex-wrap gap-2">
+                                {details.watchProviders.rent.map((provider) => (
+                                  <a
+                                    key={provider.id}
+                                    href={details.watchProviders?.link || "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-card rounded-lg border border-border hover:bg-muted transition-colors"
+                                  >
+                                    {provider.logoUrl && (
+                                      <img src={provider.logoUrl} alt={provider.name} className="w-6 h-6 rounded" />
+                                    )}
+                                    <span className="text-sm">{provider.name}</span>
+                                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Synopsis */}
                     {details?.overview && (
                       <div className="space-y-2">
@@ -422,7 +548,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       </div>
                     )}
 
-                    {/* Cast */}
+                    {/* Cast - Clickable */}
                     {details?.cast && details.cast.length > 0 && (
                       <div className="space-y-3">
                         <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
@@ -431,8 +557,12 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                         </h3>
                         <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
                           {details.cast.slice(0, 5).map((member) => (
-                            <div key={member.id} className="text-center space-y-1.5">
-                              <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted">
+                            <button
+                              key={member.id}
+                              onClick={() => handleCastClick(member)}
+                              className="text-center space-y-1.5 group cursor-pointer"
+                            >
+                              <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted ring-2 ring-transparent group-hover:ring-primary transition-all">
                                 {member.profileUrl ? (
                                   <img
                                     src={member.profileUrl}
@@ -447,44 +577,16 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                                 )}
                               </div>
                               <div>
-                                <p className="font-medium text-xs text-foreground line-clamp-1">{member.name}</p>
+                                <p className="font-medium text-xs text-foreground line-clamp-1 group-hover:text-primary transition-colors">{member.name}</p>
                                 <p className="text-[10px] text-muted-foreground line-clamp-1">{member.character}</p>
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Box Office */}
-                    {details && (details.budget > 0 || details.revenue > 0) && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {details.budget > 0 && (
-                          <div className="p-3 rounded-xl bg-muted/50 space-y-1">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <DollarSign className="w-3.5 h-3.5" />
-                              <span className="text-xs">Budget</span>
-                            </div>
-                            <p className="text-lg font-display font-semibold text-foreground">
-                              {formatMoney(details.budget)}
-                            </p>
-                          </div>
-                        )}
-                        {details.revenue > 0 && (
-                          <div className="p-3 rounded-xl bg-muted/50 space-y-1">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <TrendingUp className="w-3.5 h-3.5" />
-                              <span className="text-xs">Revenue</span>
-                            </div>
-                            <p className="text-lg font-display font-semibold text-foreground">
-                              {formatMoney(details.revenue)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Similar Movies - Now Clickable */}
+                    {/* Similar Movies */}
                     {details?.similarMovies && details.similarMovies.length > 0 && (
                       <div className="space-y-3">
                         <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
@@ -537,6 +639,75 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
               </AnimatePresence>
             </div>
           </div>
+
+          {/* Person Details Modal */}
+          <Dialog open={!!selectedPerson || personLoading} onOpenChange={() => setSelectedPerson(null)}>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              {personLoading ? (
+                <div className="py-12 flex justify-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : selectedPerson && (
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    {selectedPerson.profileUrl && (
+                      <img
+                        src={selectedPerson.profileUrl}
+                        alt={selectedPerson.name}
+                        className="w-24 h-32 rounded-lg object-cover shrink-0"
+                      />
+                    )}
+                    <div className="space-y-1">
+                      <h2 className="font-display text-xl font-bold">{selectedPerson.name}</h2>
+                      <p className="text-sm text-muted-foreground">{selectedPerson.knownFor}</p>
+                      {selectedPerson.birthday && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedPerson.birthday.split('-').reverse().join('/')}
+                          {' '}({calculateAge(selectedPerson.birthday, selectedPerson.deathday)} years{selectedPerson.deathday ? ' old when passed' : ' old'})
+                        </p>
+                      )}
+                      {selectedPerson.placeOfBirth && (
+                        <p className="text-xs text-muted-foreground">{selectedPerson.placeOfBirth}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedPerson.biography && (
+                    <div className="space-y-1">
+                      <h3 className="font-medium text-sm">Biography</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-6">
+                        {selectedPerson.biography}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPerson.filmography.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm">Known For</h3>
+                      <div className="grid grid-cols-4 gap-2">
+                        {selectedPerson.filmography.slice(0, 8).map((film) => (
+                          <button
+                            key={film.id}
+                            onClick={() => handleFilmographyClick(film)}
+                            className="text-left group"
+                          >
+                            <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted ring-2 ring-transparent group-hover:ring-primary transition-all">
+                              <img
+                                src={film.posterUrl}
+                                alt={film.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <p className="text-[10px] mt-1 line-clamp-1 group-hover:text-primary transition-colors">{film.title}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </motion.div>
       )}
     </AnimatePresence>

@@ -15,3 +15,5 @@ verify_jwt = false
 [functions.trending-movies]
 verify_jwt = false
 
+[functions.person-details]
+verify_jwt = false

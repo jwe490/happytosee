@@ -3,53 +3,39 @@ import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/useProfile";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { useCollections } from "@/hooks/useCollections";
-import { User, History, FolderHeart, Settings, Eye, Plus, Trash2, Globe, Lock, Sliders } from "lucide-react";
+import { User, History, FolderHeart, Settings, Eye, Plus, Trash2, Globe, Lock, Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { AccentColorPicker } from "@/components/AccentColorPicker";
-import { ProfileStatCards } from "@/components/profile/ProfileStatCards";
-import { ProfilePreferencesEditor } from "@/components/profile/ProfilePreferencesEditor";
-import { ProfileIllustrationCard } from "@/components/profile/ProfileIllustrationCard";
 import { GuestProfileView } from "@/components/profile/GuestProfileView";
 
 const Profile = () => {
   const { profile, user, isLoading: profileLoading, authReady, updateProfile } = useProfile();
   const { history, isLoading: historyLoading, removeFromHistory } = useWatchHistory();
-  const { collections, isLoading: collectionsLoading, createCollection, deleteCollection, toggleCollectionVisibility } = useCollections();
+  const { collections, isLoading: collectionsLoading, createCollection, deleteCollection, toggleCollectionVisibility, removeMovieFromCollection } = useCollections();
 
   const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || "");
-      setBio(profile.bio || "");
     }
   }, [profile]);
 
   const handleSaveProfile = async () => {
-    await updateProfile({ display_name: displayName, bio });
+    await updateProfile({ display_name: displayName });
     setIsEditing(false);
   };
 
-  const handleSavePreferences = async (genres: string[], languages: string[]) => {
-    setIsSavingPrefs(true);
-    await updateProfile({ 
-      favorite_genres: genres, 
-      preferred_languages: languages 
-    });
-    setIsSavingPrefs(false);
+  const handleTogglePrivacy = async () => {
+    await updateProfile({ is_public: !profile?.is_public });
   };
 
   const handleCreateCollection = async () => {
@@ -59,22 +45,19 @@ const Profile = () => {
     setIsCreateDialogOpen(false);
   };
 
-  // Show loading while auth is initializing
+  // Loading state
   if (!authReady || profileLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
-            <p className="text-sm text-muted-foreground">Loading profile...</p>
-          </div>
+          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
         </div>
       </div>
     );
   }
 
-  // Show guest view if not logged in (no redirect, just show CTA)
+  // Guest view
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -88,278 +71,232 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="max-w-5xl mx-auto px-4 md:px-6 py-8 space-y-8">
-        {/* Profile Header */}
+      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        {/* Minimal Profile Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-2xl p-6 md:p-8 border border-border"
+          className="flex items-center gap-4"
         >
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            <Avatar className="w-20 h-20 md:w-24 md:h-24 ring-4 ring-accent/20">
-              <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="text-2xl bg-gradient-to-br from-accent/20 to-primary/20">
-                <User className="w-8 h-8 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 w-full">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <Label>Display Name</Label>
-                    <Input
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Your name"
-                      className="max-w-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label>Bio</Label>
-                    <Textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Tell us about yourself..."
-                      rows={3}
-                      className="max-w-md"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveProfile}>Save</Button>
-                    <Button variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="font-display text-2xl md:text-3xl font-bold">
-                      {profile?.display_name || "Anonymous User"}
-                    </h1>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="gap-1"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Edit
-                    </Button>
-                    <AccentColorPicker />
-                  </div>
-                  <p className="text-muted-foreground mt-1">{user?.email}</p>
-                  {profile?.bio && (
-                    <p className="text-sm mt-3 max-w-lg">{profile.bio}</p>
-                  )}
-                </>
-              )}
-            </div>
+          <Avatar className="w-16 h-16 ring-2 ring-border">
+            <AvatarImage src={profile?.avatar_url || ""} />
+            <AvatarFallback className="bg-muted">
+              <User className="w-6 h-6 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="h-9 max-w-[200px]"
+                  placeholder="Your name"
+                />
+                <Button size="sm" onClick={handleSaveProfile}>Save</Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-xl font-semibold truncate">
+                  {profile?.display_name || "Anonymous"}
+                </h1>
+                <button onClick={() => setIsEditing(true)} className="p-1 hover:bg-muted rounded">
+                  <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
           </div>
         </motion.div>
 
-        {/* Stat Cards */}
-        <ProfileStatCards 
-          watchedCount={history.length}
-          collectionsCount={collections.length}
-          reviewsCount={0}
-          accentColor={profile?.accent_color || "#8B5CF6"}
-        />
+        {/* Privacy Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
+        >
+          <div className="flex items-center gap-3">
+            {profile?.is_public ? (
+              <Globe className="w-4 h-4 text-primary" />
+            ) : (
+              <Lock className="w-4 h-4 text-muted-foreground" />
+            )}
+            <div>
+              <p className="text-sm font-medium">
+                {profile?.is_public ? "Public Profile" : "Private Profile"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {profile?.is_public ? "Others can see your activity" : "Your activity is hidden"}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={profile?.is_public || false}
+            onCheckedChange={handleTogglePrivacy}
+          />
+        </motion.div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="history" className="w-full">
-          <TabsList className="w-full max-w-lg grid grid-cols-3 mb-6">
-            <TabsTrigger value="history" className="gap-2">
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">Watch History</span>
-              <span className="sm:hidden">History</span>
-            </TabsTrigger>
-            <TabsTrigger value="collections" className="gap-2">
-              <FolderHeart className="w-4 h-4" />
-              <span className="hidden sm:inline">Collections</span>
-              <span className="sm:hidden">Lists</span>
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="gap-2">
-              <Sliders className="w-4 h-4" />
-              <span className="hidden sm:inline">Preferences</span>
-              <span className="sm:hidden">Prefs</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Collections Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FolderHeart className="w-4 h-4 text-primary" />
+              <h2 className="font-medium">Collections</h2>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="gap-1 h-8">
+                  <Plus className="w-3.5 h-3.5" />
+                  New
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Create Collection</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={newCollectionName}
+                      onChange={(e) => setNewCollectionName(e.target.value)}
+                      placeholder="e.g., Favorites, To Watch..."
+                    />
+                  </div>
+                  <Button onClick={handleCreateCollection} className="w-full">
+                    Create
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-          <TabsContent value="history">
-            <ProfileIllustrationCard
-              icon={History}
-              title="Watch History"
-              description="Movies you've marked as watched"
-              gradient="from-blue-500/10 to-cyan-500/10"
-            >
-              {historyLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto" />
-                </div>
-              ) : history.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No watch history yet</p>
-                  <p className="text-sm">Movies you mark as watched will appear here</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mt-4">
-                  {history.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="group relative"
-                    >
-                      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-secondary">
-                        <img
-                          src={item.poster_path || "https://via.placeholder.com/300x450"}
-                          alt={item.title}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <h3 className="font-medium text-xs line-clamp-1">{item.title}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(item.watched_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => removeFromHistory(item.movie_id)}
-                        className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          {collectionsLoading ? (
+            <div className="py-8 flex justify-center">
+              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : collections.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              <FolderHeart className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p>No collections yet</p>
+              <p className="text-xs mt-1">Create one to organize movies</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {collections.map((collection) => (
+                <div
+                  key={collection.id}
+                  className="p-3 bg-card rounded-lg border border-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{collection.name}</span>
+                      {collection.is_public ? (
+                        <Globe className="w-3 h-3 text-muted-foreground" />
+                      ) : (
+                        <Lock className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Switch
+                        checked={collection.is_public}
+                        onCheckedChange={() => toggleCollectionVisibility(collection.id)}
+                        className="scale-75"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => deleteCollection(collection.id)}
                       >
-                        <Trash2 className="w-3 h-3 text-white" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </ProfileIllustrationCard>
-          </TabsContent>
-
-          <TabsContent value="collections">
-            <ProfileIllustrationCard
-              icon={FolderHeart}
-              title="Your Collections"
-              description="Organize movies into custom lists"
-              gradient="from-pink-500/10 to-rose-500/10"
-            >
-              <div className="flex justify-end mb-4">
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2">
-                      <Plus className="w-4 h-4" />
-                      New Collection
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create Collection</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Collection Name</Label>
-                        <Input
-                          value={newCollectionName}
-                          onChange={(e) => setNewCollectionName(e.target.value)}
-                          placeholder="My Favorites"
-                        />
-                      </div>
-                      <Button onClick={handleCreateCollection} className="w-full">
-                        Create
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {collectionsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto" />
-                </div>
-              ) : collections.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FolderHeart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No collections yet</p>
-                  <p className="text-sm">Create a collection to organize your movies</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {collections.map((collection) => (
-                    <motion.div
-                      key={collection.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="bg-background/50 rounded-xl p-4 border border-border/50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{collection.name}</h3>
-                            {collection.is_public ? (
-                              <Globe className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <Lock className="w-4 h-4 text-muted-foreground" />
-                            )}
+                  </div>
+                  
+                  {collection.movies && collection.movies.length > 0 ? (
+                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                      {collection.movies.map((movie) => (
+                        <div key={movie.id} className="relative group shrink-0">
+                          <div className="w-10 aspect-[2/3] rounded overflow-hidden bg-muted">
+                            <img
+                              src={movie.poster_path || "https://via.placeholder.com/80x120"}
+                              alt={movie.title}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {collection.movies?.length || 0} movies
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={collection.is_public}
-                            onCheckedChange={() => toggleCollectionVisibility(collection.id)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteCollection(collection.id)}
+                          <button
+                            onClick={() => removeMovieFromCollection(collection.id, movie.movie_id)}
+                            className="absolute -top-1 -right-1 p-0.5 bg-destructive rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
+                            <Trash2 className="w-2.5 h-2.5 text-white" />
+                          </button>
                         </div>
-                      </div>
-                      
-                      {collection.movies && collection.movies.length > 0 && (
-                        <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                          {collection.movies.slice(0, 6).map((movie) => (
-                            <div
-                              key={movie.id}
-                              className="shrink-0 w-14 aspect-[2/3] rounded-lg overflow-hidden"
-                            >
-                              <img
-                                src={movie.poster_path || "https://via.placeholder.com/100x150"}
-                                alt={movie.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Empty • Add movies from any movie page
+                    </p>
+                  )}
                 </div>
-              )}
-            </ProfileIllustrationCard>
-          </TabsContent>
+              ))}
+            </div>
+          )}
+        </motion.section>
 
-          <TabsContent value="preferences">
-            <ProfileIllustrationCard
-              icon={Sliders}
-              title="Your Preferences"
-              description="Customize your movie recommendations"
-              gradient="from-purple-500/10 to-violet-500/10"
-            >
-              <ProfilePreferencesEditor
-                favoriteGenres={profile?.favorite_genres || []}
-                preferredLanguages={profile?.preferred_languages || []}
-                onSave={handleSavePreferences}
-                isSaving={isSavingPrefs}
-              />
-            </ProfileIllustrationCard>
-          </TabsContent>
-        </Tabs>
+        {/* Watch History Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-primary" />
+            <h2 className="font-medium">Watch History</h2>
+          </div>
+
+          {historyLoading ? (
+            <div className="py-8 flex justify-center">
+              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : history.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              <Eye className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p>No watch history</p>
+              <p className="text-xs mt-1">Mark movies as watched to track them</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+              {history.slice(0, 16).map((item) => (
+                <div key={item.id} className="relative group">
+                  <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={item.poster_path || "https://via.placeholder.com/100x150"}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeFromHistory(item.movie_id)}
+                    className="absolute top-1 right-1 p-1 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-2.5 h-2.5 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.section>
       </main>
     </div>
   );

@@ -88,6 +88,7 @@ export type Database = {
           display_name: string | null
           favorite_genres: string[] | null
           id: string
+          is_public: boolean | null
           preferred_languages: string[] | null
           updated_at: string
           user_id: string
@@ -100,6 +101,7 @@ export type Database = {
           display_name?: string | null
           favorite_genres?: string[] | null
           id?: string
+          is_public?: boolean | null
           preferred_languages?: string[] | null
           updated_at?: string
           user_id: string
@@ -112,6 +114,7 @@ export type Database = {
           display_name?: string | null
           favorite_genres?: string[] | null
           id?: string
+          is_public?: boolean | null
           preferred_languages?: string[] | null
           updated_at?: string
           user_id?: string

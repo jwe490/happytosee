@@ -29,12 +29,13 @@ serve(async (req) => {
 
     console.log("Fetching details for movie:", movieId);
 
-    // Fetch movie details, credits, videos, and similar movies in parallel
-    const [detailsRes, creditsRes, videosRes, similarRes] = await Promise.all([
+    // Fetch movie details, credits, videos, similar movies, and watch providers in parallel
+    const [detailsRes, creditsRes, videosRes, similarRes, providersRes] = await Promise.all([
       fetch(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/credits?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/videos?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`),
+      fetch(`${TMDB_BASE_URL}/movie/${movieId}/watch/providers?api_key=${TMDB_API_KEY}`),
     ]);
 
     if (!detailsRes.ok) {
@@ -45,10 +46,11 @@ serve(async (req) => {
     const credits = creditsRes.ok ? await creditsRes.json() : { cast: [] };
     const videos = videosRes.ok ? await videosRes.json() : { results: [] };
     const similar = similarRes.ok ? await similarRes.json() : { results: [] };
+    const providers = providersRes.ok ? await providersRes.json() : { results: {} };
 
     console.log("Fetched movie details:", details.title);
 
-    // Get top 10 cast members
+    // Get top 10 cast members with full details
     const cast = credits.cast?.slice(0, 10).map((person: any) => ({
       id: person.id,
       name: person.name,
@@ -77,7 +79,29 @@ serve(async (req) => {
         year: movie.release_date ? new Date(movie.release_date).getFullYear() : null,
       })) || [];
 
-    console.log(`Found ${similarMovies.length} similar movies`);
+    // Parse watch providers (prioritize US, then any available)
+    const providerData = providers.results?.US || providers.results?.GB || Object.values(providers.results || {})[0] || {};
+    
+    const watchProviders = {
+      link: providerData.link || null,
+      flatrate: providerData.flatrate?.slice(0, 5).map((p: any) => ({
+        id: p.provider_id,
+        name: p.provider_name,
+        logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
+      })) || [],
+      rent: providerData.rent?.slice(0, 3).map((p: any) => ({
+        id: p.provider_id,
+        name: p.provider_name,
+        logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
+      })) || [],
+      buy: providerData.buy?.slice(0, 3).map((p: any) => ({
+        id: p.provider_id,
+        name: p.provider_name,
+        logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
+      })) || [],
+    };
+
+    console.log(`Found ${similarMovies.length} similar movies, ${watchProviders.flatrate.length} streaming providers`);
 
     const movieDetails = {
       id: details.id,
@@ -102,6 +126,7 @@ serve(async (req) => {
       trailerKey: trailer?.key || null,
       trailerName: trailer?.name || null,
       similarMovies,
+      watchProviders,
     };
 
     console.log("Returning movie details with", cast.length, "cast members");
