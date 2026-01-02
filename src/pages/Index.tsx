@@ -11,8 +11,6 @@ import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
-import ExpandedPersonView from "@/components/ExpandedPersonView";
-import ShareMoodResult from "@/components/ShareMoodResult";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2 } from "lucide-react";
@@ -28,16 +26,6 @@ const moodTaglines: Record<string, string> = {
   nostalgic: "A trip down memory lane ✨",
 };
 
-const moodEmojis: Record<string, string> = {
-  happy: "😀",
-  sad: "😢",
-  romantic: "❤️",
-  excited: "⚡",
-  nostalgic: "🥹",
-  relaxed: "😌",
-  bored: "😴",
-};
-
 const Index = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -49,11 +37,9 @@ const Index = () => {
     duration: "any",
     movieType: "any",
   });
-
+  
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
-  const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
-  const [isPersonViewOpen, setIsPersonViewOpen] = useState(false);
   
   // Refs for throttled scroll
   const ticking = useRef(false);
@@ -61,7 +47,7 @@ const Index = () => {
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
 
-const handleMovieSelect = (movie: any) => {
+  const handleMovieSelect = (movie: any) => {
     const movieData: Movie = {
       id: movie.id,
       title: movie.title,
@@ -72,18 +58,6 @@ const handleMovieSelect = (movie: any) => {
       moodMatch: movie.matchReason || movie.surpriseReason || "",
     };
     setSelectedMovie(movieData);
-    setIsMovieViewOpen(true);
-  };
-
-  const handlePersonClick = (personId: number) => {
-    setIsMovieViewOpen(false);
-    setSelectedPersonId(personId);
-    setIsPersonViewOpen(true);
-  };
-
-  const handleMovieClickFromPerson = (movie: Movie) => {
-    setIsPersonViewOpen(false);
-    setSelectedMovie(movie);
     setIsMovieViewOpen(true);
   };
 
@@ -293,27 +267,9 @@ const handleMovieSelect = (movie: any) => {
             </AnimatePresence>
 
             {/* Movie Recommendations */}
-            <section className="py-12 space-y-8">
-              {movies.length > 0 && selectedMood && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex justify-center"
-                >
-                  <ShareMoodResult
-                    mood={selectedMood}
-                    moodEmoji={moodEmojis[selectedMood] || "🎬"}
-                    topMovies={movies.slice(0, 3).map(m => ({
-                      title: m.title,
-                      year: m.year,
-                    }))}
-                  />
-                </motion.div>
-              )}
-
-              <MovieGrid
-                movies={movies}
+            <section className="py-12">
+              <MovieGrid 
+                movies={movies} 
                 isLoading={isLoading}
                 isLoadingMore={isLoadingMore}
                 hasMore={hasMore}
@@ -341,15 +297,6 @@ const handleMovieSelect = (movie: any) => {
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
         onClose={() => setIsMovieViewOpen(false)}
-        onPersonClick={handlePersonClick}
-      />
-
-      {/* Expanded Person View */}
-      <ExpandedPersonView
-        personId={selectedPersonId}
-        isOpen={isPersonViewOpen}
-        onClose={() => setIsPersonViewOpen(false)}
-        onMovieClick={handleMovieClickFromPerson}
       />
 
       {/* Footer */}
