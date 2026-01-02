@@ -9,12 +9,14 @@ import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
 import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
+import { CinematicCarousel } from "@/components/CinematicCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2 } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
+import { supabase } from "@/integrations/supabase/client";
 
 const moodTaglines: Record<string, string> = {
   happy: "Feeling Happy? Here's something uplifting 🎉",
@@ -37,15 +39,44 @@ const Index = () => {
     duration: "any",
     movieType: "any",
   });
-  
+
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
-  
+  const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
+
   // Refs for throttled scroll
   const ticking = useRef(false);
   const lastScrollY = useRef(0);
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
+
+  useEffect(() => {
+    fetchTrendingMovies();
+  }, []);
+
+  const fetchTrendingMovies = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("trending-movies", {
+        body: { category: "trending" },
+      });
+
+      if (error) throw error;
+      const movies = data?.movies || [];
+      setTrendingMovies(movies.slice(0, 8).map((movie: any) => ({
+        id: movie.id,
+        title: movie.title,
+        year: movie.year,
+        rating: movie.rating,
+        genre: movie.genre,
+        posterUrl: movie.posterUrl,
+        backdropUrl: movie.backdropUrl,
+        overview: movie.overview,
+        moodMatch: "",
+      })));
+    } catch (error) {
+      console.error("Error fetching trending:", error);
+    }
+  };
 
   const handleMovieSelect = (movie: any) => {
     const movieData: Movie = {
@@ -149,13 +180,10 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section */}
-      <HeroSection />
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-16 md:pb-20">
+      <main className="pb-16 md:pb-20">
         {/* Tabs for Mood vs Search vs AI */}
         <Tabs defaultValue="mood" className="w-full">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-6 md:mb-8 bg-secondary rounded-full p-1">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-0 mt-6 bg-secondary rounded-full p-1 px-4 md:px-6">
             <TabsTrigger 
               value="mood" 
               className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
@@ -182,10 +210,21 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="mood" className="space-y-0">
-            {/* Trending Section */}
-            <TrendingSection onMovieSelect={handleMovieSelect} />
-            {/* Mood Selection */}
-            <section id="mood-selector" className="py-6 md:py-8 scroll-mt-20 md:scroll-mt-24">
+            {/* Cinematic Carousel */}
+            {trendingMovies.length > 0 && (
+              <CinematicCarousel
+                movies={trendingMovies}
+                onMovieSelect={handleMovieSelect}
+                autoPlayInterval={6000}
+              />
+            )}
+
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+              {/* Trending Section */}
+              <TrendingSection onMovieSelect={handleMovieSelect} />
+
+              {/* Mood Selection */}
+              <section id="mood-selector" className="py-6 md:py-8 scroll-mt-20 md:scroll-mt-24">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -266,28 +305,33 @@ const Index = () => {
               )}
             </AnimatePresence>
 
-            {/* Movie Recommendations */}
-            <section className="py-12">
-              <MovieGrid 
-                movies={movies} 
-                isLoading={isLoading}
-                isLoadingMore={isLoadingMore}
-                hasMore={hasMore}
-                onLoadMore={loadMore}
-              />
-            </section>
+              {/* Movie Recommendations */}
+              <section className="py-12">
+                <MovieGrid
+                  movies={movies}
+                  isLoading={isLoading}
+                  isLoadingMore={isLoadingMore}
+                  hasMore={hasMore}
+                  onLoadMore={loadMore}
+                />
+              </section>
+            </div>
           </TabsContent>
           
           <TabsContent value="ai">
-            <section className="py-8">
-              <AISearch onMovieSelect={handleMovieSelect} />
-            </section>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+              <section className="py-8">
+                <AISearch onMovieSelect={handleMovieSelect} />
+              </section>
+            </div>
           </TabsContent>
 
           <TabsContent value="search">
-            <section className="py-8">
-              <MovieSearch />
-            </section>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+              <section className="py-8">
+                <MovieSearch />
+              </section>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

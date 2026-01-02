@@ -88,8 +88,26 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   useEffect(() => {
     if (movie && isOpen) {
       setCurrentMovie(movie);
+      window.history.pushState({ modal: 'movie' }, '');
     }
   }, [movie, isOpen]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (isOpen) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('popstate', handlePopState);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (currentMovie && isOpen) {
@@ -131,6 +149,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
+    window.history.replaceState(null, '');
     onClose();
     navigate(`/person/${member.id}`);
   };
@@ -151,8 +170,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   }, []);
 
   const handleBack = useCallback(() => {
-    onClose();
-  }, [onClose]);
+    window.history.back();
+  }, []);
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);

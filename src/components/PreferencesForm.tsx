@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Languages, Film, Clock, Sparkles } from "lucide-react";
 
 interface PreferencesFormProps {
   preferences: {
@@ -24,7 +24,7 @@ const languages = [
 ];
 
 const genres = [
-  "Action", "Comedy", "Drama", "Horror", "Romance", 
+  "Action", "Comedy", "Drama", "Horror", "Romance",
   "Sci-Fi", "Thriller", "Animation", "Documentary", "Fantasy"
 ];
 
@@ -51,98 +51,186 @@ const PreferencesForm = ({ preferences, onUpdatePreferences }: PreferencesFormPr
     onUpdatePreferences("genres", newGenres);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
     >
       {/* Language & Movie Type Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-3">
-          <Label className="text-foreground font-medium">Preferred Language</Label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <motion.div variants={itemVariants} className="space-y-2.5">
+          <Label className="text-foreground/80 font-normal text-sm flex items-center gap-2">
+            <Languages className="w-4 h-4 text-primary" />
+            Preferred Language
+          </Label>
           <Select
             value={preferences.language}
             onValueChange={(value) => onUpdatePreferences("language", value)}
           >
-            <SelectTrigger className="glass border-border hover:border-primary/50 transition-colors">
+            <SelectTrigger className="h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:border-primary/40 hover:bg-background/80 transition-all duration-300">
               <SelectValue placeholder="Select language" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent className="rounded-xl">
               {languages.map((lang) => (
-                <SelectItem key={lang.value} value={lang.value} className="hover:bg-muted">
+                <SelectItem
+                  key={lang.value}
+                  value={lang.value}
+                  className="rounded-lg"
+                >
                   {lang.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
 
-        <div className="space-y-3">
-          <Label className="text-foreground font-medium">Movie Type</Label>
+        <motion.div variants={itemVariants} className="space-y-2.5">
+          <Label className="text-foreground/80 font-normal text-sm flex items-center gap-2">
+            <Film className="w-4 h-4 text-primary" />
+            Movie Type
+          </Label>
           <Select
             value={preferences.movieType}
             onValueChange={(value) => onUpdatePreferences("movieType", value)}
           >
-            <SelectTrigger className="glass border-border hover:border-primary/50 transition-colors">
+            <SelectTrigger className="h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:border-primary/40 hover:bg-background/80 transition-all duration-300">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent className="rounded-xl">
               {movieTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value} className="hover:bg-muted">
+                <SelectItem
+                  key={type.value}
+                  value={type.value}
+                  className="rounded-lg"
+                >
                   {type.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
       </div>
 
       {/* Duration */}
-      <div className="space-y-3">
-        <Label className="text-foreground font-medium">Time Available</Label>
+      <motion.div variants={itemVariants} className="space-y-2.5">
+        <Label className="text-foreground/80 font-normal text-sm flex items-center gap-2">
+          <Clock className="w-4 h-4 text-primary" />
+          Time Available
+        </Label>
         <Select
           value={preferences.duration}
           onValueChange={(value) => onUpdatePreferences("duration", value)}
         >
-          <SelectTrigger className="glass border-border hover:border-primary/50 transition-colors">
+          <SelectTrigger className="h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm hover:border-primary/40 hover:bg-background/80 transition-all duration-300">
             <SelectValue placeholder="Select duration" />
           </SelectTrigger>
-          <SelectContent className="bg-card border-border">
+          <SelectContent className="rounded-xl">
             {durations.map((dur) => (
-              <SelectItem key={dur.value} value={dur.value} className="hover:bg-muted">
+              <SelectItem
+                key={dur.value}
+                value={dur.value}
+                className="rounded-lg"
+              >
                 {dur.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </motion.div>
 
       {/* Genres */}
-      <div className="space-y-4">
-        <Label className="text-foreground font-medium">Preferred Genres (Optional)</Label>
-        <div className="flex flex-wrap gap-3">
-          {genres.map((genre) => {
+      <motion.div variants={itemVariants} className="space-y-3">
+        <Label className="text-foreground/80 font-normal text-sm flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          Preferred Genres <span className="text-muted-foreground text-xs">(Optional)</span>
+        </Label>
+        <motion.div
+          className="flex flex-wrap gap-2"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: {
+                staggerChildren: 0.03
+              }
+            }
+          }}
+        >
+          {genres.map((genre, index) => {
             const isSelected = preferences.genres.includes(genre);
             return (
-              <button
+              <motion.button
                 key={genre}
                 onClick={() => toggleGenre(genre)}
+                variants={{
+                  hidden: { opacity: 0, scale: 0.8 },
+                  visible: {
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 18
+                    }
+                  }
+                }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 className={`
-                  px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
-                  ${isSelected 
-                    ? "bg-primary text-primary-foreground shadow-glow" 
-                    : "glass border border-border text-foreground hover:border-primary/50"
+                  relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                  ${isSelected
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "bg-secondary/50 backdrop-blur-sm text-foreground hover:bg-secondary/80"
                   }
                 `}
               >
+                <AnimatePresence>
+                  {isSelected && (
+                    <motion.span
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      className="absolute -right-1 -top-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"
+                    >
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 {genre}
-              </button>
+              </motion.button>
             );
           })}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 };
