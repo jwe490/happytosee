@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AssessmentQuestion } from "./AssessmentQuestion";
 import { useToast } from "@/hooks/use-toast";
+import { SparklesIllustration } from "./Illustrations";
 
 interface Question {
   id: string;
@@ -220,17 +221,17 @@ export const AssessmentFlow = () => {
 
   const selectRandomThought = (thoughts: any) => {
     const thoughtsArray = Array.isArray(thoughts) ? thoughts : [];
-    return thoughtsArray[Math.floor(Math.random() * thoughtsArray.length)];
+    return thoughtsArray[Math.floor(Math.random() * thoughtsArray.length)] || "Cinema is magic";
   };
 
   const generateBadges = (scores: Record<string, number>) => {
     const badges = [];
 
     if (scores.rewatch >= 8)
-      badges.push({ name: "Comfort Curator", icon: "🏡" });
+      badges.push({ name: "Comfort Curator", description: "You find joy in familiar favorites" });
     if (scores.social >= 8)
-      badges.push({ name: "Social Butterfly", icon: "🦋" });
-    if (scores.variety >= 8) badges.push({ name: "Genre Nomad", icon: "🎭" });
+      badges.push({ name: "Social Butterfly", description: "Movies are better together" });
+    if (scores.variety >= 8) badges.push({ name: "Genre Nomad", description: "You explore all corners of cinema" });
 
     return badges.slice(0, 3);
   };
@@ -239,25 +240,19 @@ export const AssessmentFlow = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-8"
         >
-          <motion.div
-            animate={{
-              rotate: 360,
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="text-6xl"
-          >
-            🎬
-          </motion.div>
+          <div className="w-32 h-32">
+            <SparklesIllustration className="w-full h-full" />
+          </div>
           <motion.p
-            animate={{ opacity: [0.5, 1, 0.5] }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="text-lg text-muted-foreground"
+            className="text-xl font-medium text-gray-600"
           >
             Preparing your journey...
           </motion.p>
@@ -269,33 +264,55 @@ export const AssessmentFlow = () => {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Progress Bar */}
+    <div className="min-h-screen bg-white py-8 px-4">
+      <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-16"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">
-              {currentQuestionIndex + 1} / {questions.length}
-            </span>
-            <span className="text-sm font-medium text-muted-foreground">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <motion.span
+              key={currentQuestionIndex}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-lg font-bold text-gray-900"
+            >
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </motion.span>
+            <motion.span
+              key={`percent-${currentQuestionIndex}`}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent"
+            >
               {Math.round(progressPercentage)}%
-            </span>
+            </motion.span>
           </div>
-          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+
+          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#FF6B9D] via-[#C86DD7] to-[#06B6D4]"
+              className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             />
+
+            {[...Array(questions.length)].map((_, i) => (
+              <motion.div
+                key={i}
+                className={`absolute top-0 h-full w-0.5 ${
+                  i < currentQuestionIndex ? "bg-white/30" : "bg-gray-300"
+                }`}
+                style={{ left: `${((i + 1) / questions.length) * 100}%` }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.05 }}
+              />
+            ))}
           </div>
         </motion.div>
 
-        {/* Question */}
         <AnimatePresence mode="wait">
           <AssessmentQuestion
             key={currentQuestion.id}
