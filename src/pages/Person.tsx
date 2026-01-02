@@ -81,6 +81,7 @@ const Person = () => {
     acting: true,
   });
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -90,15 +91,18 @@ const Person = () => {
 
   const fetchPersonDetails = async (personId: number) => {
     setIsLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase.functions.invoke("person-details", {
         body: { personId },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
+      console.log("Person data received:", data);
       setPerson(data);
     } catch (error) {
       console.error("Error fetching person details:", error);
+      setError(error instanceof Error ? error.message : "Failed to load person details");
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +134,26 @@ const Person = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <PersonPageSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+          <p className="text-destructive font-semibold">Error loading person details</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
+            <Button onClick={() => id && fetchPersonDetails(parseInt(id))}>
+              Try Again
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -275,7 +299,7 @@ const Person = () => {
               </div>
             </Card>
 
-            {(person.externalIds.imdb ||
+            {person.externalIds && (person.externalIds.imdb ||
               person.externalIds.instagram ||
               person.externalIds.twitter ||
               person.externalIds.facebook) && (
@@ -372,23 +396,25 @@ const Person = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <Card className="p-4 text-center space-y-1">
-                <Film className="w-6 h-6 mx-auto text-primary" />
-                <p className="text-2xl font-bold">{person.stats.totalMovies}</p>
-                <p className="text-xs text-muted-foreground">Total Movies</p>
-              </Card>
-              <Card className="p-4 text-center space-y-1">
-                <Clapperboard className="w-6 h-6 mx-auto text-primary" />
-                <p className="text-2xl font-bold">{person.stats.asActor}</p>
-                <p className="text-xs text-muted-foreground">Acting Roles</p>
-              </Card>
-              <Card className="p-4 text-center space-y-1">
-                <TrendingUp className="w-6 h-6 mx-auto text-primary" />
-                <p className="text-2xl font-bold">{person.popularity}</p>
-                <p className="text-xs text-muted-foreground">Popularity</p>
-              </Card>
-            </div>
+            {person.stats && (
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="p-4 text-center space-y-1">
+                  <Film className="w-6 h-6 mx-auto text-primary" />
+                  <p className="text-2xl font-bold">{person.stats.totalMovies || 0}</p>
+                  <p className="text-xs text-muted-foreground">Total Movies</p>
+                </Card>
+                <Card className="p-4 text-center space-y-1">
+                  <Clapperboard className="w-6 h-6 mx-auto text-primary" />
+                  <p className="text-2xl font-bold">{person.stats.asActor || 0}</p>
+                  <p className="text-xs text-muted-foreground">Acting Roles</p>
+                </Card>
+                <Card className="p-4 text-center space-y-1">
+                  <TrendingUp className="w-6 h-6 mx-auto text-primary" />
+                  <p className="text-2xl font-bold">{person.popularity || 0}</p>
+                  <p className="text-xs text-muted-foreground">Popularity</p>
+                </Card>
+              </div>
+            )}
 
             {person.biography && (
               <Card className="p-6">
@@ -467,94 +493,100 @@ const Person = () => {
               </Card>
             )}
 
-            <Card className="p-6">
-              <h2 className="font-display text-2xl font-semibold mb-4">Filmography</h2>
+            {(person.actingRoles || person.crewRoles) && (
+              <Card className="p-6">
+                <h2 className="font-display text-2xl font-semibold mb-4">Filmography</h2>
 
-              <Tabs defaultValue="acting" className="w-full">
-                <TabsList className="w-full justify-start">
-                  <TabsTrigger value="acting">
-                    Acting ({person.actingRoles.length})
-                  </TabsTrigger>
-                  {Object.keys(person.crewRoles).map((category) => (
-                    <TabsTrigger key={category} value={category}>
-                      {category} ({person.crewRoles[category].length})
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-
-                <TabsContent value="acting" className="mt-6">
-                  <motion.button
-                    onClick={() => toggleSection("acting")}
-                    className="flex items-center justify-between w-full mb-4 text-left"
-                  >
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <Clapperboard className="w-5 h-5 text-primary" />
-                      Acting Roles ({person.actingRoles.length})
-                    </h3>
-                    {expandedSections.acting ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                <Tabs defaultValue="acting" className="w-full">
+                  <TabsList className="w-full justify-start">
+                    {person.actingRoles && person.actingRoles.length > 0 && (
+                      <TabsTrigger value="acting">
+                        Acting ({person.actingRoles.length})
+                      </TabsTrigger>
                     )}
-                  </motion.button>
+                    {person.crewRoles && Object.keys(person.crewRoles).map((category) => (
+                      <TabsTrigger key={category} value={category}>
+                        {category} ({person.crewRoles[category].length})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
 
-                  <AnimatePresence>
-                    {expandedSections.acting && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
+                  {person.actingRoles && person.actingRoles.length > 0 && (
+                    <TabsContent value="acting" className="mt-6">
+                      <motion.button
+                        onClick={() => toggleSection("acting")}
+                        className="flex items-center justify-between w-full mb-4 text-left"
                       >
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {person.actingRoles.map((movie, index) => (
-                            <MovieCard key={movie.id} movie={movie} index={index} />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </TabsContent>
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                          <Clapperboard className="w-5 h-5 text-primary" />
+                          Acting Roles ({person.actingRoles.length})
+                        </h3>
+                        {expandedSections.acting ? (
+                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </motion.button>
 
-                {Object.entries(person.crewRoles).map(([category, movies]) => (
-                  <TabsContent key={category} value={category} className="mt-6">
-                    <motion.button
-                      onClick={() => toggleSection(category)}
-                      className="flex items-center justify-between w-full mb-4 text-left"
-                    >
-                      <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <Film className="w-5 h-5 text-primary" />
-                        {category} ({movies.length})
-                      </h3>
-                      {expandedSections[category] ? (
-                        <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                      )}
-                    </motion.button>
+                      <AnimatePresence>
+                        {expandedSections.acting && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                              {person.actingRoles.map((movie, index) => (
+                                <MovieCard key={movie.id} movie={movie} index={index} />
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </TabsContent>
+                  )}
 
-                    <AnimatePresence>
-                      {expandedSections[category] && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {movies.map((movie, index) => (
-                              <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </Card>
+                  {person.crewRoles && Object.entries(person.crewRoles).map(([category, movies]) => (
+                    <TabsContent key={category} value={category} className="mt-6">
+                      <motion.button
+                        onClick={() => toggleSection(category)}
+                        className="flex items-center justify-between w-full mb-4 text-left"
+                      >
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                          <Film className="w-5 h-5 text-primary" />
+                          {category} ({movies.length})
+                        </h3>
+                        {expandedSections[category] ? (
+                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </motion.button>
+
+                      <AnimatePresence>
+                        {expandedSections[category] && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                              {movies.map((movie, index) => (
+                                <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </Card>
+            )}
           </motion.div>
         </div>
       </main>
