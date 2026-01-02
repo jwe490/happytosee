@@ -1,230 +1,220 @@
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight, Zap, Heart, Users } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const AssessmentLanding = () => {
   const navigate = useNavigate();
-  const { scrollYProgress } = useScroll();
-  const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
-  const features = [
-    {
-      icon: Sparkles,
-      title: "In 2 Minutes",
-      description: "Quick, fun questions",
-      color: "from-violet-500 to-purple-600",
-    },
-    {
-      icon: Heart,
-      title: "Deeply Personal",
-      description: "Discover your archetype",
-      color: "from-pink-500 to-rose-600",
-    },
-    {
-      icon: Users,
-      title: "Share & Compare",
-      description: "Beautiful mood board",
-      color: "from-cyan-500 to-blue-600",
-    },
-  ];
-
-  const archetypes = [
-    { name: "The Escapist", emoji: "🚀", gradient: "from-[#FF6B9D] via-[#C86DD7] to-[#A855F7]" },
-    { name: "The Analyzer", emoji: "🎬", gradient: "from-[#3B82F6] via-[#06B6D4] to-[#14B8A6]" },
-    { name: "The Heart Seeker", emoji: "💖", gradient: "from-[#F43F5E] via-[#FB7185] to-[#FDA4AF]" },
-    { name: "The Thrill Junkie", emoji: "⚡", gradient: "from-[#F59E0B] via-[#EF4444] to-[#DC2626]" },
-    { name: "The Social Butterfly", emoji: "🦋", gradient: "from-[#FBBF24] via-[#34D399] to-[#10B981]" },
-    { name: "The Comfort Curator", emoji: "🏡", gradient: "from-[#60A5FA] via-[#2DD4BF] to-[#5EEAD4]" },
-    { name: "The Genre Nomad", emoji: "🎭", gradient: "from-[#FB923C] via-[#F472B6] to-[#C084FC]" },
-    { name: "The Philosopher", emoji: "🧠", gradient: "from-[#6366F1] via-[#8B5CF6] to-[#A78BFA]" },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="relative overflow-hidden">
+      <div className="relative">
         {/* Hero Section */}
-        <motion.section style={{ y, opacity }} className="relative min-h-[90vh] flex items-center justify-center px-4 pt-20">
-          <div className="max-w-5xl mx-auto text-center space-y-12">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="space-y-6"
-            >
-              <motion.h1
-                className="font-display text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 0.2 }}
-              >
-                What's your
-                <motion.span
-                  className="block bg-gradient-to-r from-[#FF6B9D] via-[#C86DD7] to-[#06B6D4] bg-clip-text text-transparent"
-                  animate={{
-                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                  }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                  style={{ backgroundSize: "200% auto" }}
-                >
-                  movie mood?
-                </motion.span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-                className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto"
-              >
-                12 questions. 2 minutes. Your unique cinematic personality.
-              </motion.p>
-            </motion.div>
-
+        <section className="relative min-h-[85vh] flex flex-col items-center justify-center px-6 py-32">
+          <div className="max-w-4xl mx-auto space-y-16 text-center">
+            {/* Illustration */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
+              transition={{ duration: 0.6 }}
+              className="flex justify-center"
+            >
+              <img
+                src="/img_20260103_035320.jpg"
+                alt="Assessment illustration"
+                className="w-full max-w-md h-auto"
+              />
+            </motion.div>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="space-y-6"
+            >
+              <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight">
+                Discover Your
+                <span className="block mt-2">Movie Personality</span>
+              </h1>
+
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Take our 2-minute assessment and uncover your unique cinematic archetype
+              </p>
+            </motion.div>
+
+            {/* CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="flex flex-col items-center gap-4"
             >
               <Button
                 size="lg"
                 onClick={() => navigate("/assessment/quiz")}
-                className="group relative h-16 px-12 rounded-full text-lg font-semibold overflow-hidden"
+                className="h-14 px-10 rounded-full text-lg font-semibold group"
               >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-[#FF6B9D] via-[#C86DD7] to-[#06B6D4]"
-                  animate={{
-                    x: ["0%", "100%", "0%"],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                />
-                <span className="relative z-10 flex items-center gap-3">
-                  Start Now
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                </span>
+                Start Assessment
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-            </motion.div>
-
-            {/* Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12"
-            >
-              {features.map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="group relative p-6 rounded-3xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all"
-                >
-                  <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
-                  <div className="relative space-y-3">
-                    <feature.icon className={`w-8 h-8 bg-gradient-to-br ${feature.color} bg-clip-text text-transparent`} />
-                    <h3 className="font-display text-xl font-bold">{feature.title}</h3>
-                    <p className="text-muted-foreground text-sm">{feature.description}</p>
-                  </div>
-                </motion.div>
-              ))}
+              <p className="text-sm text-muted-foreground">
+                12 questions • No sign-up required
+              </p>
             </motion.div>
           </div>
-        </motion.section>
+        </section>
 
-        {/* Archetypes Grid */}
-        <section className="py-24 px-4">
-          <div className="max-w-6xl mx-auto">
+        {/* How It Works */}
+        <section className="py-24 px-6 border-t border-border/40">
+          <div className="max-w-5xl mx-auto">
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16 space-y-4"
+              transition={{ duration: 0.6 }}
+              className="text-center mb-20"
             >
-              <h2 className="font-display text-4xl md:text-6xl font-bold">
-                8 Cinematic Souls
+              <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
+                How it works
               </h2>
-              <p className="text-lg text-muted-foreground">
-                Which one are you?
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                A simple process to understand your movie-watching identity
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {archetypes.map((archetype, index) => (
-                <motion.div
-                  key={archetype.name}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                  whileHover={{ scale: 1.1, rotate: [0, -2, 2, 0] }}
-                  className="group relative cursor-pointer"
-                >
-                  <div className={`aspect-square rounded-3xl bg-gradient-to-br ${archetype.gradient} p-6 flex flex-col items-center justify-center text-center shadow-lg group-hover:shadow-2xl transition-all`}>
-                    <motion.div
-                      className="text-5xl mb-3"
-                      animate={{
-                        y: [0, -10, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        delay: index * 0.2,
-                      }}
-                    >
-                      {archetype.emoji}
-                    </motion.div>
-                    <h3 className="font-display font-bold text-white text-sm md:text-base drop-shadow-lg">
-                      {archetype.name}
-                    </h3>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="grid md:grid-cols-3 gap-12">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="space-y-4 text-center"
+              >
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-foreground/5 flex items-center justify-center">
+                  <span className="font-display text-3xl font-bold text-foreground/60">1</span>
+                </div>
+                <h3 className="font-display text-xl font-bold">Answer Questions</h3>
+                <p className="text-muted-foreground">
+                  12 thoughtfully designed questions about your viewing preferences
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="space-y-4 text-center"
+              >
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-foreground/5 flex items-center justify-center">
+                  <span className="font-display text-3xl font-bold text-foreground/60">2</span>
+                </div>
+                <h3 className="font-display text-xl font-bold">Get Your Archetype</h3>
+                <p className="text-muted-foreground">
+                  Discover which of 8 unique movie personalities matches you
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="space-y-4 text-center"
+              >
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-foreground/5 flex items-center justify-center">
+                  <span className="font-display text-3xl font-bold text-foreground/60">3</span>
+                </div>
+                <h3 className="font-display text-xl font-bold">Share Your Results</h3>
+                <p className="text-muted-foreground">
+                  Create a beautiful mood board to share with friends
+                </p>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="py-24 px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="max-w-2xl mx-auto text-center space-y-8"
-          >
+        {/* Visual Section */}
+        <section className="py-24 px-6 bg-muted/30">
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
             <motion.div
-              animate={{
-                rotate: [0, 10, -10, 0],
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="text-6xl"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="space-y-6"
             >
-              ✨
+              <h2 className="font-display text-4xl md:text-5xl font-bold">
+                8 Unique Archetypes
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                From The Escapist who seeks fantasy worlds to The Philosopher who craves deep meaning—each archetype reveals something unique about how you experience cinema.
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                {[
+                  "The Escapist",
+                  "The Analyzer",
+                  "The Heart Seeker",
+                  "The Thrill Junkie",
+                  "The Social Butterfly",
+                  "The Comfort Curator",
+                  "The Genre Nomad",
+                  "The Philosopher",
+                ].map((name, i) => (
+                  <div
+                    key={name}
+                    className="p-3 rounded-xl bg-background border border-border/40 text-sm font-medium"
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
             </motion.div>
 
-            <h2 className="font-display text-4xl md:text-5xl font-bold">
-              Ready when you are
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="flex justify-center"
+            >
+              <img
+                src="/img_20260103_035356.jpg"
+                alt="Archetypes illustration"
+                className="w-full max-w-md h-auto rounded-3xl"
+              />
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-32 px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto text-center space-y-8"
+          >
+            <h2 className="font-display text-4xl md:text-6xl font-bold">
+              Ready to begin?
             </h2>
 
-            <p className="text-lg text-muted-foreground">
-              No sign-up. No email. Just you and 12 questions.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Join thousands discovering their movie personality
             </p>
 
             <Button
               size="lg"
               onClick={() => navigate("/assessment/quiz")}
-              variant="outline"
-              className="h-14 px-10 rounded-full text-lg font-semibold border-2 hover:scale-105 transition-transform"
+              className="h-14 px-10 rounded-full text-lg font-semibold group"
             >
-              <Zap className="w-5 h-5 mr-2" />
-              Begin Assessment
+              Start Assessment
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </motion.div>
         </section>

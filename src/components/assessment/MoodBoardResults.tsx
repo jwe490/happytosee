@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Share2, Download, RotateCw, Trophy, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Share2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
+import { ArchetypeIcon } from "./ArchetypeIcon";
 
 interface MoodBoardResultsProps {
   assessmentId: string;
@@ -156,246 +155,178 @@ export const MoodBoardResults = ({
   const gradient = archetypeGradients[archetype.name] || "from-[#FF6B9D] via-[#C86DD7] to-[#06B6D4]";
 
   return (
-    <div className="min-h-screen py-8 px-4 overflow-hidden">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Animated Background Orbs */}
+    <div className="min-h-screen py-12 px-6">
+      <div className="max-w-4xl mx-auto space-y-12">
         <motion.div
-          className="fixed inset-0 pointer-events-none overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-        >
-          <motion.div
-            className={`absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br ${gradient} blur-3xl opacity-30`}
-            animate={{
-              scale: [1, 1.2, 1],
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className={`absolute bottom-20 right-10 w-80 h-80 rounded-full bg-gradient-to-br ${gradient} blur-3xl opacity-20`}
-            animate={{
-              scale: [1.2, 1, 1.2],
-              x: [0, -40, 0],
-              y: [0, -20, 0],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
           <div
             ref={resultRef}
-            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-1`}
+            className="relative overflow-hidden rounded-3xl bg-background border border-border p-8 md:p-12 space-y-12"
           >
-            <div className="relative bg-background/95 backdrop-blur-xl rounded-3xl overflow-hidden">
-              <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10`} />
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              className="text-center space-y-8"
+            >
+              <div className="w-32 h-32 mx-auto">
+                <ArchetypeIcon archetypeName={archetype.name} gradient={gradient} />
+              </div>
 
-              <div className="relative z-10 p-8 md:p-12 space-y-10">
-                {/* Header with Icon */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="text-center space-y-6"
-                >
-                  <motion.div
-                    className={`w-32 h-32 mx-auto rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center shadow-2xl`}
-                    animate={{
-                      rotate: [0, 5, -5, 0],
-                      scale: [1, 1.05, 1],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity }}
+              <div className="space-y-4">
+                <div className="inline-block px-4 py-1.5 rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                  Your Movie Archetype
+                </div>
+
+                <h1 className="font-display text-4xl md:text-6xl font-bold">
+                  {archetype.name}
+                </h1>
+
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                  {archetype.description}
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Traits */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-4"
+            >
+              <h3 className="font-display text-2xl font-bold text-center">Your Traits</h3>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {traits.map((trait: string, index: number) => (
+                  <motion.span
+                    key={trait}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 + index * 0.03 }}
+                    className="px-4 py-2 rounded-full bg-muted text-sm font-medium"
                   >
-                    <span className="text-7xl">{archetype.icon}</span>
-                  </motion.div>
+                    {trait}
+                  </motion.span>
+                ))}
+              </div>
+            </motion.div>
 
-                  <div className="space-y-2">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30"
-                    >
-                      <span className="text-sm font-medium">Your Movie Archetype</span>
-                    </motion.div>
-
-                    <h1 className={`font-display text-5xl md:text-6xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-                      {archetype.name}
-                    </h1>
-
-                    <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
-                      {archetype.description}
-                    </p>
-                  </div>
-                </motion.div>
-
-                {/* Traits */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="space-y-4"
-                >
-                  <h3 className="font-display text-xl font-bold flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    Your Cinematic Traits
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {traits.map((trait: string, index: number) => (
-                      <motion.span
-                        key={trait}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.7 + index * 0.05 }}
-                        whileHover={{ scale: 1.1, rotate: [-2, 2, -2, 0] }}
-                        className={`px-4 py-2 rounded-full bg-gradient-to-br ${gradient} text-white text-sm font-medium shadow-lg`}
-                      >
-                        {trait}
-                      </motion.span>
-                    ))}
-                  </div>
-                </motion.div>
-
-                {/* Stats */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  className="space-y-4"
-                >
-                  <h3 className="font-display text-xl font-bold">Personality Breakdown</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {stats.slice(0, 6).map((stat: any, index: number) => (
+            {/* Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-6"
+            >
+              <h3 className="font-display text-2xl font-bold text-center">Personality Breakdown</h3>
+              <div className="space-y-3 max-w-2xl mx-auto">
+                {stats.slice(0, 6).map((stat: any, index: number) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.05 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{stat.label}</span>
+                      <span className="font-bold">{stat.value}/{stat.max}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1 + index * 0.05 }}
-                        whileHover={{ scale: 1.05 }}
-                        className="p-4 rounded-2xl bg-card border border-border/50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-sm">{stat.label}</span>
-                          <span className="text-lg font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent">
-                            {stat.value}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(stat.value / stat.max) * 100}%` }}
-                            transition={{ delay: 1.1 + index * 0.05, duration: 0.6 }}
-                            className={`h-full bg-gradient-to-r ${gradient} rounded-full`}
-                          />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-
-                {/* Badges */}
-                {badges.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.3 }}
-                    className="space-y-4"
-                  >
-                    <h3 className="font-display text-xl font-bold flex items-center gap-2">
-                      <Trophy className="w-5 h-5" />
-                      Achievements Unlocked
-                    </h3>
-                    <div className="flex gap-3 justify-center">
-                      {badges.map((badge: any, index: number) => (
-                        <motion.div
-                          key={badge.name}
-                          initial={{ opacity: 0, scale: 0, rotate: -180 }}
-                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                          transition={{
-                            delay: 1.4 + index * 0.1,
-                            type: "spring",
-                            stiffness: 200,
-                          }}
-                          whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-                          className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl bg-gradient-to-br ${gradient} text-white shadow-xl`}
-                        >
-                          <span className="text-4xl">{badge.icon}</span>
-                          <span className="text-xs font-bold text-center">
-                            {badge.name}
-                          </span>
-                        </motion.div>
-                      ))}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(stat.value / stat.max) * 100}%` }}
+                        transition={{ delay: 0.7 + index * 0.05, duration: 0.5 }}
+                        className="h-full bg-foreground rounded-full"
+                      />
                     </div>
                   </motion.div>
-                )}
-
-                {/* Quote */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.6 }}
-                  className="pt-6 border-t border-border"
-                >
-                  <div className="text-center space-y-2">
-                    <div className="text-4xl">✨</div>
-                    <p className="text-lg italic text-muted-foreground max-w-lg mx-auto">
-                      "{assessment.random_thought}"
-                    </p>
-                  </div>
-                </motion.div>
-
-                {/* Footer */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.8 }}
-                  className="text-center pt-4"
-                >
-                  <div className={`inline-block px-6 py-2 rounded-full bg-gradient-to-r ${gradient} text-white font-semibold text-sm shadow-lg`}>
-                    MoodFlix • Your Movie Mood
-                  </div>
-                </motion.div>
+                ))}
               </div>
-            </div>
+            </motion.div>
+
+            {/* Badges */}
+            {badges.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                className="space-y-4"
+              >
+                <h3 className="font-display text-2xl font-bold text-center">Achievements</h3>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  {badges.map((badge: any, index: number) => (
+                    <motion.div
+                      key={badge.name}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1 + index * 0.05 }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted"
+                    >
+                      <span className="text-sm font-medium">
+                        {badge.name}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Quote */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1 }}
+              className="pt-8 border-t border-border"
+            >
+              <p className="text-center text-lg italic text-muted-foreground max-w-2xl mx-auto">
+                "{assessment.random_thought}"
+              </p>
+            </motion.div>
+
+            {/* Footer */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.3 }}
+              className="text-center pt-4"
+            >
+              <div className="inline-block px-6 py-2 rounded-full bg-muted text-sm font-medium">
+                MoodFlix • Movie Personality Assessment
+              </div>
+            </motion.div>
           </div>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          transition={{ delay: 1.5 }}
+          className="flex flex-col sm:flex-row gap-3 justify-center items-center"
         >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              size="lg"
-              onClick={handleShare}
-              disabled={isSharing}
-              className={`gap-2 rounded-full px-8 py-6 text-lg font-semibold bg-gradient-to-r ${gradient} hover:opacity-90 transition-opacity border-0`}
-            >
-              <Share2 className="w-5 h-5" />
-              {isSharing ? "Creating Image..." : "Share My Mood"}
-            </Button>
-          </motion.div>
+          <Button
+            size="lg"
+            onClick={handleShare}
+            disabled={isSharing}
+            className="gap-2 rounded-full px-8 h-12 font-semibold"
+          >
+            <Share2 className="w-4 h-4" />
+            {isSharing ? "Creating..." : "Share Results"}
+          </Button>
 
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={handleRetake}
-              className="gap-2 rounded-full px-8 py-6 text-lg font-semibold border-2"
-            >
-              <RotateCw className="w-5 h-5" />
-              Retake Quiz
-            </Button>
-          </motion.div>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={handleRetake}
+            className="gap-2 rounded-full px-8 h-12 font-semibold"
+          >
+            <RotateCw className="w-4 h-4" />
+            Retake
+          </Button>
         </motion.div>
       </div>
     </div>
