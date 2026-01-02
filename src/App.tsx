@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Watchlist from "./pages/Watchlist";
 import Profile from "./pages/Profile";
+import Person from "./pages/Person";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/person/:id" element={<Person />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
