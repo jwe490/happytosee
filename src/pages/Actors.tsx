@@ -84,92 +84,111 @@ const Actors = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 text-center space-y-3"
+          transition={{ duration: 0.5 }}
+          className="mb-12 text-center space-y-2"
         >
-          <div className="flex items-center justify-center gap-3">
-            <Users className="w-8 h-8 text-primary" />
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
-              Popular Actors
-            </h1>
-          </div>
-          <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
-            Discover talented actors and explore their filmography
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight">
+            Popular Actors
+          </h1>
+          <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto font-light">
+            Discover talented performers and explore their work
           </p>
         </motion.div>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="flex gap-1.5">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-3 h-3 rounded-full bg-primary"
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                  transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">Loading actors...</p>
-          </div>
-        ) : (
-          <>
+        <AnimatePresence mode="wait">
+          {isLoading ? (
             <motion.div
+              key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6"
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-32 gap-6"
             >
-              {actors.map((actor, index) => (
-                <ActorCard
-                  key={actor.id}
-                  {...actor}
-                  onClick={handleActorClick}
-                  index={index}
-                />
-              ))}
-            </motion.div>
-
-            {currentPage < totalPages && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-center mt-12"
-              >
-                <Button
-                  size="lg"
-                  onClick={handleLoadMore}
-                  disabled={isLoadingMore}
-                  className="gap-2 rounded-full"
-                >
-                  {isLoadingMore ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      Load More
-                      <span className="text-xs opacity-70">
-                        ({currentPage} of {totalPages})
-                      </span>
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            )}
-
-            {actors.length === 0 && !isLoading && (
-              <div className="text-center py-20">
-                <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No actors found</p>
+              <div className="flex gap-2">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="w-2.5 h-2.5 rounded-full bg-primary"
+                    animate={{
+                      scale: [1, 1.4, 1],
+                      opacity: [0.3, 1, 0.3]
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.2,
+                      delay: i * 0.2,
+                      ease: "easeInOut"
+                    }}
+                  />
+                ))}
               </div>
-            )}
-          </>
-        )}
+              <p className="text-sm text-muted-foreground font-light">Discovering talent...</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {actors.length === 0 ? (
+                <div className="text-center py-32">
+                  <Users className="w-20 h-20 text-muted-foreground/20 mx-auto mb-4" strokeWidth={1.5} />
+                  <p className="text-muted-foreground font-light">No actors found</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 md:gap-6 lg:gap-8">
+                    {actors.map((actor, index) => (
+                      <ActorCard
+                        key={actor.id}
+                        {...actor}
+                        onClick={handleActorClick}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+
+                  {currentPage < totalPages && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex justify-center mt-16"
+                    >
+                      <Button
+                        size="lg"
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                        variant="outline"
+                        className="gap-2 rounded-full px-8 py-6 border-border/50 hover:border-primary/50 transition-all duration-300"
+                      >
+                        {isLoadingMore ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Loading more...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Load More Actors</span>
+                            <span className="text-xs text-muted-foreground font-light ml-1">
+                              Page {currentPage} of {totalPages}
+                            </span>
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <ExpandedPersonView
