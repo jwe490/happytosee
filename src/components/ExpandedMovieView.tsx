@@ -81,7 +81,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showContent, setShowContent] = useState(false);
-  const [navigationHistory, setNavigationHistory] = useState<Movie[]>([]);
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
@@ -89,7 +88,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   useEffect(() => {
     if (movie && isOpen) {
       setCurrentMovie(movie);
-      setNavigationHistory([movie]);
     }
   }, [movie, isOpen]);
 
@@ -147,22 +145,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       posterUrl: similar.posterUrl,
       moodMatch: "",
     };
-    setNavigationHistory(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     const container = document.querySelector('.expanded-movie-scroll');
     if (container) container.scrollTop = 0;
   }, []);
 
   const handleBack = useCallback(() => {
-    if (navigationHistory.length > 1) {
-      const newHistory = [...navigationHistory];
-      newHistory.pop();
-      setNavigationHistory(newHistory);
-      setCurrentMovie(newHistory[newHistory.length - 1]);
-    } else {
-      onClose();
-    }
-  }, [navigationHistory, onClose]);
+    onClose();
+  }, [onClose]);
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
