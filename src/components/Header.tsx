@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Bookmark, LogOut, User, Menu, X, Home, Search, UserCircle } from "lucide-react";
+import { Bookmark, LogOut, User, Home, Search, UserCircle, Sparkles } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import {
   DropdownMenu,
@@ -13,19 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
 
 const Header = () => {
   const [user, setUser] = useState<any>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -39,15 +32,18 @@ const Header = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setMobileMenuOpen(false);
     navigate("/");
-  };
-
-  const handleNavigate = (path: string) => {
-    setMobileMenuOpen(false);
-    navigate(path);
   };
 
   return (
@@ -55,193 +51,251 @@ const Header = () => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full py-3 px-4 md:py-4 md:px-8 sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border"
+      className="fixed top-0 left-0 right-0 z-50 px-4 pt-4"
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Mobile Menu Button */}
-        <div className="flex items-center gap-2 md:gap-4">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <button 
-                className="flex items-center gap-1.5 md:gap-2 text-foreground hover:text-muted-foreground transition-colors p-2 -ml-2"
-                aria-label="Open menu"
-              >
-                <Menu className="w-5 h-5 md:w-6 md:h-6" />
-                <span className="font-display text-xs md:text-sm font-semibold tracking-wide uppercase hidden sm:inline">Menu</span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] sm:w-[350px] bg-background border-border">
-              <SheetHeader className="border-b border-border pb-4 mb-4">
-                <SheetTitle className="font-display text-xl font-bold text-foreground">
-                  MoodFlix
-                </SheetTitle>
-              </SheetHeader>
-              
-              <nav className="flex flex-col gap-2">
-                <button
-                  onClick={() => handleNavigate("/")}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                >
-                  <Home className="w-5 h-5" />
-                  <span className="font-medium">Home</span>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    document.getElementById('mood-selector')?.scrollIntoView({ 
+      <motion.div
+        animate={{
+          width: isScrolled ? "auto" : "100%",
+          maxWidth: isScrolled ? "800px" : "100%",
+          borderRadius: isScrolled ? "9999px" : "16px",
+          backgroundColor: isScrolled
+            ? "hsl(var(--background) / 0.7)"
+            : "hsl(var(--background) / 0.95)",
+        }}
+        transition={{
+          duration: 0.3,
+          ease: "easeInOut"
+        }}
+        className="mx-auto backdrop-blur-xl border border-border/50 shadow-lg"
+        style={{
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
+        <div className={`flex items-center justify-between transition-all duration-300 ${
+          isScrolled ? "px-6 py-3" : "px-6 py-4"
+        }`}>
+          <motion.button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <motion.div
+              animate={{ rotate: isScrolled ? 0 : 0 }}
+              className="relative"
+            >
+              <Sparkles className={`transition-all duration-300 ${
+                isScrolled ? "w-5 h-5" : "w-6 h-6"
+              } text-primary`} />
+            </motion.div>
+            <h1 className={`font-display font-bold text-foreground tracking-tight group-hover:text-primary transition-colors ${
+              isScrolled ? "text-lg" : "text-xl md:text-2xl"
+            }`}>
+              MoodFlix
+            </h1>
+          </motion.button>
+
+          <nav className="hidden md:flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className={`gap-2 transition-all ${
+                location.pathname === "/" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span className={isScrolled ? "hidden lg:inline" : ""}>Home</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (location.pathname !== "/") {
+                  navigate("/");
+                  setTimeout(() => {
+                    document.getElementById('mood-selector')?.scrollIntoView({
                       behavior: 'smooth',
                       block: 'start'
                     });
-                  }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                >
-                  <Search className="w-5 h-5" />
-                  <span className="font-medium">Discover Movies</span>
-                </button>
+                  }, 100);
+                } else {
+                  document.getElementById('mood-selector')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                }
+              }}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Search className="w-4 h-4" />
+              <span className={isScrolled ? "hidden lg:inline" : ""}>Discover</span>
+            </Button>
 
-                {user && (
-                  <>
-                    <button
-                      onClick={() => handleNavigate("/watchlist")}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                    >
-                      <Bookmark className="w-5 h-5" />
-                      <span className="font-medium">My Watchlist</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => handleNavigate("/profile")}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                    >
-                      <UserCircle className="w-5 h-5" />
-                      <span className="font-medium">My Profile</span>
-                    </button>
-                  </>
-                )}
-
-                <div className="border-t border-border my-4" />
-
-                {user ? (
-                  <>
-                    <div className="px-4 py-2 text-sm text-muted-foreground truncate">
-                      {user.email}
-                    </div>
-                    <button
-                      onClick={handleSignOut}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors text-left"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span className="font-medium">Sign Out</span>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleNavigate("/auth")}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
-                    >
-                      <User className="w-5 h-5" />
-                      <span className="font-medium">Log In</span>
-                    </button>
-                    <Button 
-                      onClick={() => handleNavigate("/auth")}
-                      className="mt-2 w-full font-display font-semibold"
-                    >
-                      Sign Up
-                    </Button>
-                  </>
-                )}
-              </nav>
-
-              <div className="absolute bottom-6 left-6 right-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Theme</span>
-                  <div className="flex items-center gap-2">
-                    <AccentColorPicker />
-                    <ThemeToggle />
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Logo */}
-        <button 
-          onClick={() => navigate("/")}
-          className="absolute left-1/2 -translate-x-1/2"
-        >
-          <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold text-foreground tracking-tight hover:text-foreground/80 transition-colors">
-            MoodFlix
-          </h1>
-        </button>
-
-        {/* Desktop Actions */}
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-1">
-            <AccentColorPicker />
-            <ThemeToggle />
-          </div>
-          {user ? (
-            <>
+            {user && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/watchlist")}
-                className="gap-2 hidden sm:flex"
+                className={`gap-2 transition-all ${
+                  location.pathname === "/watchlist" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 <Bookmark className="w-4 h-4" />
-                <span className="hidden md:inline">Watchlist</span>
+                <span className={isScrolled ? "hidden lg:inline" : ""}>Watchlist</span>
               </Button>
-              
+            )}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <AnimatePresence mode="wait">
+              {!isScrolled && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="hidden lg:flex items-center gap-1"
+                >
+                  <AccentColorPicker />
+                  <ThemeToggle />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full hidden sm:flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full hover:bg-primary/10 transition-all"
+                  >
                     <User className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground truncate">
-                    {user.email}
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 bg-background/95 backdrop-blur-xl border-border/50"
+                  style={{
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                  }}
+                >
+                  <div className="px-2 py-2">
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">Signed in</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                     <UserCircle className="w-4 h-4 mr-2" />
-                    My Profile
+                    Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/watchlist")}>
+                  <DropdownMenuItem onClick={() => navigate("/watchlist")} className="cursor-pointer md:hidden">
                     <Bookmark className="w-4 h-4 mr-2" />
-                    My Watchlist
+                    Watchlist
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="md:hidden" />
+                  <DropdownMenuItem className="cursor-pointer md:hidden" onClick={(e) => e.preventDefault()}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-sm">Theme</span>
+                      <div className="flex items-center gap-1">
+                        <AccentColorPicker />
+                        <ThemeToggle />
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <button 
-                onClick={() => navigate("/auth")}
-                className="font-display text-xs md:text-sm font-medium text-foreground hover:text-muted-foreground transition-colors tracking-wide uppercase hidden md:block"
-              >
-                Log-in
-              </button>
-              <Button 
-                variant="default" 
-                size="sm"
-                onClick={() => navigate("/auth")}
-                className="font-display text-[10px] md:text-xs font-semibold tracking-wide uppercase rounded-full px-3 md:px-5 hidden sm:flex"
-              >
-                Sign-up
-              </Button>
-            </>
-          )}
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                  className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                  className="rounded-full px-4 font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isScrolled && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 md:hidden"
+          >
+            <div
+              className="flex items-center gap-2 bg-background/80 backdrop-blur-xl border border-border/50 rounded-full px-4 py-2 shadow-2xl"
+              style={{
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/")}
+                className={`rounded-full ${location.pathname === "/" ? "text-primary bg-primary/10" : ""}`}
+              >
+                <Home className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (location.pathname !== "/") {
+                    navigate("/");
+                    setTimeout(() => {
+                      document.getElementById('mood-selector')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
+                    }, 100);
+                  } else {
+                    document.getElementById('mood-selector')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }
+                }}
+                className="rounded-full"
+              >
+                <Search className="w-5 h-5" />
+              </Button>
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/watchlist")}
+                  className={`rounded-full ${location.pathname === "/watchlist" ? "text-primary bg-primary/10" : ""}`}
+                >
+                  <Bookmark className="w-5 h-5" />
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 };

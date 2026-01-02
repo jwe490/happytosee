@@ -56,7 +56,7 @@ const Watchlist = () => {
 
   return (
     <LayoutGroup>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pt-20">
         <Header />
         
         <main className="max-w-7xl mx-auto px-6 md:px-8 py-12">
