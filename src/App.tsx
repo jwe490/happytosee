@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Watchlist from "./pages/Watchlist";
 import Profile from "./pages/Profile";
 import Person from "./pages/Person";
+import Assessment from "./pages/Assessment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/person/:id" element={<Person />} />
+            <Route path="/assessment" element={<Assessment />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
