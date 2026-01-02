@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AssessmentQuestion } from "./AssessmentQuestion";
-import { MoodBoardResults } from "./MoodBoardResults";
 import { useToast } from "@/hooks/use-toast";
 
 interface Question {
@@ -29,10 +26,9 @@ export const AssessmentFlow = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState(Date.now());
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchQuestions();
@@ -131,8 +127,7 @@ export const AssessmentFlow = () => {
 
       if (responsesError) throw responsesError;
 
-      setAssessmentId(assessment.id);
-      setShowResults(true);
+      navigate(`/mood/processing?assessmentId=${assessment.id}`);
     } catch (error) {
       console.error("Error submitting assessment:", error);
       toast({
@@ -269,10 +264,6 @@ export const AssessmentFlow = () => {
         </motion.div>
       </div>
     );
-  }
-
-  if (showResults && assessmentId) {
-    return <MoodBoardResults assessmentId={assessmentId} />;
   }
 
   const currentQuestion = questions[currentQuestionIndex];
