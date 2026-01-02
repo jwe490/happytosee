@@ -66,10 +66,13 @@ const Header = () => {
           duration: 0.3,
           ease: "easeInOut"
         }}
-        className="mx-auto backdrop-blur-xl border border-border/50 shadow-lg"
+        className="mx-auto backdrop-blur-xl border border-border/50 shadow-2xl"
         style={{
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
+          boxShadow: isScrolled
+            ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(var(--primary) / 0.1)"
+            : "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         }}
       >
         <div className={`flex items-center justify-between transition-all duration-300 ${
@@ -89,7 +92,7 @@ const Header = () => {
                 isScrolled ? "w-5 h-5" : "w-6 h-6"
               } text-primary`} />
             </motion.div>
-            <h1 className={`font-display font-bold text-foreground tracking-tight group-hover:text-primary transition-colors ${
+            <h1 className={`font-display font-bold bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent group-hover:from-primary group-hover:via-foreground group-hover:to-primary tracking-tight transition-all duration-300 ${
               isScrolled ? "text-lg" : "text-xl md:text-2xl"
             }`}>
               MoodFlix
