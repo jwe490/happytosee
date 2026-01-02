@@ -11,6 +11,7 @@ import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import ExpandedPersonView from "@/components/ExpandedPersonView";
 import ShareMoodResult from "@/components/ShareMoodResult";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,9 +49,11 @@ const Index = () => {
     duration: "any",
     movieType: "any",
   });
-  
+
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
+  const [isPersonViewOpen, setIsPersonViewOpen] = useState(false);
   
   // Refs for throttled scroll
   const ticking = useRef(false);
@@ -58,7 +61,7 @@ const Index = () => {
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
 
-  const handleMovieSelect = (movie: any) => {
+const handleMovieSelect = (movie: any) => {
     const movieData: Movie = {
       id: movie.id,
       title: movie.title,
@@ -69,6 +72,18 @@ const Index = () => {
       moodMatch: movie.matchReason || movie.surpriseReason || "",
     };
     setSelectedMovie(movieData);
+    setIsMovieViewOpen(true);
+  };
+
+  const handlePersonClick = (personId: number) => {
+    setIsMovieViewOpen(false);
+    setSelectedPersonId(personId);
+    setIsPersonViewOpen(true);
+  };
+
+  const handleMovieClickFromPerson = (movie: Movie) => {
+    setIsPersonViewOpen(false);
+    setSelectedMovie(movie);
     setIsMovieViewOpen(true);
   };
 
@@ -326,6 +341,15 @@ const Index = () => {
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
         onClose={() => setIsMovieViewOpen(false)}
+        onPersonClick={handlePersonClick}
+      />
+
+      {/* Expanded Person View */}
+      <ExpandedPersonView
+        personId={selectedPersonId}
+        isOpen={isPersonViewOpen}
+        onClose={() => setIsPersonViewOpen(false)}
+        onMovieClick={handleMovieClickFromPerson}
       />
 
       {/* Footer */}

@@ -72,9 +72,10 @@ interface ExpandedMovieViewProps {
   movie: Movie | null;
   isOpen: boolean;
   onClose: () => void;
+  onPersonClick?: (personId: number) => void;
 }
 
-const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
+const ExpandedMovieView = ({ movie, isOpen, onClose, onPersonClick }: ExpandedMovieViewProps) => {
   const navigate = useNavigate();
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
@@ -133,8 +134,12 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
-    onClose();
-    navigate(`/person/${member.id}`);
+    if (onPersonClick) {
+      onPersonClick(member.id);
+    } else {
+      onClose();
+      navigate(`/person/${member.id}`);
+    }
   };
 
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
