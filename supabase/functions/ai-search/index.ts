@@ -13,26 +13,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Parse body ONCE at the start
     const body = await req.json();
     const { description, type, movieTitle, movieOverview, watchHistory, mood } = body;
-    
+
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
+
     if (!TMDB_API_KEY) {
-      throw new Error("TMDB_API_KEY is not configured");
-    }
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({
+        error: "Movie service is not configured. Please contact support.",
+        movies: []
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("AI search request:", { description, type });
 
     if (type === "describe") {
       if (!description) {
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           movies: [],
           message: "Please provide a description of the movie you're looking for."
         }), {
@@ -40,220 +40,102 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Use AI to identify movie from description
-      const aiPrompt = `The user is trying to find a movie. They described it as: "${description}"
+      const searchQuery = description.slice(0, 100);
+      const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(searchQuery)}`;
 
-Based on this description, identify the most likely movie(s) they're looking for. Return a JSON object with:
-{
-  "movies": [
-    {
-      "title": "Movie Title",
-      "year": 2020,
-      "confidence": "high/medium/low",
-      "reason": "Why this matches the description"
-    }
-  ],
-  "searchTerms": ["keyword1", "keyword2"]
-}
+      const searchResponse = await fetch(searchUrl);
 
-Only include movies you're fairly confident about. Maximum 5 movies.`;
-
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: aiPrompt }],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        if (aiResponse.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (aiResponse.status === 402) {
-          return new Response(JSON.stringify({ error: "AI service payment required." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error("AI service error");
+      if (!searchResponse.ok) {
+        throw new Error(`TMDb search error: ${searchResponse.status}`);
       }
 
-      const aiData = await aiResponse.json();
-      const content = aiData.choices?.[0]?.message?.content || "";
-      
-      let parsed;
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.error("Failed to parse AI response:", e);
-        return new Response(JSON.stringify({ 
-          movies: [],
-          message: "I couldn't identify any movies from that description. Try being more specific."
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      const searchData = await searchResponse.json();
+      const movies = (searchData.results || []).slice(0, 10).map((tmdbMovie: any) => ({
+        id: tmdbMovie.id,
+        title: tmdbMovie.title,
+        year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
+        rating: Math.round(tmdbMovie.vote_average * 10) / 10,
+        posterUrl: tmdbMovie.poster_path
+          ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
+          : null,
+        overview: tmdbMovie.overview,
+        matchReason: "Matches your search description",
+      }));
 
-      // Search TMDb for identified movies
-      const movies = [];
-      for (const movie of (parsed?.movies || []).slice(0, 5)) {
-        const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(movie.title)}&year=${movie.year || ""}`;
-        const searchResponse = await fetch(searchUrl);
-        
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          if (searchData.results?.[0]) {
-            const tmdbMovie = searchData.results[0];
-            movies.push({
-              id: tmdbMovie.id,
-              title: tmdbMovie.title,
-              year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-              rating: Math.round(tmdbMovie.vote_average * 10) / 10,
-              posterUrl: tmdbMovie.poster_path 
-                ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
-                : null,
-              overview: tmdbMovie.overview,
-              confidence: movie.confidence,
-              matchReason: movie.reason,
-            });
-          }
-        }
-      }
-
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         movies,
-        searchTerms: parsed?.searchTerms || [],
+        searchTerms: [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (type === "summary") {
-      // Generate AI summary for a movie
       if (!movieTitle) {
         throw new Error("Movie title is required for summary");
       }
-      
-      const summaryPrompt = `Provide a brief, engaging 2-sentence summary of the movie "${movieTitle}". 
-Original overview: ${movieOverview || "No overview provided"}
 
-Make it sound exciting and highlight what makes this movie special. Don't spoil any plot twists.`;
-
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: summaryPrompt }],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        throw new Error("AI service error");
-      }
-
-      const aiData = await aiResponse.json();
-      const summary = aiData.choices?.[0]?.message?.content || movieOverview;
-
-      return new Response(JSON.stringify({ summary }), {
+      return new Response(JSON.stringify({
+        summary: movieOverview || "No summary available for this movie."
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (type === "surprise") {
-      // Surprise me - random recommendation
-      const surprisePrompt = `Suggest ONE amazing movie that's often overlooked but is critically acclaimed or a hidden gem.
-${watchHistory?.length > 0 ? `The user has watched: ${watchHistory.slice(0, 5).map((m: any) => m.title).join(", ")}` : ""}
-${mood ? `Current mood: ${mood}` : "They want to be surprised"}
+      const randomPage = Math.floor(Math.random() * 10) + 1;
 
-Suggest something they wouldn't typically pick but would likely enjoy. Return ONLY a JSON object (no markdown):
-{
-  "title": "Movie Title",
-  "year": 2020,
-  "reason": "Why they'll love it"
-}`;
+      let discoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=vote_average.desc&vote_count.gte=500&page=${randomPage}`;
 
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: surprisePrompt }],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        if (aiResponse.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error("AI service error");
-      }
-
-      const aiData = await aiResponse.json();
-      const content = aiData.choices?.[0]?.message?.content || "";
-      
-      console.log("AI surprise response:", content);
-      
-      let parsed;
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.error("Failed to parse AI response:", e);
-      }
-
-      if (parsed?.title) {
-        const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(parsed.title)}&year=${parsed.year || ""}`;
-        const searchResponse = await fetch(searchUrl);
-        
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          if (searchData.results?.[0]) {
-            const tmdbMovie = searchData.results[0];
-            return new Response(JSON.stringify({
-              movie: {
-                id: tmdbMovie.id,
-                title: tmdbMovie.title,
-                year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-                rating: Math.round(tmdbMovie.vote_average * 10) / 10,
-                posterUrl: tmdbMovie.poster_path 
-                  ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
-                  : null,
-                overview: tmdbMovie.overview,
-                surpriseReason: parsed.reason,
-              }
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+      if (mood) {
+        const moodToGenre: Record<string, string> = {
+          "happy": "35",
+          "sad": "18",
+          "romantic": "10749",
+          "excited": "28",
+          "bored": "53",
+          "nostalgic": "18",
+          "relaxed": "35",
+        };
+        const genreId = moodToGenre[mood.toLowerCase()];
+        if (genreId) {
+          discoverUrl += `&with_genres=${genreId}`;
         }
       }
 
-      return new Response(JSON.stringify({ 
-        movie: null,
-        message: "Couldn't find a surprise recommendation. Try again!"
+      const discoverResponse = await fetch(discoverUrl);
+
+      if (!discoverResponse.ok) {
+        throw new Error(`TMDb discover error: ${discoverResponse.status}`);
+      }
+
+      const discoverData = await discoverResponse.json();
+      const results = discoverData.results || [];
+
+      if (results.length === 0) {
+        return new Response(JSON.stringify({
+          movie: null,
+          message: "Couldn't find a surprise recommendation. Try again!"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const randomIndex = Math.floor(Math.random() * Math.min(results.length, 10));
+      const tmdbMovie = results[randomIndex];
+
+      return new Response(JSON.stringify({
+        movie: {
+          id: tmdbMovie.id,
+          title: tmdbMovie.title,
+          year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
+          rating: Math.round(tmdbMovie.vote_average * 10) / 10,
+          posterUrl: tmdbMovie.poster_path
+            ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
+            : null,
+          overview: tmdbMovie.overview,
+          surpriseReason: "A hidden gem you might enjoy!",
+        }
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -267,8 +149,12 @@ Suggest something they wouldn't typically pick but would likely enjoy. Return ON
   } catch (error) {
     console.error("Error in ai-search function:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to process request";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+    return new Response(JSON.stringify({
+      error: errorMessage,
+      movies: [],
+      movie: null
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
