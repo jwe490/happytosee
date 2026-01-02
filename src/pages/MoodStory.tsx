@@ -3,14 +3,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Share2, ArrowRight } from "lucide-react";
+import { Share2, ArrowRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getArchetypeColors } from "@/lib/designSystem";
 import { ArchetypeIcon } from "@/components/assessment/ArchetypeIcon";
 import { useToast } from "@/hooks/use-toast";
+import { ShareSlideModal } from "@/components/assessment/ShareSlideModal";
 
 const MoodStory = () => {
   const [currentScreen, setCurrentScreen] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedSlide, setSelectedSlide] = useState<{ element: React.ReactNode; name: string } | null>(null);
   const { assessmentId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,8 +22,16 @@ const MoodStory = () => {
     queryKey: ["assessment", assessmentId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("mood_assessments")
-        .select("*")
+        .from("user_assessments")
+        .select(`
+          *,
+          personality_archetypes (
+            name,
+            description,
+            traits,
+            random_thoughts
+          )
+        `)
         .eq("id", assessmentId)
         .maybeSingle();
 
@@ -47,11 +58,16 @@ const MoodStory = () => {
     }
   };
 
+  const handleShareSlide = (slideElement: React.ReactNode, slideName: string) => {
+    setSelectedSlide({ element: slideElement, name: slideName });
+    setShareModalOpen(true);
+  };
+
   const handleShare = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `I'm a ${assessment?.archetype_name}!`,
+          title: `I'm a ${archetype.name}!`,
           text: `Discover your movie mood personality!`,
           url: window.location.href,
         });
@@ -75,43 +91,43 @@ const MoodStory = () => {
     );
   }
 
+  const archetypeData = assessment?.personality_archetypes as any;
   const archetype = {
-    name: assessment.archetype_name || "Movie Lover",
-    description: assessment.archetype_description || "",
+    name: archetypeData?.name || "Movie Lover",
+    description: archetypeData?.description || "Your unique cinematic personality",
   };
 
   const colors = getArchetypeColors(archetype.name);
-  const stats = assessment.personality_stats as any;
-  const traits = assessment.traits as string[];
-  const badges = assessment.badges_earned as any[];
+  const stats = (assessment?.stats as any) || [];
+  const traits = (archetypeData?.traits as string[]) || [];
+  const badges = (assessment?.badges as any[]) || [];
+
+  const randomThoughts = archetypeData?.random_thoughts as string[] | undefined;
+  const selectedThought = assessment?.random_thought ||
+    (randomThoughts && randomThoughts.length > 0 ? randomThoughts[0] : "Cinema is the universal language of emotion");
+
+  const slideContents = [
+    { component: <ArchetypeRevealScreen archetype={archetype} gradient={colors.gradient} />, name: "archetype" },
+    { component: <StatScreen number={stats?.[0]?.value || 85} label={stats?.[0]?.label || "Movies Watched"} gradient={colors.gradient} />, name: "stat-1" },
+    { component: <StatScreen number={stats?.[1]?.value || 92} label={stats?.[1]?.label || "Genre Diversity"} gradient={colors.gradient} isComparative />, name: "stat-2" },
+    { component: <BadgeScreen badge={badges?.[0] || { name: "Movie Buff", description: "Your love for cinema shines through" }} gradient={colors.gradient} />, name: "badge" },
+    { component: <ThoughtScreen thought={selectedThought} />, name: "thought" },
+  ];
 
   const screens = [
-    <ArchetypeRevealScreen key="archetype" archetype={archetype} gradient={colors.gradient} />,
-    <StatScreen
-      key="stat1"
-      number={stats?.[0]?.value || 85}
-      label={stats?.[0]?.label || "Movies Watched"}
-      gradient={colors.gradient}
-    />,
-    <StatScreen
-      key="stat2"
-      number={stats?.[1]?.value || 92}
-      label={stats?.[1]?.label || "Genre Diversity"}
-      gradient={colors.gradient}
-      isComparative
-    />,
-    <BadgeScreen
-      key="badge"
-      badge={badges?.[0] || { name: "Movie Buff", icon: "🎬" }}
-      gradient={colors.gradient}
-    />,
-    <ThoughtScreen key="thought" thought={assessment.random_thought || "Cinema is life"} />,
+    ...slideContents.map((slide, index) => (
+      <div key={`slide-${index}`} className="relative w-full h-full">
+        {slide.component}
+        <ShareButton onClick={() => handleShareSlide(slide.component, slide.name)} />
+      </div>
+    )),
     <ShareScreen
       key="share"
       archetype={archetype}
       topStat={`${stats?.[0]?.value || 85}`}
       gradient={colors.gradient}
-      onShare={handleShare}
+      slides={slideContents}
+      onShareSlide={handleShareSlide}
       onViewFull={() => navigate(`/mood/report/${assessmentId}`)}
     />,
   ];
@@ -151,7 +167,33 @@ const MoodStory = () => {
           {screens[currentScreen]}
         </motion.div>
       </AnimatePresence>
+
+      {shareModalOpen && selectedSlide && (
+        <ShareSlideModal
+          slideElement={selectedSlide.element}
+          slideName={selectedSlide.name}
+          onClose={() => setShareModalOpen(false)}
+        />
+      )}
     </div>
+  );
+};
+
+const ShareButton = ({ onClick }: { onClick: () => void }) => {
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="absolute bottom-6 right-6 w-12 h-12 rounded-full bg-gradient-to-r from-[#007BFF] to-[#0056D9] flex items-center justify-center shadow-lg z-50"
+    >
+      <Share2 className="w-5 h-5 text-white" />
+    </motion.button>
   );
 };
 
@@ -340,59 +382,126 @@ const ShareScreen = ({
   archetype,
   topStat,
   gradient,
-  onShare,
+  slides,
+  onShareSlide,
   onViewFull,
 }: {
   archetype: any;
   topStat: string;
   gradient: string;
-  onShare: () => void;
+  slides: Array<{ component: React.ReactNode; name: string }>;
+  onShareSlide: (component: React.ReactNode, name: string) => void;
   onViewFull: () => void;
 }) => {
+  const [selectedSlides, setSelectedSlides] = useState<number[]>([]);
+
+  const toggleSlide = (index: number) => {
+    setSelectedSlides((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedSlides.length === slides.length) {
+      setSelectedSlides([]);
+    } else {
+      setSelectedSlides(slides.map((_, i) => i));
+    }
+  };
+
   return (
-    <div className="w-full max-w-2xl h-[80vh] flex flex-col items-center justify-center gap-8">
+    <div className="w-full max-w-4xl h-[85vh] flex flex-col items-center justify-center gap-6 px-4" onClick={(e) => e.stopPropagation()}>
       <motion.div
-        className="w-full h-32 rounded-2xl bg-white shadow-lg p-6 flex items-center gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="text-center space-y-2"
       >
-        <div className="w-20 h-20">
-          <ArchetypeIcon archetypeName={archetype.name} gradient={gradient} />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-xl font-bold">{archetype.name}</h3>
-          <p className="text-sm text-[#6C757D]">Score: {topStat}</p>
-        </div>
+        <h2 className="text-4xl font-bold">Share Your Results</h2>
+        <p className="text-lg text-[#6C757D]">Select slides to share</p>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-center space-y-4"
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-3 gap-4 w-full max-w-3xl"
       >
-        <h2 className="text-4xl font-bold">Share Your Movie Mood</h2>
-
-        <div className="flex gap-3 justify-center pt-4" onClick={(e) => e.stopPropagation()}>
-          <Button
-            size="lg"
-            onClick={onShare}
-            className="rounded-full h-14 px-8 gap-2"
+        {slides.map((slide, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 + index * 0.05 }}
+            whileHover={{ scale: 1.02 }}
+            onClick={() => toggleSlide(index)}
+            className={`relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer border-4 transition-all ${
+              selectedSlides.includes(index) ? "border-[#007BFF] shadow-lg" : "border-transparent"
+            }`}
           >
-            <Share2 className="w-5 h-5" />
-            Share
-          </Button>
+            <div className="absolute inset-0 scale-[0.3] origin-top-left">
+              {slide.component}
+            </div>
+            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+            <div
+              className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                selectedSlides.includes(index)
+                  ? "bg-[#007BFF] border-[#007BFF]"
+                  : "bg-white border-gray-300"
+              }`}
+            >
+              {selectedSlides.includes(index) && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-3 h-3 bg-white rounded-full"
+                />
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
 
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={onViewFull}
-            className="rounded-full h-14 px-8 gap-2"
-          >
-            Full Report
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-        </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex flex-wrap gap-3 justify-center"
+      >
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={selectAll}
+          className="rounded-full"
+        >
+          {selectedSlides.length === slides.length ? "Deselect All" : "Select All"}
+        </Button>
+
+        <Button
+          size="lg"
+          disabled={selectedSlides.length === 0}
+          onClick={() => {
+            if (selectedSlides.length === 1) {
+              const slide = slides[selectedSlides[0]];
+              onShareSlide(slide.component, slide.name);
+            } else {
+              alert("Multi-slide download coming soon!");
+            }
+          }}
+          className="rounded-full h-12 px-8 gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Download ({selectedSlides.length})
+        </Button>
+
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={onViewFull}
+          className="rounded-full h-12 px-8 gap-2"
+        >
+          Full Report
+          <ArrowRight className="w-4 h-4" />
+        </Button>
       </motion.div>
     </div>
   );
