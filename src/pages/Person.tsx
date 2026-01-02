@@ -25,6 +25,7 @@ import { PersonPageSkeleton } from "@/components/ui/loading-skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExpandedMovieView from "@/components/ExpandedMovieView";
 
 interface Movie {
   id: number;
@@ -82,12 +83,19 @@ const Person = () => {
   });
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchPersonDetails(parseInt(id));
     }
   }, [id]);
+
+  const handleMovieSelect = (movie: Movie) => {
+    setSelectedMovie(movie);
+    setIsMovieViewOpen(true);
+  };
 
   const fetchPersonDetails = async (personId: number) => {
     setIsLoading(true);
@@ -179,16 +187,26 @@ const Person = () => {
       transition={{ delay: index * 0.02, duration: 0.2 }}
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
-      onClick={() => navigate(`/?movie=${movie.id}`)}
+      onClick={() => handleMovieSelect(movie)}
       className="group cursor-pointer"
     >
       <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-md group-hover:shadow-xl transition-all ring-1 ring-border group-hover:ring-2 group-hover:ring-primary">
-        <img
-          src={movie.posterUrl}
-          alt={movie.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {movie.posterUrl ? (
+          <img
+            src={movie.posterUrl}
+            alt={movie.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-muted"><svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg></div>';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <Film className="w-12 h-12 text-muted-foreground" />
+          </div>
+        )}
       </div>
       <div className="mt-2 space-y-1">
         <p className="text-xs font-semibold line-clamp-1 group-hover:text-primary transition-colors">
@@ -590,6 +608,15 @@ const Person = () => {
           </motion.div>
         </div>
       </main>
+
+      <ExpandedMovieView
+        movie={selectedMovie}
+        isOpen={isMovieViewOpen}
+        onClose={() => {
+          setIsMovieViewOpen(false);
+          setSelectedMovie(null);
+        }}
+      />
     </div>
   );
 };
