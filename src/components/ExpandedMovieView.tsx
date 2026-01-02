@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Star, Clock, Calendar, Play, Users, 
   Film, Clapperboard, Bookmark, BookmarkCheck, 
-  ChevronLeft, Eye, EyeOff, Tv, ExternalLink, X
+  ChevronLeft, Eye, EyeOff, Tv, ChevronDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,11 @@ import { Movie } from "@/hooks/useMovieRecommendations";
 import { ReviewSection } from "@/components/ReviewSection";
 import { ShareButton } from "@/components/ShareButton";
 import { AddToCollectionButton } from "@/components/AddToCollectionButton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SimilarMovie {
   id: number;
@@ -34,18 +39,7 @@ interface WatchProvider {
   id: number;
   name: string;
   logoUrl: string | null;
-}
-
-interface PersonDetails {
-  id: number;
-  name: string;
-  biography: string | null;
-  birthday: string | null;
-  deathday: string | null;
-  placeOfBirth: string | null;
-  profileUrl: string | null;
-  knownFor: string;
-  filmography: SimilarMovie[];
+  url: string | null;
 }
 
 interface MovieDetails {
@@ -68,7 +62,6 @@ interface MovieDetails {
   trailerName: string | null;
   similarMovies: SimilarMovie[];
   watchProviders?: {
-    link: string | null;
     flatrate: WatchProvider[];
     rent: WatchProvider[];
     buy: WatchProvider[];
@@ -81,22 +74,15 @@ interface ExpandedMovieViewProps {
   onClose: () => void;
 }
 
-const loadingMessages = [
-  "Fetching the popcorn... 🍿",
-  "Rolling the film reel... 🎬",
-  "Gathering the stars... ⭐",
-];
-
 const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
+  const navigate = useNavigate();
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const [showContent, setShowContent] = useState(false);
   const [navigationHistory, setNavigationHistory] = useState<Movie[]>([]);
-  const [selectedPerson, setSelectedPerson] = useState<PersonDetails | null>(null);
-  const [personLoading, setPersonLoading] = useState(false);
+  const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
@@ -118,15 +104,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       setShowTrailer(false);
     }
   }, [currentMovie, isOpen]);
-
-  useEffect(() => {
-    if (isLoading) {
-      const interval = setInterval(() => {
-        setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
-      }, 1200);
-      return () => clearInterval(interval);
-    }
-  }, [isLoading]);
 
   useEffect(() => {
     if (isOpen) {
@@ -155,39 +132,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     }
   };
 
-  const fetchPersonDetails = async (personId: number) => {
-    setPersonLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("person-details", {
-        body: { personId },
-      });
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      setSelectedPerson(data);
-    } catch (error) {
-      console.error("Error fetching person details:", error);
-    } finally {
-      setPersonLoading(false);
-    }
-  };
-
   const handleCastClick = (member: CastMember) => {
-    fetchPersonDetails(member.id);
-  };
-
-  const handleFilmographyClick = (film: SimilarMovie) => {
-    setSelectedPerson(null);
-    const newMovie: Movie = {
-      id: film.id,
-      title: film.title,
-      rating: film.rating,
-      year: film.year || 0,
-      genre: "",
-      posterUrl: film.posterUrl,
-      moodMatch: "",
-    };
-    setNavigationHistory(prev => [...prev, newMovie]);
-    setCurrentMovie(newMovie);
+    onClose();
+    navigate(`/person/${member.id}`);
   };
 
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
@@ -223,14 +170,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     return `${hours}h ${mins}m`;
   };
 
-  const calculateAge = (birthday: string, deathday?: string | null) => {
-    const birth = new Date(birthday);
-    const end = deathday ? new Date(deathday) : new Date();
-    let age = end.getFullYear() - birth.getFullYear();
-    const m = end.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && end.getDate() < birth.getDate())) age--;
-    return age;
-  };
+  const hasWatchProviders = details?.watchProviders && 
+    (details.watchProviders.flatrate.length > 0 || details.watchProviders.rent.length > 0);
 
   if (!currentMovie) return null;
 
@@ -254,7 +195,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
             <img
               src={details?.backdropUrl || currentMovie.posterUrl}
               alt=""
-              className="w-full h-full object-cover opacity-20 blur-2xl scale-110"
+              className="w-full h-full object-cover opacity-15 blur-3xl scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
           </motion.div>
@@ -309,7 +250,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       </h1>
                       
                       {details?.tagline && (
-                        <p className="text-muted-foreground italic">
+                        <p className="text-muted-foreground italic text-sm">
                           "{details.tagline}"
                         </p>
                       )}
@@ -475,64 +416,70 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-muted-foreground">{loadingMessage}</p>
+                        <p className="text-sm text-muted-foreground">Loading details...</p>
                       </div>
                     )}
 
-                    {/* Where to Watch */}
-                    {details?.watchProviders && (details.watchProviders.flatrate.length > 0 || details.watchProviders.rent.length > 0) && (
-                      <div className="space-y-3">
-                        <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
-                          <Tv className="w-4 h-4 text-primary" />
-                          Where to Watch
-                        </h3>
-                        <div className="space-y-3">
-                          {details.watchProviders.flatrate.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Stream</p>
-                              <div className="flex flex-wrap gap-2">
-                                {details.watchProviders.flatrate.map((provider) => (
-                                  <a
-                                    key={provider.id}
-                                    href={details.watchProviders?.link || "#"}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-card rounded-lg border border-border hover:bg-muted transition-colors"
-                                  >
-                                    {provider.logoUrl && (
-                                      <img src={provider.logoUrl} alt={provider.name} className="w-6 h-6 rounded" />
-                                    )}
-                                    <span className="text-sm">{provider.name}</span>
-                                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                                  </a>
-                                ))}
+                    {/* Where to Watch - Collapsible */}
+                    {hasWatchProviders && (
+                      <Collapsible open={watchProvidersOpen} onOpenChange={setWatchProvidersOpen}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <Tv className="w-4 h-4 text-primary" />
+                            <span className="font-medium text-sm">Where to Watch</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({(details?.watchProviders?.flatrate.length || 0) + (details?.watchProviders?.rent.length || 0)} options)
+                            </span>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${watchProvidersOpen ? "rotate-180" : ""}`} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="p-3 bg-card/50 rounded-lg border border-border space-y-3">
+                            {details?.watchProviders?.flatrate && details.watchProviders.flatrate.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">Stream</p>
+                                <div className="space-y-1">
+                                  {details.watchProviders.flatrate.map((provider) => (
+                                    <a
+                                      key={provider.id}
+                                      href={provider.url || "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group"
+                                    >
+                                      {provider.logoUrl && (
+                                        <img src={provider.logoUrl} alt="" className="w-6 h-6 rounded" />
+                                      )}
+                                      <span className="text-sm flex-1 group-hover:text-primary transition-colors">{provider.name}</span>
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          {details.watchProviders.rent.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide">Rent / Buy</p>
-                              <div className="flex flex-wrap gap-2">
-                                {details.watchProviders.rent.map((provider) => (
-                                  <a
-                                    key={provider.id}
-                                    href={details.watchProviders?.link || "#"}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-card rounded-lg border border-border hover:bg-muted transition-colors"
-                                  >
-                                    {provider.logoUrl && (
-                                      <img src={provider.logoUrl} alt={provider.name} className="w-6 h-6 rounded" />
-                                    )}
-                                    <span className="text-sm">{provider.name}</span>
-                                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                                  </a>
-                                ))}
+                            )}
+                            {details?.watchProviders?.rent && details.watchProviders.rent.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">Rent / Buy</p>
+                                <div className="space-y-1">
+                                  {details.watchProviders.rent.map((provider) => (
+                                    <a
+                                      key={provider.id}
+                                      href={provider.url || "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group"
+                                    >
+                                      {provider.logoUrl && (
+                                        <img src={provider.logoUrl} alt="" className="w-6 h-6 rounded" />
+                                      )}
+                                      <span className="text-sm flex-1 group-hover:text-primary transition-colors">{provider.name}</span>
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
 
                     {/* Synopsis */}
@@ -639,75 +586,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
               </AnimatePresence>
             </div>
           </div>
-
-          {/* Person Details Modal */}
-          <Dialog open={!!selectedPerson || personLoading} onOpenChange={() => setSelectedPerson(null)}>
-            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-              {personLoading ? (
-                <div className="py-12 flex justify-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-                </div>
-              ) : selectedPerson && (
-                <div className="space-y-4">
-                  <div className="flex gap-4">
-                    {selectedPerson.profileUrl && (
-                      <img
-                        src={selectedPerson.profileUrl}
-                        alt={selectedPerson.name}
-                        className="w-24 h-32 rounded-lg object-cover shrink-0"
-                      />
-                    )}
-                    <div className="space-y-1">
-                      <h2 className="font-display text-xl font-bold">{selectedPerson.name}</h2>
-                      <p className="text-sm text-muted-foreground">{selectedPerson.knownFor}</p>
-                      {selectedPerson.birthday && (
-                        <p className="text-xs text-muted-foreground">
-                          {selectedPerson.birthday.split('-').reverse().join('/')}
-                          {' '}({calculateAge(selectedPerson.birthday, selectedPerson.deathday)} years{selectedPerson.deathday ? ' old when passed' : ' old'})
-                        </p>
-                      )}
-                      {selectedPerson.placeOfBirth && (
-                        <p className="text-xs text-muted-foreground">{selectedPerson.placeOfBirth}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {selectedPerson.biography && (
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-sm">Biography</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-6">
-                        {selectedPerson.biography}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedPerson.filmography.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm">Known For</h3>
-                      <div className="grid grid-cols-4 gap-2">
-                        {selectedPerson.filmography.slice(0, 8).map((film) => (
-                          <button
-                            key={film.id}
-                            onClick={() => handleFilmographyClick(film)}
-                            className="text-left group"
-                          >
-                            <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted ring-2 ring-transparent group-hover:ring-primary transition-all">
-                              <img
-                                src={film.posterUrl}
-                                alt={film.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <p className="text-[10px] mt-1 line-clamp-1 group-hover:text-primary transition-colors">{film.title}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
         </motion.div>
       )}
     </AnimatePresence>

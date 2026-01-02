@@ -9,6 +9,29 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 const TMDB_PROFILE_BASE = "https://image.tmdb.org/t/p/w185";
 
+// Direct streaming service URLs (these are the official sites)
+const PROVIDER_URLS: Record<number, string> = {
+  8: "https://www.netflix.com",           // Netflix
+  9: "https://www.amazon.com/gp/video",   // Amazon Prime Video
+  337: "https://www.disneyplus.com",      // Disney+
+  384: "https://www.hbomax.com",          // HBO Max
+  15: "https://www.hulu.com",             // Hulu
+  386: "https://www.peacocktv.com",       // Peacock
+  531: "https://www.paramountplus.com",   // Paramount+
+  350: "https://tv.apple.com",            // Apple TV+
+  283: "https://www.crunchyroll.com",     // Crunchyroll
+  2: "https://tv.apple.com",              // Apple iTunes
+  3: "https://play.google.com/store/movies", // Google Play
+  10: "https://www.amazon.com/gp/video",  // Amazon Video
+  192: "https://www.youtube.com",         // YouTube
+  7: "https://www.vudu.com",              // Vudu
+  68: "https://www.microsoft.com/en-us/store/movies-and-tv", // Microsoft Store
+};
+
+const getProviderUrl = (providerId: number): string | null => {
+  return PROVIDER_URLS[providerId] || null;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -79,26 +102,28 @@ serve(async (req) => {
         year: movie.release_date ? new Date(movie.release_date).getFullYear() : null,
       })) || [];
 
-    // Parse watch providers (prioritize US, then any available)
+    // Parse watch providers with direct URLs (no third-party aggregators)
     const providerData = providers.results?.US || providers.results?.GB || Object.values(providers.results || {})[0] || {};
     
     const watchProviders = {
-      link: providerData.link || null,
       flatrate: providerData.flatrate?.slice(0, 5).map((p: any) => ({
         id: p.provider_id,
         name: p.provider_name,
         logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
-      })) || [],
+        url: getProviderUrl(p.provider_id),
+      })).filter((p: any) => p.url) || [],
       rent: providerData.rent?.slice(0, 3).map((p: any) => ({
         id: p.provider_id,
         name: p.provider_name,
         logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
-      })) || [],
+        url: getProviderUrl(p.provider_id),
+      })).filter((p: any) => p.url) || [],
       buy: providerData.buy?.slice(0, 3).map((p: any) => ({
         id: p.provider_id,
         name: p.provider_name,
         logoUrl: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : null,
-      })) || [],
+        url: getProviderUrl(p.provider_id),
+      })).filter((p: any) => p.url) || [],
     };
 
     console.log(`Found ${similarMovies.length} similar movies, ${watchProviders.flatrate.length} streaming providers`);
