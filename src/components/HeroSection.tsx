@@ -3,7 +3,6 @@ import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import TeddyIllustration from "@/components/TeddyIllustration";
 
 // Pool of movie images to randomly select from
 const movieImagePool = [
@@ -162,13 +161,6 @@ const HeroSection = () => {
         );
       })}
 
-      {/* Teddy Illustration - Desktop */}
-      {!isMobile && (
-        <div className="absolute top-1/2 -translate-y-1/2 left-[5%] z-10 w-32 lg:w-40 xl:w-48">
-          <TeddyIllustration />
-        </div>
-      )}
-
       {/* Main Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
         {/* Badge */}
@@ -280,18 +272,6 @@ const HeroSection = () => {
             <div className="text-xs sm:text-sm">Possibilities</div>
           </div>
         </motion.div>
-
-        {/* Teddy Illustration - Mobile */}
-        {isMobile && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="mt-8 w-32 mx-auto"
-          >
-            <TeddyIllustration />
-          </motion.div>
-        )}
       </div>
 
       {/* Scroll Indicator */}
