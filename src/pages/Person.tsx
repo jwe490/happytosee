@@ -129,11 +129,12 @@ const Person = () => {
     return age;
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
       month: "long",
       day: "numeric",
-      year: "numeric",
     });
   };
 
@@ -146,36 +147,20 @@ const Person = () => {
     );
   }
 
-  if (error) {
+  if (error || !person) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <p className="text-destructive font-semibold">Error loading person details</p>
-          <p className="text-muted-foreground text-sm">{error}</p>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Go Back
-            </Button>
-            <Button onClick={() => id && fetchPersonDetails(parseInt(id))}>
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!person) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <p className="text-muted-foreground">Person not found</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-md">
+          <Film className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2">Person Not Found</h2>
+          <p className="text-muted-foreground mb-6">
+            {error || "We couldn't find this person. They might not exist or there was an error loading their details."}
+          </p>
+          <Button onClick={() => navigate(-1)} className="gap-2">
+            <ChevronLeft className="w-4 h-4" />
             Go Back
           </Button>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -190,7 +175,7 @@ const Person = () => {
       onClick={() => handleMovieSelect(movie)}
       className="group cursor-pointer"
     >
-      <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-md group-hover:shadow-xl transition-all ring-1 ring-border group-hover:ring-2 group-hover:ring-primary">
+      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md group-hover:shadow-xl transition-all ring-1 ring-border/50 group-hover:ring-2 group-hover:ring-primary/50">
         {movie.posterUrl ? (
           <img
             src={movie.posterUrl}
@@ -199,7 +184,10 @@ const Person = () => {
             loading="lazy"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-muted"><svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg></div>';
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-muted"><svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg></div>';
+              }
             }}
           />
         ) : (
@@ -208,31 +196,31 @@ const Person = () => {
           </div>
         )}
       </div>
-      <div className="mt-2 space-y-1">
-        <p className="text-xs font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+      <div className="mt-2 space-y-1 px-1">
+        <p className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">
           {movie.title}
         </p>
         {movie.year && (
-          <p className="text-[10px] text-muted-foreground">{movie.year}</p>
+          <p className="text-xs text-muted-foreground">{movie.year}</p>
         )}
-        <div className="flex items-center gap-1">
-          <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-          <span className="text-[10px] text-muted-foreground">{movie.rating}</span>
+        <div className="flex items-center gap-1.5">
+          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+          <span className="text-xs text-muted-foreground">{movie.rating.toFixed(1)}</span>
         </div>
         {movie.character && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1 italic">
+          <p className="text-xs text-muted-foreground line-clamp-1 italic">
             as {movie.character}
           </p>
         )}
         {movie.job && (
-          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+          <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
             {movie.job}
           </Badge>
         )}
         {movie.jobs && movie.jobs.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {movie.jobs.slice(0, 2).map((job, i) => (
-              <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0">
+              <Badge key={i} variant="secondary" className="text-[10px] px-2 py-0.5">
                 {job}
               </Badge>
             ))}
@@ -246,7 +234,7 @@ const Person = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
         <motion.button
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -257,11 +245,11 @@ const Person = () => {
           Back
         </motion.button>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1 space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             {person.profileUrl ? (
               <motion.img
@@ -269,50 +257,50 @@ const Person = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 src={person.profileUrl}
                 alt={person.name}
-                className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-border"
+                className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-border/50"
               />
             ) : (
               <div className="w-full aspect-[2/3] bg-muted rounded-2xl flex items-center justify-center">
-                <User className="w-24 h-24 text-muted-foreground" />
+                <User className="w-20 h-20 sm:w-24 sm:h-24 text-muted-foreground" />
               </div>
             )}
 
-            <Card className="p-4 space-y-3">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Card className="p-4 sm:p-5 space-y-3">
+              <h3 className="font-semibold text-base flex items-center gap-2">
                 <Award className="w-4 h-4 text-primary" />
                 Personal Info
               </h3>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {person.birthday && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Birthday</p>
-                    <p className="font-medium">
+                    <p className="text-muted-foreground text-xs mb-1">Birthday</p>
+                    <p className="font-medium text-sm">
                       {formatDate(person.birthday)}
-                      <span className="text-muted-foreground ml-1">
-                        ({calculateAge(person.birthday, person.deathday)} years old)
-                      </span>
+                    </p>
+                    <p className="text-muted-foreground text-xs mt-0.5">
+                      ({calculateAge(person.birthday, person.deathday)} years old)
                     </p>
                   </div>
                 )}
                 {person.deathday && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Died</p>
-                    <p className="font-medium">{formatDate(person.deathday)}</p>
+                    <p className="text-muted-foreground text-xs mb-1">Died</p>
+                    <p className="font-medium text-sm">{formatDate(person.deathday)}</p>
                   </div>
                 )}
                 {person.placeOfBirth && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Place of Birth</p>
-                    <p className="font-medium">{person.placeOfBirth}</p>
+                    <p className="text-muted-foreground text-xs mb-1">Place of Birth</p>
+                    <p className="font-medium text-sm">{person.placeOfBirth}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-muted-foreground text-xs">Known For</p>
-                  <p className="font-medium">{person.knownFor}</p>
+                  <p className="text-muted-foreground text-xs mb-1">Known For</p>
+                  <p className="font-medium text-sm">{person.knownFor}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Gender</p>
-                  <p className="font-medium">{person.gender}</p>
+                  <p className="text-muted-foreground text-xs mb-1">Gender</p>
+                  <p className="font-medium text-sm">{person.gender}</p>
                 </div>
               </div>
             </Card>
@@ -321,15 +309,15 @@ const Person = () => {
               person.externalIds.instagram ||
               person.externalIds.twitter ||
               person.externalIds.facebook) && (
-              <Card className="p-4 space-y-3">
-                <h3 className="font-semibold text-sm">Social</h3>
+              <Card className="p-4 sm:p-5 space-y-3">
+                <h3 className="font-semibold text-base">Social</h3>
                 <div className="flex flex-wrap gap-2">
                   {person.externalIds.imdb && (
                     <Button
                       variant="outline"
                       size="sm"
                       asChild
-                      className="gap-2"
+                      className="gap-2 flex-1 min-w-[100px]"
                     >
                       <a
                         href={`https://www.imdb.com/name/${person.externalIds.imdb}`}
@@ -346,7 +334,7 @@ const Person = () => {
                       variant="outline"
                       size="sm"
                       asChild
-                      className="gap-2"
+                      className="gap-2 flex-1 min-w-[100px]"
                     >
                       <a
                         href={`https://www.instagram.com/${person.externalIds.instagram}`}
@@ -363,7 +351,7 @@ const Person = () => {
                       variant="outline"
                       size="sm"
                       asChild
-                      className="gap-2"
+                      className="gap-2 flex-1 min-w-[100px]"
                     >
                       <a
                         href={`https://twitter.com/${person.externalIds.twitter}`}
@@ -380,7 +368,7 @@ const Person = () => {
                       variant="outline"
                       size="sm"
                       asChild
-                      className="gap-2"
+                      className="gap-2 flex-1 min-w-[100px]"
                     >
                       <a
                         href={`https://www.facebook.com/${person.externalIds.facebook}`}
@@ -401,47 +389,47 @@ const Person = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="lg:col-span-2 space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             <div>
-              <h1 className="font-display text-4xl md:text-5xl font-bold mb-2">
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
                 {person.name}
               </h1>
               {person.alsoKnownAs && person.alsoKnownAs.length > 0 && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Also known as: {person.alsoKnownAs.slice(0, 3).join(", ")}
                 </p>
               )}
             </div>
 
             {person.stats && (
-              <div className="grid grid-cols-3 gap-4">
-                <Card className="p-4 text-center space-y-1">
-                  <Film className="w-6 h-6 mx-auto text-primary" />
-                  <p className="text-2xl font-bold">{person.stats.totalMovies || 0}</p>
-                  <p className="text-xs text-muted-foreground">Total Movies</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <Card className="p-3 sm:p-4 text-center space-y-1">
+                  <Film className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
+                  <p className="text-xl sm:text-2xl font-bold">{person.stats.totalMovies || 0}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Movies</p>
                 </Card>
-                <Card className="p-4 text-center space-y-1">
-                  <Clapperboard className="w-6 h-6 mx-auto text-primary" />
-                  <p className="text-2xl font-bold">{person.stats.asActor || 0}</p>
-                  <p className="text-xs text-muted-foreground">Acting Roles</p>
+                <Card className="p-3 sm:p-4 text-center space-y-1">
+                  <Clapperboard className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
+                  <p className="text-xl sm:text-2xl font-bold">{person.stats.asActor || 0}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Acting Roles</p>
                 </Card>
-                <Card className="p-4 text-center space-y-1">
-                  <TrendingUp className="w-6 h-6 mx-auto text-primary" />
-                  <p className="text-2xl font-bold">{person.popularity || 0}</p>
-                  <p className="text-xs text-muted-foreground">Popularity</p>
+                <Card className="p-3 sm:p-4 text-center space-y-1">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
+                  <p className="text-xl sm:text-2xl font-bold">{person.popularity ? person.popularity.toFixed(1) : 0}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Popularity</p>
                 </Card>
               </div>
             )}
 
             {person.biography && (
-              <Card className="p-6">
-                <h2 className="font-display text-xl font-semibold mb-3">Biography</h2>
+              <Card className="p-4 sm:p-6">
+                <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Biography</h2>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={showFullBio ? "full" : "preview"}
-                    initial={{ opacity: 0, height: "auto" }}
-                    animate={{ opacity: 1, height: "auto" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
@@ -472,10 +460,10 @@ const Person = () => {
             )}
 
             {person.additionalPhotos && person.additionalPhotos.length > 0 && (
-              <Card className="p-6">
-                <h2 className="font-display text-xl font-semibold mb-4">Photos</h2>
-                <div className="grid grid-cols-3 gap-3">
-                  {(showAllPhotos ? person.additionalPhotos : person.additionalPhotos.slice(0, 3)).map(
+              <Card className="p-4 sm:p-6">
+                <h2 className="font-display text-lg sm:text-xl font-semibold mb-4">Photos</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {(showAllPhotos ? person.additionalPhotos : person.additionalPhotos.slice(0, 6)).map(
                     (photo, index) => (
                       <motion.img
                         key={index}
@@ -484,18 +472,18 @@ const Person = () => {
                         transition={{ delay: index * 0.05 }}
                         src={photo}
                         alt={`${person.name} photo ${index + 1}`}
-                        className="w-full aspect-[2/3] object-cover rounded-lg hover:scale-105 transition-transform cursor-pointer"
+                        className="w-full aspect-[2/3] object-cover rounded-xl hover:scale-105 transition-transform cursor-pointer ring-1 ring-border/50"
                         loading="lazy"
                       />
                     )
                   )}
                 </div>
-                {person.additionalPhotos.length > 3 && (
+                {person.additionalPhotos.length > 6 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowAllPhotos(!showAllPhotos)}
-                    className="mt-3 gap-2"
+                    className="mt-4 gap-2 w-full sm:w-auto"
                   >
                     {showAllPhotos ? (
                       <>
@@ -512,18 +500,18 @@ const Person = () => {
             )}
 
             {(person.actingRoles || person.crewRoles) && (
-              <Card className="p-6">
-                <h2 className="font-display text-2xl font-semibold mb-4">Filmography</h2>
+              <Card className="p-4 sm:p-6">
+                <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">Filmography</h2>
 
                 <Tabs defaultValue="acting" className="w-full">
-                  <TabsList className="w-full justify-start">
+                  <TabsList className="w-full justify-start flex-wrap h-auto gap-2 bg-transparent p-0">
                     {person.actingRoles && person.actingRoles.length > 0 && (
-                      <TabsTrigger value="acting">
+                      <TabsTrigger value="acting" className="flex-shrink-0">
                         Acting ({person.actingRoles.length})
                       </TabsTrigger>
                     )}
                     {person.crewRoles && Object.keys(person.crewRoles).map((category) => (
-                      <TabsTrigger key={category} value={category}>
+                      <TabsTrigger key={category} value={category} className="flex-shrink-0">
                         {category} ({person.crewRoles[category].length})
                       </TabsTrigger>
                     ))}
@@ -533,16 +521,16 @@ const Person = () => {
                     <TabsContent value="acting" className="mt-6">
                       <motion.button
                         onClick={() => toggleSection("acting")}
-                        className="flex items-center justify-between w-full mb-4 text-left"
+                        className="flex items-center justify-between w-full mb-4 text-left group"
                       >
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
                           <Clapperboard className="w-5 h-5 text-primary" />
                           Acting Roles ({person.actingRoles.length})
                         </h3>
                         {expandedSections.acting ? (
-                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                          <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         )}
                       </motion.button>
 
@@ -555,7 +543,7 @@ const Person = () => {
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                               {person.actingRoles.map((movie, index) => (
                                 <MovieCard key={movie.id} movie={movie} index={index} />
                               ))}
@@ -570,16 +558,16 @@ const Person = () => {
                     <TabsContent key={category} value={category} className="mt-6">
                       <motion.button
                         onClick={() => toggleSection(category)}
-                        className="flex items-center justify-between w-full mb-4 text-left"
+                        className="flex items-center justify-between w-full mb-4 text-left group"
                       >
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
                           <Film className="w-5 h-5 text-primary" />
                           {category} ({movies.length})
                         </h3>
                         {expandedSections[category] ? (
-                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                          <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         )}
                       </motion.button>
 
@@ -592,7 +580,7 @@ const Person = () => {
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                               {movies.map((movie, index) => (
                                 <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
                               ))}
