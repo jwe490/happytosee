@@ -245,10 +245,28 @@ export const AssessmentFlow = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground">Loading assessment...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <motion.div
+            animate={{
+              rotate: 360,
+            }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="text-6xl"
+          >
+            🎬
+          </motion.div>
+          <motion.p
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-lg text-muted-foreground"
+          >
+            Preparing your journey...
+          </motion.p>
+        </motion.div>
       </div>
     );
   }
@@ -260,42 +278,42 @@ export const AssessmentFlow = () => {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background py-12 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Progress Bar */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
+          className="mb-12"
         >
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20">
-              <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium text-accent">
-                Movie Personality Assessment
-              </span>
-            </div>
-
-            <h1 className="font-display text-3xl md:text-4xl font-bold">
-              Discover Your Movie Mood
-            </h1>
-
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>
-                Question {currentQuestionIndex + 1} of {questions.length}
-              </span>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">
+              {currentQuestionIndex + 1} / {questions.length}
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {Math.round(progressPercentage)}%
+            </span>
           </div>
-
-          <Progress value={progressPercentage} className="h-2" />
-
-          <AnimatePresence mode="wait">
-            <AssessmentQuestion
-              key={currentQuestion.id}
-              question={currentQuestion}
-              onAnswer={handleAnswer}
+          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-[#FF6B9D] via-[#C86DD7] to-[#06B6D4]"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercentage}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             />
-          </AnimatePresence>
+          </div>
         </motion.div>
+
+        {/* Question */}
+        <AnimatePresence mode="wait">
+          <AssessmentQuestion
+            key={currentQuestion.id}
+            question={currentQuestion}
+            onAnswer={handleAnswer}
+            questionNumber={currentQuestionIndex + 1}
+            totalQuestions={questions.length}
+          />
+        </AnimatePresence>
       </div>
     </div>
   );
