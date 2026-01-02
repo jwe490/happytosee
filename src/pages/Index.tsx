@@ -11,6 +11,7 @@ import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import ShareMoodResult from "@/components/ShareMoodResult";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2 } from "lucide-react";
@@ -24,6 +25,16 @@ const moodTaglines: Record<string, string> = {
   bored: "Let's surprise you! 🎲",
   relaxed: "Chill vibes only 🌿",
   nostalgic: "A trip down memory lane ✨",
+};
+
+const moodEmojis: Record<string, string> = {
+  happy: "😀",
+  sad: "😢",
+  romantic: "❤️",
+  excited: "⚡",
+  nostalgic: "🥹",
+  relaxed: "😌",
+  bored: "😴",
 };
 
 const Index = () => {
@@ -267,9 +278,27 @@ const Index = () => {
             </AnimatePresence>
 
             {/* Movie Recommendations */}
-            <section className="py-12">
-              <MovieGrid 
-                movies={movies} 
+            <section className="py-12 space-y-8">
+              {movies.length > 0 && selectedMood && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex justify-center"
+                >
+                  <ShareMoodResult
+                    mood={selectedMood}
+                    moodEmoji={moodEmojis[selectedMood] || "🎬"}
+                    topMovies={movies.slice(0, 3).map(m => ({
+                      title: m.title,
+                      year: m.year,
+                    }))}
+                  />
+                </motion.div>
+              )}
+
+              <MovieGrid
+                movies={movies}
                 isLoading={isLoading}
                 isLoadingMore={isLoadingMore}
                 hasMore={hasMore}
