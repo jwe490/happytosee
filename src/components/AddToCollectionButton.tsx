@@ -66,9 +66,10 @@ export function AddToCollectionButton({ movie, variant = "outline", size = "lg" 
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant={variant} size={size} className="gap-2 rounded-full">
+          <Button variant={variant} size={size} className="gap-2 rounded-full active:scale-95 transition-transform">
             <FolderPlus className="w-4 h-4" />
-            Add to Collection
+            <span className="hidden sm:inline">Add to Collection</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-56">

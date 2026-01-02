@@ -72,7 +72,7 @@ export function ShareButton({ title, text, url, size = "icon", variant = "ghost"
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant={variant} size={size} className="rounded-full gap-2">
+        <Button variant={variant} size={size} className="rounded-full gap-2 active:scale-95 transition-transform">
           <Share2 className="w-4 h-4" />
           {size !== "icon" && <span>Share</span>}
         </Button>

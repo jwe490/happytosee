@@ -291,93 +291,98 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-wrap justify-center gap-3">
-                      {details?.trailerKey && (
-                        <Button
-                          size="lg"
-                          onClick={() => setShowTrailer(!showTrailer)}
-                          className="gap-2 rounded-full active:scale-95 transition-transform"
-                        >
-                          <Play className="w-4 h-4 fill-current" />
-                          {showTrailer ? "Hide Trailer" : "Watch Trailer"}
-                        </Button>
-                      )}
-                      
-                      {user && details && (
-                        <>
+                    <div className="w-full max-w-md mx-auto">
+                      <div className="grid grid-cols-2 gap-3">
+                        {details?.trailerKey && (
                           <Button
-                            variant={isInWatchlist(details.id) ? "secondary" : "outline"}
                             size="lg"
-                            onClick={() => {
-                              if (isInWatchlist(details.id)) {
-                                removeFromWatchlist(details.id);
-                              } else {
-                                addToWatchlist({
-                                  id: details.id,
-                                  title: details.title,
-                                  poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
-                                  release_date: details.releaseDate,
-                                  vote_average: details.rating,
-                                  overview: details.overview,
-                                });
-                              }
-                            }}
-                            className="gap-2 rounded-full active:scale-95 transition-transform"
+                            onClick={() => setShowTrailer(!showTrailer)}
+                            className="gap-2 rounded-full active:scale-95 transition-transform col-span-2"
                           >
-                            {isInWatchlist(details.id) ? (
-                              <>
-                                <BookmarkCheck className="w-4 h-4" />
-                                Saved
-                              </>
-                            ) : (
-                              <>
-                                <Bookmark className="w-4 h-4" />
-                                Save
-                              </>
-                            )}
+                            <Play className="w-4 h-4 fill-current" />
+                            {showTrailer ? "Hide Trailer" : "Watch Trailer"}
                           </Button>
-                          
-                          <Button
-                            variant={isWatched(details.id) ? "secondary" : "outline"}
-                            size="lg"
-                            onClick={() => markAsWatched({
-                              id: details.id,
-                              title: details.title,
-                              poster_path: details.posterUrl,
-                            })}
-                            className="gap-2 rounded-full active:scale-95 transition-transform"
-                          >
-                            {isWatched(details.id) ? (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                Watched
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-4 h-4" />
-                                Mark Watched
-                              </>
-                            )}
-                          </Button>
+                        )}
 
-                          <AddToCollectionButton
-                            movie={{
-                              id: details.id,
-                              title: details.title,
-                              poster_path: details.posterUrl,
-                            }}
+                        {user && details && (
+                          <>
+                            <Button
+                              variant={isInWatchlist(details.id) ? "secondary" : "outline"}
+                              size="lg"
+                              onClick={() => {
+                                if (isInWatchlist(details.id)) {
+                                  removeFromWatchlist(details.id);
+                                } else {
+                                  addToWatchlist({
+                                    id: details.id,
+                                    title: details.title,
+                                    poster_path: details.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
+                                    release_date: details.releaseDate,
+                                    vote_average: details.rating,
+                                    overview: details.overview,
+                                  });
+                                }
+                              }}
+                              className="gap-2 rounded-full active:scale-95 transition-transform"
+                            >
+                              {isInWatchlist(details.id) ? (
+                                <>
+                                  <BookmarkCheck className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Saved</span>
+                                  <span className="sm:hidden">Save</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Bookmark className="w-4 h-4" />
+                                  Save
+                                </>
+                              )}
+                            </Button>
+
+                            <Button
+                              variant={isWatched(details.id) ? "secondary" : "outline"}
+                              size="lg"
+                              onClick={() => markAsWatched({
+                                id: details.id,
+                                title: details.title,
+                                poster_path: details.posterUrl,
+                              })}
+                              className="gap-2 rounded-full active:scale-95 transition-transform"
+                            >
+                              {isWatched(details.id) ? (
+                                <>
+                                  <Eye className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Watched</span>
+                                  <span className="sm:hidden">Watch</span>
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Mark Watched</span>
+                                  <span className="sm:hidden">Watch</span>
+                                </>
+                              )}
+                            </Button>
+
+                            <AddToCollectionButton
+                              movie={{
+                                id: details.id,
+                                title: details.title,
+                                poster_path: details.posterUrl,
+                              }}
+                            />
+                          </>
+                        )}
+
+                        {details && (
+                          <ShareButton
+                            title={details.title}
+                            text={`Check out ${details.title} on MoodFlix!`}
+                            size="lg"
+                            variant="outline"
                           />
-                        </>
-                      )}
-                      
-                      {details && (
-                        <ShareButton 
-                          title={details.title}
-                          text={`Check out ${details.title} on MoodFlix!`}
-                          size="lg"
-                          variant="outline"
-                        />
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {/* Trailer */}
