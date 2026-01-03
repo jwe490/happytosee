@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { extractDominantColor } from "@/utils/colorExtractor";
@@ -34,7 +34,7 @@ export function CinematicCarousel({
   const [index, setIndex] = useState(0);
   const [dominant, setDominant] = useState("59,130,246");
   const [paused, setPaused] = useState(false);
-  const [direction, setDirection] = useState<1 | -1>(1);
+  const [direction, setDirection] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(true);
 
   const interacted = useRef(false);
@@ -42,8 +42,6 @@ export function CinematicCarousel({
   const touchEndX = useRef(0);
 
   const current = list[index];
-  const nextIndex = (index + 1) % total;
-  const prevIndex = (index - 1 + total) % total;
 
   useEffect(() => {
     if (!current?.posterUrl) return;
@@ -52,20 +50,20 @@ export function CinematicCarousel({
       .catch(() => setDominant("59,130,246"));
   }, [current?.posterUrl]);
 
-  const onUserInteract = () => {
+  const onUserInteract = useCallback(() => {
     interacted.current = true;
     setPaused(true);
-  };
+  }, []);
 
-  const go = (dir: 1 | -1) => {
+  const go = useCallback((dir: number) => {
     if (total <= 1) return;
     setDirection(dir);
     setImageLoaded(false);
     setIndex((prev) => (prev + dir + total) % total);
     setTimeout(() => setImageLoaded(true), 100);
-  };
+  }, [total]);
 
-  const goTo = (i: number) => {
+  const goTo = useCallback((i: number) => {
     if (i === index) return;
     onUserInteract();
     const dir = i > index ? 1 : -1;
@@ -73,12 +71,10 @@ export function CinematicCarousel({
     setImageLoaded(false);
     setIndex(i);
     setTimeout(() => setImageLoaded(true), 100);
-  };
+  }, [index, onUserInteract]);
 
   useEffect(() => {
-    if (reduceMotion) return;
-    if (total <= 1) return;
-    if (paused) return;
+    if (reduceMotion || total <= 1 || paused) return;
 
     const t = window.setInterval(() => {
       if (interacted.current) return;
@@ -106,17 +102,17 @@ export function CinematicCarousel({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [total]);
+  }, [go, onUserInteract]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     touchEndX.current = e.touches[0].clientX;
-  };
+  }, []);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     const diff = touchStartX.current - touchEndX.current;
     const threshold = 50;
 
@@ -131,13 +127,11 @@ export function CinematicCarousel({
 
     touchStartX.current = 0;
     touchEndX.current = 0;
-  };
+  }, [go, onUserInteract]);
 
   if (!current || total === 0) return null;
 
   const bgImage = current.backdropUrl || current.posterUrl;
-  const prevMovie = list[prevIndex];
-  const nextMovie = list[nextIndex];
 
   return (
     <section
@@ -158,7 +152,7 @@ export function CinematicCarousel({
           maxHeight: 980,
         }}
       >
-        {/* Enhanced Background */}
+        {/* Background */}
         <div className="absolute inset-0">
           <div className="bgImageWrapper">
             <img
@@ -186,7 +180,7 @@ export function CinematicCarousel({
           <div className="filmGrain" />
         </div>
 
-        {/* Cinematic Poster (Desktop) */}
+        {/* Poster (Desktop) */}
         {isDesktop && (
           <div className="absolute left-20 top-1/2 -translate-y-1/2 z-15 pointer-events-none">
             <div className="relative" style={{ width: "340px", height: "510px" }}>
@@ -226,7 +220,7 @@ export function CinematicCarousel({
           <span className="sr-only">Open</span>
         </button>
 
-        {/* Navigation Arrows */}
+        {/* Navigation */}
         {total > 1 && (
           <>
             <button
@@ -252,12 +246,12 @@ export function CinematicCarousel({
               }}
               className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
             >
-              <ChevronRight className="h-6 h-6" />
+              <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
 
-        {/* Content Sheet */}
+        {/* Content */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
             <div key={`sheet-${current.id}`} className="infoSheetFixed">
@@ -321,346 +315,120 @@ export function CinematicCarousel({
       </div>
 
       <style>{`
-        .bgImageWrapper {
-          position: absolute;
-          inset: 0;
-          overflow: hidden;
-        }
-
+        .bgImageWrapper { position: absolute; inset: 0; overflow: hidden; }
         .bgImage {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-          transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), 
-                      opacity 800ms ease-out;
+          position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+          transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), opacity 800ms ease-out;
           will-change: transform, opacity;
         }
-
-        .colorGradient {
-          position: absolute;
-          inset: 0;
-          transition: background 900ms ease-out;
-          pointer-events: none;
-        }
-
+        .colorGradient { position: absolute; inset: 0; transition: background 900ms ease-out; pointer-events: none; }
         .bottomGradient {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            180deg,
-            rgba(0,0,0,0) 0%,
-            rgba(0,0,0,0.05) 40%,
-            rgba(0,0,0,0.65) 80%,
-            rgba(0,0,0,0.88) 100%
-          );
-          pointer-events: none;
+          position: absolute; inset: 0; pointer-events: none;
+          background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.65) 80%, rgba(0,0,0,0.88) 100%);
         }
-
         .vignette {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(0,0,0,0) 45%,
-            rgba(0,0,0,0.25) 80%,
-            rgba(0,0,0,0.45) 100%
-          );
-          pointer-events: none;
+          position: absolute; inset: 0; pointer-events: none;
+          background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.25) 80%, rgba(0,0,0,0.45) 100%);
         }
-
         .filmGrain {
-          position: absolute;
-          inset: 0;
+          position: absolute; inset: 0; opacity: 0.015; mix-blend-mode: overlay; pointer-events: none;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-          opacity: 0.015;
-          mix-blend-mode: overlay;
-          pointer-events: none;
         }
-
         .posterCard {
-          position: absolute;
-          inset: 0;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 
-            0 60px 140px rgba(0,0,0,0.85),
-            0 30px 70px rgba(0,0,0,0.6),
-            0 0 100px rgba(255,255,255,0.08);
+          position: absolute; inset: 0; border-radius: 20px; overflow: hidden;
+          box-shadow: 0 60px 140px rgba(0,0,0,0.85), 0 30px 70px rgba(0,0,0,0.6), 0 0 100px rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.12);
         }
-
         .posterShine {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            135deg,
-            transparent 0%,
-            rgba(255,255,255,0.05) 45%,
-            rgba(255,255,255,0.15) 50%,
-            rgba(255,255,255,0.05) 55%,
-            transparent 100%
-          );
-          animation: shine 3s ease-in-out infinite;
-          pointer-events: none;
+          position: absolute; inset: 0; pointer-events: none; animation: shine 3s ease-in-out infinite;
+          background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.05) 55%, transparent 100%);
         }
-
         @keyframes shine {
           0%, 100% { transform: translateX(-100%) translateY(-100%); }
           50% { transform: translateX(100%) translateY(100%); }
         }
-
         @keyframes slideInFromRight {
-          0% {
-            opacity: 0;
-            transform: translateX(80px) scale(0.92) rotateY(15deg);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-          }
+          0% { opacity: 0; transform: translateX(80px) scale(0.92) rotateY(15deg); }
+          100% { opacity: 1; transform: translateX(0) scale(1) rotateY(0deg); }
         }
-
         @keyframes slideInFromLeft {
-          0% {
-            opacity: 0;
-            transform: translateX(-80px) scale(0.92) rotateY(-15deg);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-          }
+          0% { opacity: 0; transform: translateX(-80px) scale(0.92) rotateY(-15deg); }
+          100% { opacity: 1; transform: translateX(0) scale(1) rotateY(0deg); }
         }
-
         .navArrow {
-          position: absolute;
-          z-index: 30;
-          width: 56px;
-          height: 56px;
-          border-radius: 9999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255,255,255,0.95);
-          background: rgba(255,255,255,0.16);
+          position: absolute; z-index: 30; width: 56px; height: 56px; border-radius: 9999px;
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+          color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.16);
           border: 1px solid rgba(255,255,255,0.25);
           box-shadow: 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
-          backdrop-filter: blur(20px) saturate(150%);
-          -webkit-backdrop-filter: blur(20px) saturate(150%);
+          backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);
           transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
         }
-
-        .navArrow:hover {
-          transform: scale(1.15);
-          background: rgba(255,255,255,0.24);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
-        }
-
-        .navArrow:active {
-          transform: scale(0.95);
-          transition: all 100ms ease;
-        }
-
+        .navArrow:hover { transform: scale(1.15); background: rgba(255,255,255,0.24); }
+        .navArrow:active { transform: scale(0.95); transition: all 100ms ease; }
         .infoSheetFixed {
-          width: 100%;
-          height: 230px;
-          border-radius: 24px;
-          padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.28);
-          border: 1px solid rgba(255,255,255,0.16);
+          width: 100%; height: 230px; border-radius: 24px; padding: 18px 18px 16px;
+          background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.16);
           box-shadow: 0 28px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
-          backdrop-filter: blur(28px) saturate(160%);
-          -webkit-backdrop-filter: blur(28px) saturate(160%);
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
+          backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%);
+          display: flex; flex-direction: column; justify-content: space-between;
           animation: slideUpFade 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-
-        @keyframes slideUpFade {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .badgeRow {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 10px;
-        }
-
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .badgeRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
         .badgePill {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 9px 14px;
-          border-radius: 9999px;
-          background: rgba(255,255,255,0.14);
-          border: 1px solid rgba(255,255,255,0.22);
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
-          animation: badgeFadeIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          opacity: 0;
+          display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 9999px;
+          background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22);
+          backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
+          animation: badgeFadeIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0;
         }
-
-        @keyframes badgeFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.8) translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
+        @keyframes badgeFadeIn { from { opacity: 0; transform: scale(0.8) translateY(-8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .titleClamp {
-          margin-top: 8px;
-          color: #fff;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          font-size: clamp(30px, 4.5vw, 60px);
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+          margin-top: 8px; color: #fff; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
+          font-size: clamp(30px, 4.5vw, 60px); display: -webkit-box; -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical; overflow: hidden;
           text-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-          animation: titleSlideIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
-          opacity: 0;
+          animation: titleSlideIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards; opacity: 0;
         }
-
-        @keyframes titleSlideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .overviewSlot {
-          height: 48px;
-          margin-top: 8px;
-        }
-
+        @keyframes titleSlideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .overviewSlot { height: 48px; margin-top: 8px; }
         .overviewClamp {
-          color: rgba(255,255,255,0.82);
-          font-size: 16px;
-          line-height: 1.6;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          animation: fadeIn 500ms ease 150ms forwards;
-          opacity: 0;
+          color: rgba(255,255,255,0.82); font-size: 16px; line-height: 1.6;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+          animation: fadeIn 500ms ease 150ms forwards; opacity: 0;
         }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .ctaRowOne {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .ctaRowOne { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
         .ctaGlassPrimary {
-          height: 52px;
-          width: 100%;
-          border-radius: 9999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          font-weight: 700;
-          font-size: 15px;
-          color: rgba(255,255,255,0.97);
-          background: rgba(255,255,255,0.22);
+          height: 52px; width: 100%; border-radius: 9999px; display: flex; align-items: center;
+          justify-content: center; gap: 10px; font-weight: 700; font-size: 15px; cursor: pointer;
+          color: rgba(255,255,255,0.97); background: rgba(255,255,255,0.22);
           border: 1px solid rgba(255,255,255,0.34);
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
           box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
           transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
-          animation: buttonPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms forwards;
-          opacity: 0;
+          animation: buttonPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms forwards; opacity: 0;
         }
-
-        @keyframes buttonPop {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .ctaGlassPrimary:hover {
-          background: rgba(255,255,255,0.30);
-          transform: translateY(-2px) scale(1.02);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
-        }
-
-        .ctaGlassPrimary:active {
-          transform: translateY(0) scale(0.98);
-          transition: all 100ms ease;
-        }
-
+        @keyframes buttonPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .ctaGlassPrimary:hover { background: rgba(255,255,255,0.30); transform: translateY(-2px) scale(1.02); }
+        .ctaGlassPrimary:active { transform: translateY(0) scale(0.98); transition: all 100ms ease; }
         .dotsBar {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 20px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.30);
-          border: 1px solid rgba(255,255,255,0.14);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+          display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 9999px;
+          background: rgba(0,0,0,0.30); border: 1px solid rgba(255,255,255,0.14);
+          backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 30px rgba(0,0,0,0.4);
         }
-
         .dotButton {
-          height: 6px;
-          border-radius: 9999px;
+          height: 6px; border-radius: 9999px; cursor: pointer; border: none; padding: 0;
           transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
-          border: none;
-          padding: 0;
         }
-
-        .dotButton:hover {
-          transform: scale(1.4);
-          opacity: 1;
-        }
-
-        @media (max-width: 1024px) {
-          .posterCard {
-            display: none;
-          }
-        }
-
+        .dotButton:hover { transform: scale(1.4); opacity: 1; }
+        @media (max-width: 1024px) { .posterCard { display: none; } }
         @media (max-width: 640px) {
-          .infoSheetFixed {
-            height: 225px;
-          }
-          .overviewSlot {
-            display: none;
-          }
-   
+          .infoSheetFixed { height: 225px; }
+          .overviewSlot { display: none; }
+          .navArrow { width: 50px; height: 50px; }
+        }
+      `}</style>
+    </section>
+  );
+      }
