@@ -16,11 +16,15 @@ interface Movie {
 
 interface CinematicCarouselProps {
   movies: Movie[];
-  onMovieSelect: (movie: Movie) => void; // View Details action
+  onMovieSelect: (movie: Movie) => void;
   autoPlayInterval?: number;
 }
 
-export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 5200 }: CinematicCarouselProps) {
+export function CinematicCarousel({
+  movies,
+  onMovieSelect,
+  autoPlayInterval = 5200,
+}: CinematicCarouselProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
@@ -40,7 +44,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
   const startY = useRef<number | null>(null);
   const swiping = useRef(false);
 
-  // Hooks must run before any early return. [web:255]
+  // Hooks first (no early return before hooks). [web:255]
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
@@ -58,7 +62,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     if (isTransitioning) return;
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 420);
+    window.setTimeout(() => setIsTransitioning(false), 360); // snappier
   };
 
   const goTo = (i: number) => {
@@ -66,10 +70,10 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     onUserInteract();
     setIsTransitioning(true);
     setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 420);
+    window.setTimeout(() => setIsTransitioning(false), 360);
   };
 
-  // Autoplay
+  // Autoplay (stops after interaction)
   useEffect(() => {
     if (reduceMotion) return;
     if (total <= 1) return;
@@ -101,7 +105,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
 
   // Swipe handlers
   const SWIPE_X = 45;
-  const SWIPE_Y = 80;
+  const SWIPE_Y = 90;
 
   const onPointerDown = (e: React.PointerEvent) => {
     onUserInteract();
@@ -135,8 +139,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
 
   if (!current || total === 0) return null;
 
-  const rawBg = current.backdropUrl || current.posterUrl;
-  const bgImage = tmdbUpgrade(rawBg, "w1280"); // safe HQ upgrade [web:143]
+  const bgImage = current.backdropUrl || current.posterUrl;
 
   return (
     <section
@@ -160,22 +163,25 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
             key={current.id}
             src={bgImage}
             alt=""
-            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCineFast"}`}
-            style={{ filter: "saturate(1.18) contrast(1.10) brightness(1.12)", transform: "scale(1.035)" }}
-            loading="eager"
+            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCine"}`}
+            style={{
+              // Slightly brighter so poster/backdrop looks better
+              filter: "saturate(1.10) contrast(1.06) brightness(1.08)",
+              transform: "scale(1.03)",
+            }}
             decoding="async"
           />
 
-          {/* Softer overlays */}
+          {/* Lighter overlay (less dark) using transparent gradients. [web:335] */}
           <div
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at 55% 18%, rgba(${dominant},0.24) 0%, rgba(${dominant},0.08) 44%, rgba(0,0,0,0) 74%)`,
+              background: `radial-gradient(ellipse at 55% 18%, rgba(${dominant},0.22) 0%, rgba(${dominant},0.07) 44%, rgba(0,0,0,0) 78%)`,
             }}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.10)_38%,rgba(0,0,0,0.74)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_42%,rgba(0,0,0,0.40)_100%)]" />
-          <div className="absolute inset-0 cinematic-grain opacity-[0.018]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_40%,rgba(0,0,0,0.68)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_50%,rgba(0,0,0,0.30)_100%)]" />
+          <div className="absolute inset-0 cinematic-grain opacity-[0.015]" />
         </div>
 
         {/* Click hero = View Details */}
@@ -227,7 +233,8 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
         {/* Bottom overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            <div key={`sheet-${current.id}`} className="infoSheetFixed max-w-[920px] lg:max-w-[1040px]">
+            {/* Wider on desktop to fill empty space */}
+            <div key={`sheet-${current.id}`} className="infoSheetFixed w-full lg:w-[min(1100px,100%)]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -249,16 +256,15 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
                 {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
               </div>
 
-              {/* SINGLE button only */}
               <div className="ctaRowOne">
                 <button
                   type="button"
+                  className="ctaGlassPrimary"
                   onClick={(e) => {
                     e.stopPropagation();
                     onUserInteract();
                     onMovieSelect(current);
                   }}
-                  className="ctaGlassPrimary"
                 >
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
@@ -266,6 +272,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
               </div>
             </div>
 
+            {/* Dots */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -287,7 +294,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
                           height: 7,
                           borderRadius: 9999,
                           background: active ? `rgba(${dominant},0.95)` : "rgba(255,255,255,0.28)",
-                          transition: "all 220ms ease",
+                          transition: "all 200ms ease",
                         }}
                       />
                     );
@@ -306,118 +313,124 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
           mix-blend-mode: overlay;
           pointer-events: none;
         }
+
         .navArrow{
-          position: absolute; z-index: 30;
-          width: 54px; height: 54px; border-radius: 9999px;
+          position:absolute; z-index:30;
+          width:54px; height:54px; border-radius:9999px;
           display:flex; align-items:center; justify-content:center;
-          color: rgba(255,255,255,0.92);
-          background: rgba(255,255,255,0.14);
-          border: 1px solid rgba(255,255,255,0.20);
-          box-shadow: 0 14px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20);
+          color:rgba(255,255,255,0.92);
+          background:rgba(255,255,255,0.14);
+          border:1px solid rgba(255,255,255,0.20);
+          box-shadow:0 14px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           backdrop-filter: blur(18px) saturate(140%);
-          transition: transform 160ms ease, background 160ms ease;
+          transition: transform 140ms ease, background 140ms ease;
         }
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
 
+        /* Shorter box (1 button only) */
         .infoSheetFixed{
-          width: 100%;
-          height: 260px;
+          height: 215px;
           border-radius: 22px;
-          padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.30);
+          padding: 16px 16px 14px;
+          background: rgba(0,0,0,0.28);
           border: 1px solid rgba(255,255,255,0.14);
-          box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+          box-shadow: 0 24px 70px rgba(0,0,0,0.50);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           backdrop-filter: blur(18px) saturate(140%);
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
+
         .badgePill{
           display:flex; align-items:center; gap:8px;
-          padding: 8px 12px;
-          border-radius: 9999px;
-          background: rgba(255,255,255,0.10);
-          border: 1px solid rgba(255,255,255,0.16);
+          padding:8px 12px;
+          border-radius:9999px;
+          background:rgba(255,255,255,0.10);
+          border:1px solid rgba(255,255,255,0.16);
           -webkit-backdrop-filter: blur(14px) saturate(140%);
           backdrop-filter: blur(14px) saturate(140%);
         }
+
         .titleClamp{
-          margin-top: 8px;
-          color: #fff;
-          font-weight: 850;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          font-size: clamp(30px, 3.8vw, 60px);
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .overviewSlot{ height: 52px; margin-top: 6px; }
-        .overviewClamp{
-          color: rgba(255,255,255,0.76);
-          font-size: 16px;
-          line-height: 1.55;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+          margin-top: 6px;
+          color:#fff;
+          font-weight:850;
+          letter-spacing:-0.03em;
+          line-height:1.05;
+          font-size:clamp(30px, 3.8vw, 60px);
+          display:-webkit-box;
+          -webkit-line-clamp:2;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
         }
 
-        .ctaRowOne{
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-          margin-top: 10px;
-        }
-        .ctaGlassPrimary{
-          height: 50px;
-          width: 100%;
-          border-radius: 9999px;
-          display:flex; align-items:center; justify-content:center; gap:10px;
-          font-weight: 750;
+        .overviewSlot{ height: 36px; margin-top: 4px; }
+        .overviewClamp{
+          color: rgba(255,255,255,0.78);
           font-size: 15px;
-          color: rgba(255,255,255,0.96);
-          background: rgba(255,255,255,0.20);
-          border: 1px solid rgba(255,255,255,0.28);
+          line-height: 1.5;
+          display:-webkit-box;
+          -webkit-line-clamp:2;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
+        }
+
+        .ctaRowOne{ display:grid; grid-template-columns:1fr; gap:12px; margin-top: 8px; }
+
+        .ctaGlassPrimary{
+          height:48px;
+          width:100%;
+          border-radius:9999px;
+          display:flex; align-items:center; justify-content:center; gap:10px;
+          font-weight:750;
+          font-size:15px;
+          color:rgba(255,255,255,0.96);
+          background:rgba(255,255,255,0.20);
+          border:1px solid rgba(255,255,255,0.28);
           -webkit-backdrop-filter: blur(18px) saturate(170%);
           backdrop-filter: blur(18px) saturate(170%);
-          box-shadow: 0 18px 46px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.22);
-          transition: transform 160ms ease, background 160ms ease;
+          box-shadow:0 18px 46px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+          transition: transform 140ms ease, background 140ms ease;
         }
         .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.24); }
 
         .dotsBar{
-          display:flex; align-items:center; gap: 10px;
-          padding: 10px 18px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.22);
-          border: 1px solid rgba(255,255,255,0.10);
+          display:flex; align-items:center; gap:10px;
+          padding:10px 18px;
+          border-radius:9999px;
+          background:rgba(0,0,0,0.22);
+          border:1px solid rgba(255,255,255,0.10);
           -webkit-backdrop-filter: blur(14px);
           backdrop-filter: blur(14px);
         }
 
+        /* Cinematic but fast (transform + opacity). [web:255] */
         @media (prefers-reduced-motion: no-preference){
-          .bgCineFast{ animation: bgEnterFast 420ms cubic-bezier(0.2,0.9,0.2,1); }
-          @keyframes bgEnterFast{
-            from{ opacity: 0; transform: scale(1.06); filter: blur(3px) saturate(1.18) contrast(1.10) brightness(1.12); }
-            to{ opacity: 1; transform: scale(1.035); filter: blur(0px) saturate(1.18) contrast(1.10) brightness(1.12); }
+          .bgCine{
+            will-change: transform, opacity;
+            animation: bgEnter 420ms cubic-bezier(0.2,0.9,0.2,1);
           }
-          .infoSheetFixed{ animation: sheetInFast 360ms cubic-bezier(0.2,0.9,0.2,1); }
-          @keyframes sheetInFast{ from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: translateY(0); } }
+          @keyframes bgEnter{
+            from{ opacity:0; transform: scale(1.055); filter: blur(2px) saturate(1.10) contrast(1.06) brightness(1.08); }
+            to{ opacity:1; transform: scale(1.03); filter: blur(0px) saturate(1.10) contrast(1.06) brightness(1.08); }
+          }
+          .infoSheetFixed{
+            will-change: transform, opacity;
+            animation: sheetIn 300ms cubic-bezier(0.2,0.9,0.2,1);
+          }
+          @keyframes sheetIn{
+            from{ opacity:0; transform: translateY(10px); }
+            to{ opacity:1; transform: translateY(0); }
+          }
         }
 
         @media (max-width: 640px){
-          .infoSheetFixed{ height: 255px; max-width: 760px; }
-          .overviewSlot{ display: none; }
-        }
-        @media (min-width: 1024px){
-          .infoSheetFixed{ height: 300px; padding: 22px 22px 18px; }
-          .overviewSlot{ height: 60px; }
+          .overviewSlot{ display:none; }
+          .infoSheetFixed{ height: 210px; }
         }
       `}</style>
     </section>
   );
-}
+      }
