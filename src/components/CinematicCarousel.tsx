@@ -20,14 +20,6 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-/** Upgrade only valid TMDB image URLs (base + /t/p/ + size + path). [web:143] */
-function tmdbUpgrade(url: string | undefined, size: "w1280" | "original") {
-  if (!url) return "";
-  const m = url.match(/^(https?://image.tmdb.org/t/p/)(wd+|original)(/.+)$/);
-  if (!m) return url;
-  return `${m[1]}${size}${m[3]}`;
-}
-
 export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 5200 }: CinematicCarouselProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
