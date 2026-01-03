@@ -457,4 +457,4 @@ export function CinematicCarousel({
       `}</style>
     </section>
   );
-                            }
+}
