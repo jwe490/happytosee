@@ -95,13 +95,19 @@ export default function CinematicCarousel() {
   const activeMovie = movies[active];
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#FAFAFA]">
+    <div className="relative w-full h-screen overflow-hidden bg-gray-50">
+      <style>{`
+        @keyframes kenBurns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.015); }
+        }
+      `}</style>
+
       {/* Animated Background */}
       <div 
         className="absolute inset-0 transition-all duration-1000 ease-out"
         style={{
-          background: `radial-gradient(ellipse at center, rgba(${activeMovie.color}, 0.12) 0%, rgba(${activeMovie.color}, 0.03) 50%, #FAFAFA 100%)`,
-          backdropFilter: 'blur(80px)'
+          background: `radial-gradient(ellipse at center, rgba(${activeMovie.color}, 0.12) 0%, rgba(${activeMovie.color}, 0.03) 50%, #FAFAFA 100%)`
         }}
       />
 
@@ -131,7 +137,7 @@ export default function CinematicCarousel() {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="relative w-full flex items-center justify-center" style={{ height: '540px' }}>
+          <div className="relative w-full flex items-center justify-center h-[540px]">
             {movies.map((movie, index) => {
               const offset = index - active;
               const isActive = index === active;
@@ -182,7 +188,7 @@ export default function CinematicCarousel() {
                     </div>
 
                     {/* Content */}
-                    <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                    <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                       {/* Badges */}
                       <div className="flex gap-2">
                         <div 
@@ -220,7 +226,7 @@ export default function CinematicCarousel() {
 
                       {/* Title & Button */}
                       <div className="space-y-4">
-                        <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
+                        <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
                           {movie.title}
                         </h2>
                         <button 
@@ -294,14 +300,6 @@ export default function CinematicCarousel() {
           ))}
         </div>
       </div>
-
-      {/* Ken Burns Animation */}
-      <style>{`
-        @keyframes kenBurns {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.015); }
-        }
-      `}</style>
     </div>
   );
-          }
+    }
