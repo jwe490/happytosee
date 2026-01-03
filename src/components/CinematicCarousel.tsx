@@ -1,541 +1,327 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, useMotionValue, useSpring, PanInfo } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
-import { extractDominantColor } from "@/utils/colorExtractor";
-import { FilmGrain } from "./FilmGrain";
 
-interface Movie {
-  id: number;
+type Movie = {
+  id: number | string;
   title: string;
-  overview?: string;
   posterUrl: string;
   backdropUrl?: string;
-  rating: number;
-  year: number;
+  rating?: number;
+  year?: number;
   genre?: string;
-}
+};
 
-interface CinematicCarouselProps {
-  movies: Movie[];
+type Props = {
+  movies?: Movie[];
   onMovieSelect: (movie: Movie) => void;
-  autoPlayInterval?: number;
-}
+  autoPlayMs?: number;
+  height?: { mobile: number; desktop: number };
+};
 
-export const CinematicCarousel = ({
-  movies,
+export function MinimalCinematicCarousel({
+  movies = [],
   onMovieSelect,
-  autoPlayInterval = 6000,
-}: CinematicCarouselProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
-  const [dominantColor, setDominantColor] = useState("15, 15, 15");
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  autoPlayMs = 6500,
+  height = { mobile: 520, desktop: 640 },
+}: Props) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
-  const dragX = useMotionValue(0);
-  const dragXSpring = useSpring(dragX, { stiffness: 300, damping: 30 });
+  const list = useMemo(() => (movies ?? []).filter(Boolean), [movies]);
+  const total = list.length;
 
-  const isMobile = useMediaQuery("(max-width: 640px)");
-  const containerHeight = isMobile ? "480px" : "560px";
-  const cardWidth = isMobile ? 280 : 320;
-  const cardHeight = isMobile ? 420 : 480;
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const currentMovie = movies[currentIndex];
-  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const interacted = useRef(false);
+  const timerRef = useRef<number | null>(null);
 
+  const current = total > 0 ? list[Math.min(index, total - 1)] : undefined;
+
+  // keep index safe
   useEffect(() => {
-    if (currentMovie?.posterUrl) {
-      setIsImageLoaded(false);
-      extractDominantColor(currentMovie.posterUrl).then((color) => {
-        setDominantColor(color);
-      });
+    if (total === 0) return;
+    if (index > total - 1) setIndex(0);
+  }, [index, total]);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-  }, [currentMovie?.posterUrl]);
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % movies.length);
-  }, [movies.length]);
-
-  const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + movies.length) % movies.length);
-  }, [movies.length]);
-
-  const goToSlide = useCallback((index: number) => {
-    setCurrentIndex(index);
   }, []);
 
+  useEffect(() => clearTimer, [clearTimer]);
+
+  const onUserInteract = useCallback(() => {
+    interacted.current = true;
+    setPaused(true);
+  }, []);
+
+  const go = useCallback(
+    (dir: 1 | -1) => {
+      if (total <= 1) return;
+      if (isTransitioning) return;
+
+      clearTimer();
+      setIsTransitioning(true);
+      setIndex((p) => (p + dir + total) % total);
+
+      timerRef.current = window.setTimeout(() => {
+        setIsTransitioning(false);
+        timerRef.current = null;
+      }, 260);
+    },
+    [clearTimer, isTransitioning, total],
+  );
+
+  const goTo = useCallback(
+    (i: number) => {
+      if (total <= 1) return;
+      if (i === index) return;
+
+      onUserInteract();
+      clearTimer();
+      setIsTransitioning(true);
+      setIndex(i);
+
+      timerRef.current = window.setTimeout(() => {
+        setIsTransitioning(false);
+        timerRef.current = null;
+      }, 260);
+    },
+    [clearTimer, index, onUserInteract, total],
+  );
+
   useEffect(() => {
-    if (!isAutoPlaying || movies.length <= 1 || isHovered) return;
+    if (reduceMotion || total <= 1 || paused) return;
 
-    const interval = setInterval(goToNext, autoPlayInterval);
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, goToNext, autoPlayInterval, movies.length, isHovered]);
+    const t = window.setInterval(() => {
+      if (interacted.current) return;
+      go(1);
+    }, autoPlayMs);
 
-  const handleInteraction = () => {
-    setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
-  };
+    return () => window.clearInterval(t);
+  }, [autoPlayMs, go, paused, reduceMotion, total]);
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 50;
+  if (!current) return null;
 
-    if (info.offset.x > threshold) {
-      goToPrevious();
-      handleInteraction();
-    } else if (info.offset.x < -threshold) {
-      goToNext();
-      handleInteraction();
-    }
-
-    dragX.set(0);
-  };
-
-  if (!currentMovie || movies.length === 0) return null;
+  const bg = current.backdropUrl || current.posterUrl;
 
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      style={{
-        height: containerHeight,
-        cursor: 'grab',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <motion.div
-        key={`bg-${currentMovie.id}`}
-        className="absolute inset-0 -z-20"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.2, ease: "easeInOut" }}
-        style={{
-          background: `radial-gradient(ellipse at center, rgba(${dominantColor}, 0.15) 0%, rgba(${dominantColor}, 0.05) 40%, #0F0F0F 100%)`,
-        }}
-      />
-
-      <FilmGrain />
-
+    <section className="w-full">
       <div
-        className="absolute inset-0 pointer-events-none -z-10"
-        style={{
-          maskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
-        }}
-      />
-
-      <div
-        className="relative w-full h-full flex items-center justify-center"
-        style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          padding: isMobile ? '40px 16px' : '60px 80px',
-        }}
+        className="relative w-full overflow-hidden rounded-3xl bg-black"
+        style={{ height: isDesktop ? height.desktop : height.mobile }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        aria-roledescription="carousel"
+        aria-label="Featured movies"
       >
-        <motion.div
-          className="relative flex items-center justify-center"
-          style={{
-            width: '100%',
-            x: dragXSpring,
-          }}
-          drag={!isMobile ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragEnd={handleDragEnd}
-        >
-          {movies.map((movie, index) => {
-            const offset = index - currentIndex;
-            const absOffset = Math.abs(offset);
+        {/* Background (never blocks clicks) */}
+        <div className="absolute inset-0 pointer-events-none">
+          <img
+            key={`bg-${current.id}`}
+            src={bg}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover ${reduceMotion ? "" : "mc-bgEnter"}`}
+            decoding="async"
+          />
+          <div className="absolute inset-0 mc-gradTop" />
+          <div className="absolute inset-0 mc-gradBottom" />
+        </div>
 
-            if (isMobile && absOffset > 0) return null;
-            if (!isMobile && absOffset > 1) return null;
+        {/* Arrows */}
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              onClick={() => {
+                onUserInteract();
+                go(-1);
+              }}
+              disabled={isTransitioning}
+              className="mc-arrow left-4"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
 
-            let scale = 1;
-            let opacity = 1;
-            let translateX = 0;
-            let translateY = 0;
-            let brightness = 1;
-            let blur = 0;
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={() => {
+                onUserInteract();
+                go(1);
+              }}
+              disabled={isTransitioning}
+              className="mc-arrow right-4"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
 
-            if (absOffset === 0) {
-              scale = 1.0;
-              opacity = 1;
-              translateX = 0;
-              translateY = 0;
-              brightness = 1;
-              blur = 0;
-            } else if (absOffset === 1) {
-              scale = 0.88;
-              opacity = 0.4;
-              translateX = offset > 0 ? 35 : -35;
-              translateY = 12;
-              brightness = 0.6;
-              blur = 1;
-            }
+        {/* Bottom compact sheet */}
+        <div className="absolute inset-x-0 bottom-0 z-10">
+          <div className="px-4 sm:px-6 lg:px-10 pb-5">
+            <div className={reduceMotion ? "mc-sheet" : "mc-sheet mc-sheetEnter"}>
+              <div className="flex flex-wrap items-center gap-2">
+                {typeof current.rating === "number" && (
+                  <div className="mc-pill">
+                    <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
+                    <span className="text-white text-sm font-semibold">{current.rating.toFixed(1)}</span>
+                  </div>
+                )}
+                {current.year && (
+                  <div className="mc-pill">
+                    <span className="text-white/90 text-sm font-medium">{current.year}</span>
+                  </div>
+                )}
+                {current.genre && (
+                  <div className="mc-pill">
+                    <span className="text-white/90 text-sm font-medium">
+                      {current.genre.split(",")[0].trim()}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            const isActive = offset === 0;
+              <div className="mt-2 text-white font-extrabold tracking-[-0.03em] leading-[1.05] text-3xl sm:text-4xl">
+                {current.title}
+              </div>
 
-            return (
-              <motion.div
-                key={movie.id}
-                className="absolute cursor-pointer will-change-transform"
-                style={{
-                  width: `${cardWidth}px`,
-                  height: `${cardHeight}px`,
-                  pointerEvents: isActive ? "auto" : "none",
-                }}
-                initial={false}
-                animate={{
-                  scale,
-                  opacity,
-                  x: `${translateX}%`,
-                  y: translateY,
-                  filter: `brightness(${brightness}) blur(${blur}px)`,
-                }}
-                transition={{
-                  duration: 0.6,
-                  ease: [0.22, 0.61, 0.36, 1],
-                  scale: {
-                    duration: 0.6,
-                    ease: [0.22, 0.61, 0.36, 1],
-                  },
-                  x: {
-                    duration: 0.65,
-                    delay: 0.05,
-                    ease: [0.22, 0.61, 0.36, 1],
-                  },
-                }}
+              <button
+                type="button"
+                className="mc-cta mt-3"
                 onClick={() => {
-                  if (offset !== 0) {
-                    goToSlide(index);
-                    handleInteraction();
-                  }
+                  onUserInteract();
+                  onMovieSelect(current);
                 }}
               >
-                <div
-                  className="relative w-full h-full overflow-hidden"
-                  style={{
-                    borderRadius: '16px',
-                    boxShadow: isActive
-                      ? `0 24px 80px rgba(0,0,0,0.6), 0 0 120px rgba(${dominantColor}, 0.25)`
-                      : '0 24px 80px rgba(0,0,0,0.6)',
-                  }}
-                >
-                  <motion.div
-                    className="w-full h-full"
-                    animate={
-                      isActive && !prefersReducedMotion
-                        ? { scale: [1, 1.02] }
-                        : { scale: 1 }
-                    }
-                    transition={{
-                      duration: 12,
-                      ease: "easeInOut",
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                    }}
-                  >
-                    <img
-                      src={movie.posterUrl}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                      loading={index < 3 ? "eager" : "lazy"}
-                      decoding="async"
-                      onLoad={() => {
-                        if (isActive) setIsImageLoaded(true);
-                      }}
-                      style={{
-                        imageRendering: 'high-quality',
-                      }}
-                    />
-                  </motion.div>
+                <Play className="h-4 w-4" fill="currentColor" />
+                View Details
+              </button>
+            </div>
 
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.92) 100%)',
-                      height: '75%',
-                      top: '25%',
-                    }}
-                  />
-
-                  {isActive && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="absolute flex items-center gap-2 text-white"
-                        style={{
-                          top: '20px',
-                          left: '20px',
-                          backgroundColor: 'rgba(0,0,0,0.75)',
-                          backdropFilter: 'blur(16px)',
-                          padding: '8px 12px',
-                          borderRadius: '20px',
-                          height: '32px',
-                        }}
-                      >
-                        <span className="text-yellow-400" style={{ fontSize: '14px' }}>★</span>
-                        <span className="font-medium" style={{ fontSize: '15px' }}>{movie.rating.toFixed(1)}</span>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.4 }}
-                        className="absolute text-white font-medium"
-                        style={{
-                          top: '60px',
-                          left: '20px',
-                          backgroundColor: 'rgba(0,0,0,0.65)',
-                          backdropFilter: 'blur(16px)',
-                          padding: '6px 12px',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                        }}
-                      >
-                        {movie.year}
-                      </motion.div>
-
-                      {movie.genre && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.5, duration: 0.4 }}
-                          className="absolute text-white font-medium"
-                          style={{
-                            top: '100px',
-                            left: '20px',
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            backdropFilter: 'blur(16px)',
-                            padding: '6px 12px',
-                            borderRadius: '12px',
-                            fontSize: '13px',
-                          }}
-                        >
-                          {movie.genre.split(',')[0].trim()}
-                        </motion.div>
-                      )}
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
-                        className="absolute"
-                        style={{
-                          bottom: '20px',
-                          left: '20px',
-                          right: '20px',
-                        }}
-                      >
-                        <h2
-                          className="font-bold text-white mb-3"
-                          style={{
-                            fontSize: '26px',
-                            lineHeight: '1.15',
-                            textShadow: '0 4px 16px rgba(0,0,0,0.8)',
-                            letterSpacing: '-0.01em',
-                            fontWeight: 800,
-                          }}
-                        >
-                          {movie.title}
-                        </h2>
-
-                        <motion.button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMovieSelect(movie);
-                          }}
-                          className="w-full font-semibold transition-all"
-                          style={{
-                            height: '44px',
-                            backgroundColor: 'rgba(255,255,255,0.95)',
-                            backdropFilter: 'blur(12px)',
-                            borderRadius: '22px',
-                            fontSize: '15px',
-                            fontWeight: 600,
-                            color: '#1F1F1F',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                            border: 'none',
-                            cursor: 'pointer',
-                          }}
-                          whileHover={{
-                            backgroundColor: 'rgba(255,255,255,1)',
-                            y: -1,
-                            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
-                          }}
-                          whileTap={{ scale: 0.98 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          View Details
-                        </motion.button>
-                      </motion.div>
-                    </>
-                  )}
+            {/* Dots */}
+            {total > 1 && (
+              <div className="mt-3 flex justify-center">
+                <div className="mc-dots">
+                  {list.map((m, i) => {
+                    const active = i === index;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => goTo(i)}
+                        disabled={isTransitioning}
+                        aria-label={`Go to slide ${i + 1}`}
+                        aria-current={active ? "true" : "false"}
+                        className="mc-dot"
+                        style={{ width: active ? 26 : 7, opacity: active ? 1 : 0.55 }}
+                      />
+                    );
+                  })}
                 </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <style>{`
+          /* High-performance: animate transform + opacity. [web:606] */
+          .mc-bgEnter{ will-change: transform, opacity; animation: mcBg 360ms cubic-bezier(0.16,1,0.3,1); }
+          @keyframes mcBg{ from{ opacity:0; transform: scale(1.05);} to{ opacity:1; transform: scale(1.02);} }
+
+          .mc-gradTop{
+            background: radial-gradient(ellipse at 50% 18%, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 60%);
+          }
+          .mc-gradBottom{
+            background: linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.85) 100%);
+          }
+
+          .mc-arrow{
+            position:absolute; top:50%; transform: translateY(-50%);
+            z-index: 20;
+            width: 48px; height: 48px;
+            border-radius: 9999px;
+            display:flex; align-items:center; justify-content:center;
+            color: rgba(255,255,255,0.95);
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.18);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            transition: transform 160ms ease, background 160ms ease, opacity 160ms ease;
+          }
+          .mc-arrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(0,0,0,0.50); }
+          .mc-arrow:active{ transform: translateY(-50%) scale(0.95); }
+          .mc-arrow:disabled{ opacity: 0.45; }
+
+          .mc-sheet{
+            width: 100%;
+            max-width: 720px;
+            border-radius: 22px;
+            padding: 14px 14px 12px;
+            background: rgba(0,0,0,0.42);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: 0 22px 64px rgba(0,0,0,0.60);
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+          }
+          .mc-sheetEnter{ will-change: transform, opacity; animation: mcSheet 280ms cubic-bezier(0.16,1,0.3,1); }
+          @keyframes mcSheet{ from{ opacity:0; transform: translateY(10px);} to{ opacity:1; transform: translateY(0);} }
+
+          .mc-pill{
+            display:flex; align-items:center; gap:8px;
+            padding: 7px 12px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.16);
+          }
+
+          .mc-cta{
+            width: 100%;
+            height: 46px;
+            border-radius: 9999px;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            font-weight: 700;
+            font-size: 15px;
+            color: rgba(255,255,255,0.96);
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.26);
+            transition: transform 160ms ease, background 160ms ease;
+          }
+          .mc-cta:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
+          .mc-cta:active{ transform: translateY(0) scale(0.98); }
+
+          .mc-dots{
+            display:flex; align-items:center; gap:10px;
+            padding: 10px 16px;
+            border-radius: 9999px;
+            background: rgba(0,0,0,0.30);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+          }
+          .mc-dot{
+            height: 7px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.55);
+            transition: width 220ms cubic-bezier(0.16,1,0.3,1), opacity 220ms ease;
+            border: none;
+            padding: 0;
+          }
+          .mc-dot:hover{ opacity: 1; }
+
+          @media (min-width: 1024px){
+            .mc-sheet{ max-width: 760px; }
+            .mc-arrow{ width: 52px; height: 52px; }
+          }
+        `}</style>
       </div>
-
-      {movies.length > 1 && !isMobile && (
-        <>
-          <motion.button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToPrevious();
-              handleInteraction();
-            }}
-            className="absolute flex items-center justify-center transition-all z-20"
-            style={{
-              top: '50%',
-              left: '40px',
-              width: '52px',
-              height: '52px',
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '26px',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 0.9 : 0 }}
-            whileHover={{ opacity: 1, scale: 1.08 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ duration: 0.35 }}
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </motion.button>
-
-          <motion.button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToNext();
-              handleInteraction();
-            }}
-            className="absolute flex items-center justify-center transition-all z-20"
-            style={{
-              top: '50%',
-              right: '40px',
-              width: '52px',
-              height: '52px',
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '26px',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 0.9 : 0 }}
-            whileHover={{ opacity: 1, scale: 1.08 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ duration: 0.35 }}
-            aria-label="Next slide"
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </motion.button>
-        </>
-      )}
-
-      {movies.length > 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="absolute left-1/2 flex items-center gap-3 z-20"
-          style={{
-            bottom: isMobile ? '16px' : '-40px',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0,0,0,0.25)',
-            backdropFilter: 'blur(12px)',
-            padding: '10px 20px',
-            borderRadius: '24px',
-            border: '1px solid rgba(255,255,255,0.08)',
-          }}
-        >
-          {movies.map((_, index) => (
-            <motion.button
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
-                goToSlide(index);
-                handleInteraction();
-              }}
-              className="transition-all"
-              style={{
-                height: '5px',
-                width: index === currentIndex ? '18px' : '5px',
-                backgroundColor: index === currentIndex ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
-                borderRadius: '3px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              whileHover={{
-                backgroundColor: 'rgba(255,255,255,0.7)',
-              }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </motion.div>
-      )}
-
-      {isMobile && movies.length > 1 && (
-        <>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToPrevious();
-              handleInteraction();
-            }}
-            className="absolute flex items-center justify-center z-20"
-            style={{
-              top: '50%',
-              left: '16px',
-              width: '48px',
-              height: '48px',
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '24px',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer',
-            }}
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToNext();
-              handleInteraction();
-            }}
-            className="absolute flex items-center justify-center z-20"
-            style={{
-              top: '50%',
-              right: '16px',
-              width: '48px',
-              height: '48px',
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '24px',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer',
-            }}
-            aria-label="Next slide"
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </button>
-        </>
-      )}
     </section>
   );
-};
+      }
