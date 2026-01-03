@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-mobile";
 
 interface Movie {
   id: number;
@@ -28,7 +29,20 @@ export const CinematicCarousel = ({
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [direction, setDirection] = useState(0);
 
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isTablet = useMediaQuery("(max-width: 1024px)");
+
   const currentMovie = movies[currentIndex];
+
+  const imageUrl = useMemo(() => {
+    if (!currentMovie) return "";
+
+    if (isMobile) {
+      return currentMovie.posterUrl;
+    }
+
+    return currentMovie.backdropUrl || currentMovie.posterUrl;
+  }, [currentMovie, isMobile]);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -100,11 +114,15 @@ export const CinematicCarousel = ({
               className="absolute inset-0"
             >
               <img
-                src={currentMovie.backdropUrl || currentMovie.posterUrl}
+                src={imageUrl}
                 alt={currentMovie.title}
                 className="w-full h-full object-cover"
                 loading="eager"
                 decoding="async"
+                style={{
+                  imageRendering: "high-quality",
+                  objectFit: isMobile ? "cover" : "cover"
+                }}
               />
 
               <div

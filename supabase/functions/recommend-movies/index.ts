@@ -5,12 +5,15 @@ const corsHeaders = {
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w780";
+const TMDB_BACKDROP_ORIGINAL = "https://image.tmdb.org/t/p/original";
+const TMDB_BACKDROP_HD = "https://image.tmdb.org/t/p/w1280";
 
 interface TMDbMovie {
   id: number;
   title: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   release_date: string;
   vote_average: number;
   genre_ids: number[];
@@ -252,8 +255,10 @@ Deno.serve(async (req) => {
         language: langToName[movie.original_language] || movie.original_language.toUpperCase(),
         industry: langToIndustry[movie.original_language] || "International",
         posterUrl: movie.poster_path
-          ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
+          ? `${TMDB_POSTER_BASE}${movie.poster_path}`
           : `https://via.placeholder.com/400x600/1a1a1a/ffffff?text=${encodeURIComponent(movie.title)}`,
+        backdropUrl: movie.backdrop_path ? `${TMDB_BACKDROP_ORIGINAL}${movie.backdrop_path}` : null,
+        backdropHD: movie.backdrop_path ? `${TMDB_BACKDROP_HD}${movie.backdrop_path}` : null,
         moodMatch: template,
         overview: movie.overview,
       };

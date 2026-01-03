@@ -5,7 +5,9 @@ const corsHeaders = {
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w780";
+const TMDB_BACKDROP_ORIGINAL = "https://image.tmdb.org/t/p/original";
+const TMDB_BACKDROP_HD = "https://image.tmdb.org/t/p/w1280";
 
 const genreMap: Record<number, string> = {
   28: "Action",
@@ -64,7 +66,10 @@ Deno.serve(async (req) => {
       title: m.title,
       year: m.release_date ? new Date(m.release_date).getFullYear() : null,
       rating: Math.round((m.vote_average || 0) * 10) / 10,
-      posterUrl: m.poster_path ? `${TMDB_IMAGE_BASE}${m.poster_path}` : null,
+      posterUrl: m.poster_path ? `${TMDB_POSTER_BASE}${m.poster_path}` : null,
+      backdropUrl: m.backdrop_path ? `${TMDB_BACKDROP_ORIGINAL}${m.backdrop_path}` : null,
+      backdropHD: m.backdrop_path ? `${TMDB_BACKDROP_HD}${m.backdrop_path}` : null,
+      overview: m.overview,
       genre:
         m.genre_ids?.slice(0, 2).map((id: number) => genreMap[id] || "").filter(Boolean).join(", ") ||
         "Drama",
