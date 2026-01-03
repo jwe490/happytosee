@@ -20,16 +20,6 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-/** Safest TMDB upgrade: only touches exact TMDB path format and falls back to original. [web:143] */
-function tmdbUpgrade(url: string | undefined, size: "w1280" | "original") {
-  if (!url) return "";
-  // Must be exactly like: https://image.tmdb.org/t/p/w500/xyz.jpg [web:143]
-  const m = url.match(/^(https?://image.tmdb.org/t/p/)(wd+|original)(/.+)$/);
-  if (!m) return url; // not TMDB, do nothing
-  const upgraded = `${m[1]}${size}${m[3]}`;
-  return upgraded || url;
-}
-
 export function CinematicCarousel({
   movies,
   onMovieSelect,
@@ -48,8 +38,10 @@ export function CinematicCarousel({
 
   const interacted = useRef(false);
   const current = list[index];
+  if (!current || total === 0) return null;
 
-  // Hooks must always run; avoid returning before hooks.
+  const bgImage = current.backdropUrl || current.posterUrl;
+
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
@@ -67,7 +59,7 @@ export function CinematicCarousel({
     if (isTransitioning) return;
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 720);
+    window.setTimeout(() => setIsTransitioning(false), 620);
   };
 
   const goTo = (i: number) => {
@@ -75,7 +67,7 @@ export function CinematicCarousel({
     onUserInteract();
     setIsTransitioning(true);
     setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 720);
+    window.setTimeout(() => setIsTransitioning(false), 620);
   };
 
   useEffect(() => {
@@ -89,7 +81,7 @@ export function CinematicCarousel({
     }, autoPlayInterval);
 
     return () => window.clearInterval(t);
-  }, [autoPlayInterval, paused, reduceMotion, total]); // keep stable
+  }, [autoPlayInterval, paused, reduceMotion, total]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -105,12 +97,6 @@ export function CinematicCarousel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isTransitioning, total]);
-
-  if (!current || total === 0) return null;
-
-  // If backdrop exists, upgrade it; else upgrade poster (still safe). [web:143]
-  const rawBg = current.backdropUrl || current.posterUrl;
-  const bgImage = tmdbUpgrade(rawBg, "w1280");
 
   return (
     <section
@@ -128,15 +114,19 @@ export function CinematicCarousel({
           maxHeight: 980,
         }}
       >
+        {/* BACKDROP LAYER (cinematic crossfade + push) */}
         <div className="absolute inset-0">
           <img
             key={current.id}
             src={bgImage}
             alt=""
-            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCine"}`}
-            style={{ filter: "saturate(1.08) contrast(1.06)", transform: "scale(1.03)" }}
+            className={`absolute inset-0 w-full h-full object-cover ${
+              reduceMotion ? "" : "bgCine"
+            }`}
+            style={{ filter: "saturate(1.08) contrast(1.06)" }}
           />
 
+          {/* controlled grading */}
           <div
             className="absolute inset-0"
             style={{
@@ -148,6 +138,46 @@ export function CinematicCarousel({
           <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
         </div>
 
+        {/* SAFE AREA: reserve bottom space so arrows NEVER overlap sheet */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute left-0 right-0 bottom-0"
+            style={{ height: isDesktop ? 220 : 240 }}
+          />
+        </div>
+
+        {/* ARROWS: fixed “control lane” at 45% height (never collides) */}
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              onClick={() => {
+                onUserInteract();
+                go(-1);
+              }}
+              disabled={isTransitioning}
+              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={() => {
+                onUserInteract();
+                go(1);
+              }}
+              disabled={isTransitioning}
+              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
+
+        {/* FULL-BLEED POSTER INTERACTION (tap anywhere opens details) */}
         <button
           type="button"
           onClick={() => {
@@ -160,63 +190,45 @@ export function CinematicCarousel({
           <span className="sr-only">Open</span>
         </button>
 
-        {total > 1 && (
-          <>
-            <button
-              type="button"
-              aria-label="Previous"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(-1);
-              }}
-              disabled={isTransitioning}
-              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Next"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(1);
-              }}
-              disabled={isTransitioning}
-              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </>
-        )}
-
+        {/* Bottom planned overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            <div key={`sheet-${current.id}`} className="infoSheetFixed max-w-[760px]">
+            {/* fixed width + fixed padding = consistent look */}
+            <div className="infoSheet max-w-[760px]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
-                  <span className="text-white font-semibold text-sm">{current.rating.toFixed(1)}</span>
+                  <span className="text-white font-semibold text-sm">
+                    {current.rating.toFixed(1)}
+                  </span>
                 </div>
                 <div className="badgePill">
-                  <span className="text-white/90 font-medium text-sm">{current.year}</span>
+                  <span className="text-white/90 font-medium text-sm">
+                    {current.year}
+                  </span>
                 </div>
                 {current.genre && (
                   <div className="badgePill">
-                    <span className="text-white/90 font-medium text-sm">{current.genre.split(",")[0].trim()}</span>
+                    <span className="text-white/90 font-medium text-sm">
+                      {current.genre.split(",")[0].trim()}
+                    </span>
                   </div>
                 )}
               </div>
 
-              <h1 className="titleClamp">{current.title}</h1>
+              {/* clamp title to avoid height jumps */}
+              <h1 className="mt-3 text-white font-extrabold tracking-[-0.03em] leading-[1.05] text-4xl sm:text-5xl lg:text-6xl line-clamp-2">
+                {current.title}
+              </h1>
 
-              <div className="overviewSlot">
-                {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
-              </div>
+              {isDesktop && current.overview && (
+                <p className="mt-3 text-white/72 text-base sm:text-lg leading-relaxed line-clamp-2">
+                  {current.overview}
+                </p>
+              )}
 
-              <div className="ctaRow">
+              <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:max-w-md">
+                {/* PRIMARY: View Details glass */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -225,12 +237,12 @@ export function CinematicCarousel({
                     onMovieSelect(current);
                   }}
                   className="ctaGlassPrimary"
-                  aria-label={`View details for ${current.title}`}
                 >
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
                 </button>
 
+                {/* SECONDARY: quiet */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -245,6 +257,7 @@ export function CinematicCarousel({
               </div>
             </div>
 
+            {/* Dots: always BELOW sheet, centered */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -265,7 +278,9 @@ export function CinematicCarousel({
                           width: active ? 26 : 6,
                           height: 6,
                           borderRadius: 9999,
-                          background: active ? `rgba(${dominant},0.95)` : "rgba(255,255,255,0.30)",
+                          background: active
+                            ? `rgba(${dominant},0.95)`
+                            : "rgba(255,255,255,0.30)",
                           transition: "all 380ms ease",
                         }}
                       />
@@ -304,20 +319,18 @@ export function CinematicCarousel({
           transition: transform 220ms ease, background 220ms ease;
         }
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
+        .navArrow:active{ transform: translateY(-50%) scale(0.96); }
+        .navArrow:disabled{ opacity: 0.45; }
 
-        .infoSheetFixed{
+        .infoSheet{
           width: 100%;
-          height: 240px;
           border-radius: 22px;
           padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.36);
+          background: rgba(0,0,0,0.35);
           border: 1px solid rgba(255,255,255,0.14);
           box-shadow: 0 24px 70px rgba(0,0,0,0.55);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           backdrop-filter: blur(18px) saturate(140%);
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
         }
 
         .badgePill{
@@ -330,37 +343,6 @@ export function CinematicCarousel({
           border: 1px solid rgba(255,255,255,0.16);
           -webkit-backdrop-filter: blur(14px) saturate(140%);
           backdrop-filter: blur(14px) saturate(140%);
-        }
-
-        .titleClamp{
-          margin-top: 8px;
-          color: #fff;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          font-size: clamp(28px, 4.2vw, 56px);
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .overviewSlot{ height: 44px; margin-top: 6px; }
-        .overviewClamp{
-          color: rgba(255,255,255,0.72);
-          font-size: 16px;
-          line-height: 1.55;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .ctaRow{
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-top: 10px;
         }
 
         .ctaGlassPrimary{
@@ -379,7 +361,10 @@ export function CinematicCarousel({
           -webkit-backdrop-filter: blur(18px) saturate(170%);
           backdrop-filter: blur(18px) saturate(170%);
           box-shadow: 0 18px 46px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.24);
+          transition: transform 220ms ease, background 220ms ease;
         }
+        .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
+        .ctaGlassPrimary:active{ transform: translateY(0px); }
 
         .ctaSecondary{
           height: 48px;
@@ -392,7 +377,10 @@ export function CinematicCarousel({
           border: 1px solid rgba(255,255,255,0.14);
           -webkit-backdrop-filter: blur(10px);
           backdrop-filter: blur(10px);
+          transition: transform 220ms ease, background 220ms ease, color 220ms ease;
         }
+        .ctaSecondary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
+        .ctaSecondary:active{ transform: translateY(0px); }
 
         .dotsBar{
           display:flex;
@@ -406,22 +394,17 @@ export function CinematicCarousel({
           backdrop-filter: blur(14px);
         }
 
+        /* Cinematic slide change: fade + slight push */
         @media (prefers-reduced-motion: no-preference){
-          .bgCine{ animation: bgEnter 720ms cubic-bezier(0.22,0.61,0.36,1); }
+          .bgCine{
+            animation: bgEnter 620ms cubic-bezier(0.22,0.61,0.36,1);
+          }
           @keyframes bgEnter{
-            from{ opacity: 0; transform: scale(1.07); filter: blur(3px) saturate(1.08) contrast(1.06); }
+            from{ opacity: 0; transform: scale(1.06); filter: blur(2px) saturate(1.08) contrast(1.06); }
             to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.08) contrast(1.06); }
           }
-          .infoSheetFixed{ animation: sheetIn 520ms cubic-bezier(0.22,0.61,0.36,1); }
-          @keyframes sheetIn{ from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: translateY(0); } }
-        }
-
-        @media (max-width: 640px){
-          .infoSheetFixed{ height: 255px; }
-          .overviewSlot{ display: none; }
-          .ctaRow{ grid-template-columns: 1fr; }
         }
       `}</style>
     </section>
   );
-}
+    }
