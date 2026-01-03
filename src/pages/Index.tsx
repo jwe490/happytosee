@@ -29,20 +29,8 @@ const moodTaglines: Record<string, string> = {
 };
 
 const Index = () => {
-  // Restore mood from localStorage on mount
-  const [selectedMood, setSelectedMood] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem("selectedMood");
-    }
-    return null;
-  });
-  const [showPreferences, setShowPreferences] = useState(() => {
-    // Show preferences if mood was previously selected
-    if (typeof window !== 'undefined') {
-      return !!localStorage.getItem("selectedMood");
-    }
-    return false;
-  });
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [hasScrolledPastMood, setHasScrolledPastMood] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -127,11 +115,10 @@ const Index = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [movies.length]);
 
-  // Real-time mood update with debounce - also persist to localStorage
+  // Real-time mood update with debounce
   const handleMoodSelect = useCallback((mood: string) => {
     setSelectedMood(mood);
     setShowPreferences(true);
-    localStorage.setItem("selectedMood", mood);
   }, []);
 
   // Floating mood selector - triggers instant recommendations

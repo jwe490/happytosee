@@ -12,7 +12,6 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Person = lazy(() => import("./pages/Person"));
-const SharedCollection = lazy(() => import("./pages/SharedCollection"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -41,7 +40,6 @@ const App = () => (
               <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/person/:id" element={<Person />} />
-              <Route path="/collection/:id" element={<SharedCollection />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

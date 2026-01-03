@@ -135,31 +135,3 @@ export function PersonPageSkeleton() {
     </div>
   );
 }
-
-export function PageLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <motion.div 
-        className="flex flex-col items-center gap-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <motion.div 
-          className="relative w-12 h-12"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <div className="absolute inset-0 rounded-full border-2 border-muted" />
-          <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent" />
-        </motion.div>
-        <motion.p 
-          className="text-sm text-muted-foreground"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
-          Loading...
-        </motion.p>
-      </motion.div>
-    </div>
-  );
-}

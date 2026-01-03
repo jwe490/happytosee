@@ -22,29 +22,22 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
   const [isExpanded, setIsExpanded] = useState(false);
   const [recentMoods, setRecentMoods] = useState<string[]>([]);
 
-  // Load recent moods from localStorage (persists across sessions)
+  // Load recent moods from session storage
   useEffect(() => {
-    const stored = localStorage.getItem("recentMoods");
+    const stored = sessionStorage.getItem("recentMoods");
     if (stored) {
       setRecentMoods(JSON.parse(stored));
     }
   }, []);
 
-  // Persist selected mood to localStorage
-  useEffect(() => {
-    if (selectedMood) {
-      localStorage.setItem("selectedMood", selectedMood);
-    }
-  }, [selectedMood]);
-
   const handleMoodSelect = (moodId: string) => {
     onSelectMood(moodId);
     setIsExpanded(false);
     
-    // Track recent moods (last 3) - persist in localStorage
+    // Track recent moods (last 3)
     const updated = [moodId, ...recentMoods.filter(m => m !== moodId)].slice(0, 3);
     setRecentMoods(updated);
-    localStorage.setItem("recentMoods", JSON.stringify(updated));
+    sessionStorage.setItem("recentMoods", JSON.stringify(updated));
   };
 
   const currentMood = moods.find(m => m.id === selectedMood);

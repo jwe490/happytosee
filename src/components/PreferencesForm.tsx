@@ -68,7 +68,7 @@ const PreferencesForm = ({ preferences, onUpdatePreferences }: PreferencesFormPr
       opacity: 1,
       y: 0,
       transition: {
-        type: "spring" as const,
+        type: "spring",
         stiffness: 100,
         damping: 15
       }

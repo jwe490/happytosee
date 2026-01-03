@@ -223,24 +223,12 @@ const HeroSection = () => {
             <Button
               size="xl"
               onClick={() => {
-                // Find the mood selector section and scroll to it
-                const moodSelector = document.getElementById('mood-selector');
-                if (moodSelector) {
-                  const offset = 80; // Account for fixed header
-                  const top = moodSelector.getBoundingClientRect().top + window.scrollY - offset;
-                  window.scrollTo({
-                    top,
-                    behavior: 'smooth'
-                  });
-                } else {
-                  // Fallback: scroll by viewport height
-                  window.scrollTo({
-                    top: window.innerHeight * 0.8,
-                    behavior: 'smooth'
-                  });
-                }
+                window.scrollBy({
+                  top: window.innerHeight * 0.8,
+                  behavior: 'smooth'
+                });
               }}
-              className="relative rounded-full px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-display font-semibold tracking-wide gap-3 overflow-hidden group w-full sm:w-auto"
+              className="relative rounded-full px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-display font-semibold tracking-wide gap-3 overflow-hidden group"
             >
               <span className="relative flex items-center gap-3 text-background">
                 <span className="text-xl">🎬</span>
@@ -285,19 +273,17 @@ const HeroSection = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:block"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
         <motion.div
           animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-col items-center gap-3 text-muted-foreground cursor-pointer"
           onClick={() => {
-            const moodSelector = document.getElementById('mood-selector');
-            if (moodSelector) {
-              const offset = 80;
-              const top = moodSelector.getBoundingClientRect().top + window.scrollY - offset;
-              window.scrollTo({ top, behavior: 'smooth' });
-            }
+            window.scrollBy({
+              top: window.innerHeight * 0.8,
+              behavior: 'smooth'
+            });
           }}
         >
           <span className="text-sm font-medium">Scroll to discover</span>
