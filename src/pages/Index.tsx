@@ -181,46 +181,55 @@ const Index = () => {
       </AnimatePresence>
 
       <main className="pb-16 md:pb-20">
-        {/* Tabs for Mood vs Search vs AI */}
-        <Tabs defaultValue="mood" className="w-full">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-0 mt-6 bg-secondary rounded-full p-1 px-4 md:px-6">
-            <TabsTrigger
-              value="mood"
-              className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
-            >
-              <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">By Mood</span>
-              <span className="sm:hidden">Mood</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="ai"
-              className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
-            >
-              <Wand2 className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">AI Find</span>
-              <span className="sm:hidden">AI</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="search"
-              className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
-            >
-              <Search className="w-3 h-3 md:w-4 md:h-4" />
-              Search
-            </TabsTrigger>
-          </TabsList>
+        {/* Hero Section - Always visible first */}
+        <HeroSection />
+
+        {/* Cinematic Carousel - Expands to fullscreen on scroll */}
+        {trendingMovies.length > 0 && (
+          <CinematicCarousel
+            movies={trendingMovies}
+            onMovieSelect={handleMovieSelect}
+            autoPlayInterval={6000}
+          />
+        )}
+
+        {/* Tabs for Mood vs Search vs AI - Appears after carousel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <Tabs defaultValue="mood" className="w-full">
+            <div className="sticky top-16 md:top-20 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 py-4">
+              <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 bg-secondary rounded-full p-1 px-4 md:px-6">
+              <TabsTrigger
+                value="mood"
+                className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
+              >
+                <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">By Mood</span>
+                <span className="sm:hidden">Mood</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="ai"
+                className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
+              >
+                <Wand2 className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">AI Find</span>
+                <span className="sm:hidden">AI</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="search"
+                className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
+              >
+                <Search className="w-3 h-3 md:w-4 md:h-4" />
+                Search
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="mood" className="space-y-0">
-            {/* Hero Section */}
-            <HeroSection />
-
-            {/* Cinematic Carousel */}
-            {trendingMovies.length > 0 && (
-              <CinematicCarousel
-                movies={trendingMovies}
-                onMovieSelect={handleMovieSelect}
-                autoPlayInterval={6000}
-              />
-            )}
 
             <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
               {/* Trending Section */}
@@ -336,7 +345,8 @@ const Index = () => {
               </section>
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </motion.div>
       </main>
       
       {/* Expanded Movie View */}

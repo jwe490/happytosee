@@ -76,9 +76,9 @@ const HeroSection = () => {
   const shouldAnimate = isInView && !prefersReducedMotion;
 
   return (
-    <section 
+    <section
       ref={sectionRef}
-      className="relative min-h-[85vh] sm:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-12"
+      className="relative min-h-[80vh] sm:min-h-[85vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-8 pb-16"
     >
       {/* Animated Background Gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/30 to-background" />
@@ -220,25 +220,19 @@ const HeroSection = () => {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            <Button 
+            <Button
               size="xl"
               onClick={() => {
-                document.getElementById('mood-selector')?.scrollIntoView({ 
-                  behavior: 'smooth',
-                  block: 'start'
+                window.scrollBy({
+                  top: window.innerHeight * 0.8,
+                  behavior: 'smooth'
                 });
               }}
               className="relative rounded-full px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-display font-semibold tracking-wide gap-3 overflow-hidden group"
             >
-              {/* Animated gradient background */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground/80 to-foreground"
-                animate={shouldAnimate ? { backgroundPosition: ["0% 50%", "100% 50%"] } : undefined}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              />
               <span className="relative flex items-center gap-3 text-background">
                 <span className="text-xl">🎬</span>
-                Get Started Now
+                Discover Now
                 <motion.span
                   animate={shouldAnimate ? { y: [0, 3, 0] } : undefined}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -279,19 +273,25 @@ const HeroSection = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
         <motion.div
-          animate={shouldAnimate ? { y: [0, 8, 0] } : undefined}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="flex flex-col items-center gap-2 text-muted-foreground"
+          animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-3 text-muted-foreground cursor-pointer"
+          onClick={() => {
+            window.scrollBy({
+              top: window.innerHeight * 0.8,
+              behavior: 'smooth'
+            });
+          }}
         >
-          <span className="text-xs font-medium hidden sm:block">Scroll to explore</span>
-          <div className="w-6 h-10 rounded-full border-2 border-border flex items-start justify-center p-2">
+          <span className="text-sm font-medium">Scroll to discover</span>
+          <div className="w-8 h-12 rounded-full border-2 border-border flex items-start justify-center p-2 bg-background/50 backdrop-blur-sm">
             <motion.div
-              animate={shouldAnimate ? { y: [0, 12, 0] } : undefined}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="w-1.5 h-1.5 rounded-full bg-foreground"
+              animate={shouldAnimate ? { y: [0, 16, 0] } : undefined}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-2 h-2 rounded-full bg-foreground"
             />
           </div>
         </motion.div>
