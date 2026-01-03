@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { QuestionIllustration } from "./QuestionIllustration";
+import { Check } from "lucide-react";
 
 interface Option {
   id: string;
@@ -20,186 +19,90 @@ interface Question {
 interface AssessmentQuestionProps {
   question: Question;
   onAnswer: (option: string) => void;
-  questionNumber: number;
-  totalQuestions: number;
 }
 
 export const AssessmentQuestion = ({
   question,
   onAnswer,
-  questionNumber,
 }: AssessmentQuestionProps) => {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  const handleSelect = (option: string, index: number) => {
-    setSelectedIndex(index);
-    setTimeout(() => {
-      onAnswer(option);
-      setSelectedIndex(null);
-    }, 400);
-  };
+  const isVisualCards = question.question_type === "visual_cards";
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-16 py-8"
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -50 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="space-y-8"
     >
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.6 }}
-        className="flex flex-col items-center gap-12"
-      >
-        <QuestionIllustration questionNumber={questionNumber} />
-
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="text-3xl md:text-5xl font-bold text-center max-w-4xl leading-tight text-gray-900 px-4"
-        >
+      <div className="text-center">
+        <h2 className="text-2xl md:text-3xl font-display font-semibold text-foreground">
           {question.question_text}
-        </motion.h2>
-      </motion.div>
-
-      <div className="grid gap-4 max-w-3xl mx-auto w-full px-4">
-        {question.options.map((option, index) => {
-          const isHovered = hoveredIndex === index;
-          const isSelected = selectedIndex === index;
-
-          const gradients = [
-            "from-blue-500 to-cyan-500",
-            "from-amber-500 to-orange-500",
-            "from-emerald-500 to-teal-500",
-            "from-red-500 to-orange-500",
-          ];
-
-          const gradient = gradients[index % gradients.length];
-
-          return (
-            <motion.button
-              key={option.id}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{
-                delay: 0.4 + index * 0.1,
-                duration: 0.5,
-                type: "spring",
-              }}
-              whileHover={{ scale: 1.02, x: 8 }}
-              whileTap={{ scale: 0.98 }}
-              onHoverStart={() => setHoveredIndex(index)}
-              onHoverEnd={() => setHoveredIndex(null)}
-              onClick={() => handleSelect(option.value, index)}
-              className={`
-                group relative p-6 md:p-7 rounded-2xl transition-all duration-300
-                ${
-                  isSelected
-                    ? `bg-gradient-to-r ${gradient} shadow-2xl`
-                    : isHovered
-                    ? "bg-gray-50 shadow-xl border-2 border-gray-900"
-                    : "bg-white shadow-lg border-2 border-gray-200 hover:border-gray-300"
-                }
-              `}
-            >
-              <div className="flex items-center gap-5">
-                <motion.div
-                  animate={
-                    isSelected
-                      ? { scale: [1, 1.2, 1], rotate: [0, 180, 360] }
-                      : {}
-                  }
-                  transition={{ duration: 0.4 }}
-                  className={`
-                    w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                    font-bold text-lg transition-all duration-300
-                    ${
-                      isSelected
-                        ? "bg-white text-gray-900 shadow-lg"
-                        : isHovered
-                        ? `bg-gradient-to-br ${gradient} text-white`
-                        : "bg-gray-100 text-gray-600"
-                    }
-                  `}
-                >
-                  {String.fromCharCode(65 + index)}
-                </motion.div>
-
-                <p
-                  className={`
-                  text-base md:text-xl font-semibold text-left flex-1 transition-colors duration-300
-                  ${
-                    isSelected
-                      ? "text-white"
-                      : isHovered
-                      ? "text-gray-900"
-                      : "text-gray-700"
-                  }
-                `}
-                >
-                  {option.label}
-                </p>
-
-                <motion.div
-                  animate={
-                    isSelected
-                      ? {
-                          scale: [0, 1.2, 1],
-                          rotate: [0, 360],
-                        }
-                      : {}
-                  }
-                  transition={{ duration: 0.4 }}
-                  className={`
-                    w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
-                    ${
-                      isSelected
-                        ? "bg-white"
-                        : isHovered
-                        ? `bg-gradient-to-br ${gradient}`
-                        : "bg-gray-200"
-                    }
-                  `}
-                >
-                  {(isHovered || isSelected) && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className={`w-3 h-3 rounded-full ${
-                        isSelected
-                          ? `bg-gradient-to-br ${gradient}`
-                          : "bg-white"
-                      }`}
-                    />
-                  )}
-                </motion.div>
-              </div>
-
-              {isSelected && (
-                <motion.div
-                  className="absolute inset-0 rounded-2xl bg-white"
-                  initial={{ scale: 1, opacity: 0 }}
-                  animate={{ scale: 1.5, opacity: 0 }}
-                  transition={{ duration: 0.6 }}
-                />
-              )}
-            </motion.button>
-          );
-        })}
+        </h2>
       </div>
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="text-center text-sm text-gray-500 pt-8"
+      <div
+        className={`grid gap-4 ${
+          isVisualCards
+            ? "grid-cols-2 md:grid-cols-2"
+            : "grid-cols-1 md:grid-cols-2"
+        }`}
       >
-        Choose the option that resonates most with you
-      </motion.p>
+        {question.options.map((option, index) => (
+          <motion.button
+            key={option.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              delay: index * 0.1,
+              duration: 0.3,
+              type: "spring",
+              stiffness: 200,
+              damping: 20,
+            }}
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onAnswer(option.value)}
+            className={`
+              relative group p-6 rounded-2xl border-2 border-border/50
+              bg-card hover:border-primary/50 hover:bg-card/80
+              transition-all duration-300 text-left
+              ${isVisualCards ? "aspect-[3/4]" : ""}
+            `}
+          >
+            {isVisualCards && (
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+            )}
+
+            <div className="relative z-10 h-full flex flex-col justify-end space-y-2">
+              <motion.div
+                className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-300"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Check className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
+              </motion.div>
+
+              <div>
+                <h3
+                  className={`font-semibold ${
+                    isVisualCards
+                      ? "text-white text-xl"
+                      : "text-foreground text-lg"
+                  }`}
+                >
+                  {option.label}
+                </h3>
+              </div>
+            </div>
+
+            <div className="absolute top-3 right-3 w-8 h-8 rounded-full border-2 border-border/50 group-hover:border-primary/50 bg-background/50 group-hover:bg-primary/20 transition-all duration-300" />
+          </motion.button>
+        ))}
+      </div>
     </motion.div>
   );
 };

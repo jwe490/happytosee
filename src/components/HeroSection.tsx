@@ -1,6 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -44,7 +43,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 const HeroSection = () => {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { amount: 0.1 });
@@ -211,21 +209,21 @@ const HeroSection = () => {
           <span className="block mt-1 text-foreground font-semibold">how you're feeling right now.</span>
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-8 sm:mt-10 md:mt-12 flex flex-col sm:flex-row gap-4 items-center justify-center"
+          className="mt-8 sm:mt-10 md:mt-12"
         >
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            <Button
+            <Button 
               size="xl"
               onClick={() => {
-                document.getElementById('mood-selector')?.scrollIntoView({
+                document.getElementById('mood-selector')?.scrollIntoView({ 
                   behavior: 'smooth',
                   block: 'start'
                 });
@@ -233,7 +231,7 @@ const HeroSection = () => {
               className="relative rounded-full px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-display font-semibold tracking-wide gap-3 overflow-hidden group"
             >
               {/* Animated gradient background */}
-              <motion.div
+              <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground/80 to-foreground"
                 animate={shouldAnimate ? { backgroundPosition: ["0% 50%", "100% 50%"] } : undefined}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -248,21 +246,6 @@ const HeroSection = () => {
                   <ArrowDown className="w-5 h-5" />
                 </motion.span>
               </span>
-            </Button>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <Button
-              size="xl"
-              variant="outline"
-              onClick={() => navigate('/assessment')}
-              className="rounded-full px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-display font-semibold tracking-wide gap-3 border-2"
-            >
-              <Sparkles className="w-5 h-5" />
-              Discover Movie Mood
             </Button>
           </motion.div>
         </motion.div>

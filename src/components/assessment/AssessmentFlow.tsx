@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { ChevronRight, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { AssessmentQuestion } from "./AssessmentQuestion";
+import { MoodBoardResults } from "./MoodBoardResults";
 import { useToast } from "@/hooks/use-toast";
-import { SparklesIllustration } from "./Illustrations";
 
 interface Question {
   id: string;
@@ -27,9 +29,10 @@ export const AssessmentFlow = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showResults, setShowResults] = useState(false);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState(Date.now());
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchQuestions();
@@ -128,7 +131,8 @@ export const AssessmentFlow = () => {
 
       if (responsesError) throw responsesError;
 
-      navigate(`/mood/processing?assessmentId=${assessment.id}`);
+      setAssessmentId(assessment.id);
+      setShowResults(true);
     } catch (error) {
       console.error("Error submitting assessment:", error);
       toast({
@@ -221,17 +225,17 @@ export const AssessmentFlow = () => {
 
   const selectRandomThought = (thoughts: any) => {
     const thoughtsArray = Array.isArray(thoughts) ? thoughts : [];
-    return thoughtsArray[Math.floor(Math.random() * thoughtsArray.length)] || "Cinema is magic";
+    return thoughtsArray[Math.floor(Math.random() * thoughtsArray.length)];
   };
 
   const generateBadges = (scores: Record<string, number>) => {
     const badges = [];
 
     if (scores.rewatch >= 8)
-      badges.push({ name: "Comfort Curator", description: "You find joy in familiar favorites" });
+      badges.push({ name: "Comfort Curator", icon: "🏡" });
     if (scores.social >= 8)
-      badges.push({ name: "Social Butterfly", description: "Movies are better together" });
-    if (scores.variety >= 8) badges.push({ name: "Genre Nomad", description: "You explore all corners of cinema" });
+      badges.push({ name: "Social Butterfly", icon: "🦋" });
+    if (scores.variety >= 8) badges.push({ name: "Genre Nomad", icon: "🎭" });
 
     return badges.slice(0, 3);
   };
@@ -240,88 +244,58 @@ export const AssessmentFlow = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-8"
-        >
-          <div className="w-32 h-32">
-            <SparklesIllustration className="w-full h-full" />
-          </div>
-          <motion.p
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="text-xl font-medium text-gray-600"
-          >
-            Preparing your journey...
-          </motion.p>
-        </motion.div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          <p className="text-muted-foreground">Loading assessment...</p>
+        </div>
       </div>
     );
+  }
+
+  if (showResults && assessmentId) {
+    return <MoodBoardResults assessmentId={assessmentId} />;
   }
 
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background py-12 px-4">
+      <div className="max-w-3xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
+          className="space-y-8"
         >
-          <div className="flex items-center justify-between mb-4 px-2">
-            <motion.span
-              key={currentQuestionIndex}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-lg font-bold text-gray-900"
-            >
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </motion.span>
-            <motion.span
-              key={`percent-${currentQuestionIndex}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent"
-            >
-              {Math.round(progressPercentage)}%
-            </motion.span>
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20">
+              <Sparkles className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium text-accent">
+                Movie Personality Assessment
+              </span>
+            </div>
+
+            <h1 className="font-display text-3xl md:text-4xl font-bold">
+              Discover Your Movie Mood
+            </h1>
+
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </span>
+            </div>
           </div>
 
-          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+          <Progress value={progressPercentage} className="h-2" />
+
+          <AnimatePresence mode="wait">
+            <AssessmentQuestion
+              key={currentQuestion.id}
+              question={currentQuestion}
+              onAnswer={handleAnswer}
             />
-
-            {[...Array(questions.length)].map((_, i) => (
-              <motion.div
-                key={i}
-                className={`absolute top-0 h-full w-0.5 ${
-                  i < currentQuestionIndex ? "bg-white/30" : "bg-gray-300"
-                }`}
-                style={{ left: `${((i + 1) / questions.length) * 100}%` }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.05 }}
-              />
-            ))}
-          </div>
+          </AnimatePresence>
         </motion.div>
-
-        <AnimatePresence mode="wait">
-          <AssessmentQuestion
-            key={currentQuestion.id}
-            question={currentQuestion}
-            onAnswer={handleAnswer}
-            questionNumber={currentQuestionIndex + 1}
-            totalQuestions={questions.length}
-          />
-        </AnimatePresence>
       </div>
     </div>
   );
