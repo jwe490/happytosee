@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Star, Clock, Calendar, Play, Users, 
-  Film, Clapperboard, Bookmark, BookmarkCheck, 
+import {
+  Star, Clock, Calendar, Play, Users,
+  Film, Clapperboard, Bookmark, BookmarkCheck,
   ChevronLeft, Eye, EyeOff, Tv, ChevronDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { ReviewSection } from "@/components/ReviewSection";
 import { ShareButton } from "@/components/ShareButton";
@@ -84,6 +85,15 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
+
+  const handleBack = useCallback(() => {
+    window.history.back();
+  }, []);
+
+  const { handlers: swipeHandlers } = useSwipeGesture({
+    onSwipeRight: handleBack,
+    threshold: 100,
+  });
 
   useEffect(() => {
     if (movie && isOpen) {
@@ -169,10 +179,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     if (container) container.scrollTop = 0;
   }, []);
 
-  const handleBack = useCallback(() => {
-    window.history.back();
-  }, []);
-
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -193,6 +199,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50 bg-background"
+          {...swipeHandlers}
         >
           {/* Background blur */}
           <motion.div 

@@ -184,24 +184,24 @@ const Index = () => {
         {/* Tabs for Mood vs Search vs AI */}
         <Tabs defaultValue="mood" className="w-full">
           <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-0 mt-6 bg-secondary rounded-full p-1 px-4 md:px-6">
-            <TabsTrigger 
-              value="mood" 
+            <TabsTrigger
+              value="mood"
               className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
             >
               <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">By Mood</span>
               <span className="sm:hidden">Mood</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="ai" 
+            <TabsTrigger
+              value="ai"
               className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
             >
               <Wand2 className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">AI Find</span>
               <span className="sm:hidden">AI</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="search" 
+            <TabsTrigger
+              value="search"
               className="gap-1.5 md:gap-2 rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm font-display text-xs md:text-sm uppercase tracking-wide"
             >
               <Search className="w-3 h-3 md:w-4 md:h-4" />
@@ -210,6 +210,9 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="mood" className="space-y-0">
+            {/* Hero Section */}
+            <HeroSection />
+
             {/* Cinematic Carousel */}
             {trendingMovies.length > 0 && (
               <CinematicCarousel
