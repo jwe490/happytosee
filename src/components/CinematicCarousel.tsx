@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { extractDominantColor } from "@/utils/colorExtractor";
@@ -35,12 +35,20 @@ export function CinematicCarousel({
   const [dominant, setDominant] = useState("59,130,246");
   const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [wipeDir, setWipeDir] = useState<1 | -1>(1);
 
+  // Interaction refs (autoplay stops after any interaction)
   const interacted = useRef(false);
-  const current = list[index];
 
+  // Swipe refs
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const swiping = useRef(false);
+
+  const current = list[index];
   if (!current || total === 0) return null;
 
+  // Prefer backdrop for fullscreen (better “hero” quality)
   const bgImage = current.backdropUrl || current.posterUrl;
 
   useEffect(() => {
@@ -58,20 +66,24 @@ export function CinematicCarousel({
   const go = (dir: 1 | -1) => {
     if (total <= 1) return;
     if (isTransitioning) return;
+
+    setWipeDir(dir);
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
+
     window.setTimeout(() => setIsTransitioning(false), 720);
   };
 
   const goTo = (i: number) => {
     if (i === index) return;
     onUserInteract();
+    setWipeDir(i > index ? 1 : -1);
     setIsTransitioning(true);
     setIndex(i);
     window.setTimeout(() => setIsTransitioning(false), 720);
   };
 
-  // autoplay: stop after user interaction + respect reduced motion [page:1]
+  // Autoplay (stops after interaction) + reduced motion best practice [web:91]
   useEffect(() => {
     if (reduceMotion) return;
     if (total <= 1) return;
@@ -85,6 +97,7 @@ export function CinematicCarousel({
     return () => window.clearInterval(t);
   }, [autoPlayInterval, paused, reduceMotion, total]);
 
+  // Keyboard arrows
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -100,6 +113,45 @@ export function CinematicCarousel({
     return () => window.removeEventListener("keydown", onKey);
   }, [isTransitioning, total]);
 
+  // Swipe gesture (pointer-based)
+  const SWIPE_X = 40;
+  const SWIPE_Y = 70;
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    onUserInteract();
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    swiping.current = true;
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!swiping.current || startX.current == null || startY.current == null) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    // If user is scrolling vertically, cancel swipe
+    if (Math.abs(dy) > SWIPE_Y && Math.abs(dy) > Math.abs(dx)) {
+      swiping.current = false;
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!swiping.current || startX.current == null || startY.current == null) return;
+
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    swiping.current = false;
+    startX.current = null;
+    startY.current = null;
+
+    if (Math.abs(dy) > SWIPE_Y) return;
+    if (Math.abs(dx) < SWIPE_X) return;
+
+    if (dx < 0) go(1); // swipe left -> next
+    else go(-1); // swipe right -> prev
+  };
+
   return (
     <section
       className="relative w-full overflow-hidden bg-black"
@@ -110,40 +162,54 @@ export function CinematicCarousel({
     >
       <div
         className="relative w-full"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         style={{
           height: "calc(100vh - 72px)",
           minHeight: isDesktop ? 760 : 690,
           maxHeight: 980,
         }}
       >
-        {/* BACKDROP with cinematic transition */}
+        {/* BACKDROP (full-bleed) */}
         <div className="absolute inset-0">
           <img
-            key={current.id}
+            key={`bg-${current.id}`}
             src={bgImage}
             alt=""
             className={`absolute inset-0 w-full h-full object-cover ${
               reduceMotion ? "" : "bgCine"
             }`}
             style={{
-              filter: "saturate(1.08) contrast(1.06)",
+              // Lift darkness a bit to make low-quality images feel less muddy
+              filter: "saturate(1.12) contrast(1.06) brightness(1.06)",
               transform: "scale(1.03)",
             }}
           />
 
-          {/* Controlled grading */}
+          {/* Color wash */}
           <div
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
+              background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.26) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
             }}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.25)_0%,rgba(0,0,0,0.18)_35%,rgba(0,0,0,0.94)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.62)_100%)]" />
-          <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
+
+          {/* Less dark gradient (important) */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.14)_35%,rgba(0,0,0,0.82)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="absolute inset-0 cinematic-grain opacity-[0.022]" />
         </div>
 
-        {/* Clickable hero area (optional) */}
+        {/* Cinematic cut/wipe overlay (creative but minimal) */}
+        <div
+          key={`wipe-${current.id}`}
+          className={`wipeOverlay ${wipeDir === 1 ? "wipeNext" : "wipePrev"} ${
+            reduceMotion ? "wipeOff" : ""
+          }`}
+        />
+
+        {/* Hero tap (optional): opens details when tapping background only */}
         <button
           type="button"
           onClick={() => {
@@ -156,7 +222,7 @@ export function CinematicCarousel({
           <span className="sr-only">Open</span>
         </button>
 
-        {/* ARROWS: fixed control lane (never overlaps sheet) */}
+        {/* Arrows: fixed control lane (avoid overlap with sheet) */}
         {total > 1 && (
           <>
             <button
@@ -189,15 +255,11 @@ export function CinematicCarousel({
           </>
         )}
 
-        {/* BOTTOM OVERLAY */}
+        {/* Bottom overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            {/* FIXED SIZE SHEET (same for all slides) */}
-            <div
-              key={`sheet-${current.id}`}
-              className="infoSheetFixed max-w-[760px]"
-            >
-              {/* Badges */}
+            {/* FIXED SIZE INFO SHEET (same on every slide) */}
+            <div key={`sheet-${current.id}`} className="infoSheetFixed max-w-[760px]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -219,10 +281,8 @@ export function CinematicCarousel({
                 )}
               </div>
 
-              {/* Title (clamped to keep sheet height fixed) */}
               <h1 className="titleClamp">{current.title}</h1>
 
-              {/* Overview fixed slot (desktop only, fixed height even if empty) */}
               <div className="overviewSlot">
                 {isDesktop && current.overview ? (
                   <p className="overviewClamp">{current.overview}</p>
@@ -231,7 +291,6 @@ export function CinematicCarousel({
                 )}
               </div>
 
-              {/* CTA row (fixed area) */}
               <div className="ctaRow">
                 <button
                   type="button"
@@ -241,7 +300,6 @@ export function CinematicCarousel({
                     onMovieSelect(current);
                   }}
                   className="ctaGlassPrimary"
-                  aria-label={`View details for ${current.title}`}
                 >
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
@@ -261,7 +319,7 @@ export function CinematicCarousel({
               </div>
             </div>
 
-            {/* DOTS: BELOW SHEET, never overlaps */}
+            {/* Dots below (no overlap) */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -325,13 +383,13 @@ export function CinematicCarousel({
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
         .navArrow:active{ transform: translateY(-50%) scale(0.96); }
 
-        /* FIXED SIZE BOX (no resizing between slides) */
+        /* Fixed size box (no resizing) */
         .infoSheetFixed{
           width: 100%;
           height: 240px;
           border-radius: 22px;
           padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.36);
+          background: rgba(0,0,0,0.34);
           border: 1px solid rgba(255,255,255,0.14);
           box-shadow: 0 24px 70px rgba(0,0,0,0.55);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
@@ -387,7 +445,6 @@ export function CinematicCarousel({
           margin-top: 10px;
         }
 
-        /* PRIMARY: View Details glass */
         .ctaGlassPrimary{
           height: 48px;
           width: 100%;
@@ -407,9 +464,7 @@ export function CinematicCarousel({
           transition: transform 220ms ease, background 220ms ease;
         }
         .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
-        .ctaGlassPrimary:active{ transform: translateY(0px); }
 
-        /* SECONDARY */
         .ctaSecondary{
           height: 48px;
           width: 100%;
@@ -424,7 +479,6 @@ export function CinematicCarousel({
           transition: transform 220ms ease, background 220ms ease, color 220ms ease;
         }
         .ctaSecondary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
-        .ctaSecondary:active{ transform: translateY(0px); }
 
         .dotsBar{
           display:flex;
@@ -432,25 +486,55 @@ export function CinematicCarousel({
           gap: 10px;
           padding: 10px 18px;
           border-radius: 9999px;
-          background: rgba(0,0,0,0.28);
+          background: rgba(0,0,0,0.26);
           border: 1px solid rgba(255,255,255,0.12);
           -webkit-backdrop-filter: blur(14px);
           backdrop-filter: blur(14px);
         }
 
-        /* Cinematic minimal animation (backdrop + staged sheet) [page:1] */
+        /* Creative cinematic cut/wipe */
+        .wipeOverlay{
+          position:absolute;
+          inset:-20%;
+          z-index: 15;
+          pointer-events:none;
+          opacity: 0;
+          background: linear-gradient(
+            110deg,
+            rgba(255,255,255,0) 35%,
+            rgba(255,255,255,0.10) 48%,
+            rgba(255,255,255,0) 62%
+          );
+          mix-blend-mode: overlay;
+          filter: blur(2px);
+        }
+        .wipeOff{ display:none; }
+
+        /* Cinematic motion (disable if user prefers reduced motion) [web:91] */
         @media (prefers-reduced-motion: no-preference){
           .bgCine{
             animation: bgEnter 720ms cubic-bezier(0.22,0.61,0.36,1);
           }
           @keyframes bgEnter{
-            from{ opacity: 0; transform: scale(1.07); filter: blur(3px) saturate(1.08) contrast(1.06); }
-            to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.08) contrast(1.06); }
+            from{ opacity: 0; transform: scale(1.08); filter: blur(3px) saturate(1.12) contrast(1.06) brightness(1.06); }
+            to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.12) contrast(1.06) brightness(1.06); }
           }
 
-          .infoSheetFixed{
-            animation: sheetIn 520ms cubic-bezier(0.22,0.61,0.36,1);
+          .wipeNext{ animation: wipeNext 520ms cubic-bezier(0.22,0.61,0.36,1); }
+          .wipePrev{ animation: wipePrev 520ms cubic-bezier(0.22,0.61,0.36,1); }
+
+          @keyframes wipeNext{
+            0%{ transform: translateX(-18%) skewX(-10deg); opacity: 0; }
+            20%{ opacity: 1; }
+            100%{ transform: translateX(18%) skewX(-10deg); opacity: 0; }
           }
+          @keyframes wipePrev{
+            0%{ transform: translateX(18%) skewX(10deg); opacity: 0; }
+            20%{ opacity: 1; }
+            100%{ transform: translateX(-18%) skewX(10deg); opacity: 0; }
+          }
+
+          .infoSheetFixed{ animation: sheetIn 520ms cubic-bezier(0.22,0.61,0.36,1); }
           @keyframes sheetIn{
             from{ opacity: 0; transform: translateY(10px); }
             to{ opacity: 1; transform: translateY(0); }
@@ -465,6 +549,7 @@ export function CinematicCarousel({
             to{ opacity: 1; transform: translateY(0); }
           }
         }
+
         @media (prefers-reduced-motion: reduce){
           .bgCine, .infoSheetFixed, .badgePill, .titleClamp, .ctaGlassPrimary, .ctaSecondary{
             animation: none !important;
