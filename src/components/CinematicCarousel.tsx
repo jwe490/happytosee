@@ -11,7 +11,7 @@ interface Movie {
   posterUrl: string;
   backdropUrl?: string;
   rating: number;
-  year: number | string;
+  year: number;
   genre?: string;
 }
 
@@ -43,11 +43,12 @@ export const CinematicCarousel = ({
 
   const currentMovie = movies[currentIndex];
 
+  // Extract dominant color
   useEffect(() => {
     if (currentMovie?.posterUrl) {
-      extractDominantColor(currentMovie.posterUrl).then((color) => {
-        setDominantColor(color);
-      });
+      extractDominantColor(currentMovie.posterUrl)
+        .then((color) => setDominantColor(color))
+        .catch(() => setDominantColor("15, 15, 15"));
     }
   }, [currentMovie?.posterUrl]);
 
@@ -66,6 +67,7 @@ export const CinematicCarousel = ({
     setCurrentIndex(index);
   }, [currentIndex]);
 
+  // Auto-play
   useEffect(() => {
     if (!isAutoPlaying || movies.length <= 1 || isHovered) return;
 
@@ -73,12 +75,12 @@ export const CinematicCarousel = ({
     return () => clearInterval(interval);
   }, [isAutoPlaying, goToNext, autoPlayInterval, movies.length, isHovered]);
 
-  const handleInteraction = () => {
+  const handleInteraction = useCallback(() => {
     setIsAutoPlaying(false);
     setTimeout(() => setIsAutoPlaying(true), 12000);
-  };
+  }, []);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
     const threshold = 50;
 
     if (info.offset.x > threshold) {
@@ -90,422 +92,266 @@ export const CinematicCarousel = ({
     }
 
     dragX.set(0);
-  };
+  }, [goToPrevious, goToNext, handleInteraction, dragX]);
 
-  if (!currentMovie || movies.length === 0) return null;
+  // Safety check
+  if (!currentMovie || movies.length === 0) {
+    return <div className="w-full h-screen flex items-center justify-center text-white">No movies available</div>;
+  }
 
   return (
     <section className="relative w-full">
-      {/* Desktop Landscape Layout */}
-      {isDesktop ? (
+      {/* DESKTOP LANDSCAPE */}
+      {isDesktop && (
         <div 
-          className="relative w-full overflow-hidden"
+          className="relative w-full overflow-hidden bg-black"
           style={{ height: '85vh', minHeight: '600px', maxHeight: '800px' }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* Animated Background */}
+          {/* Background Layer */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`bg-${currentMovie.id}`}
               className="absolute inset-0"
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
             >
-              <div className="absolute inset-0">
+              {/* Backdrop with blur */}
+              <div className="absolute inset-0 bg-black">
                 <img
                   src={currentMovie.backdropUrl || currentMovie.posterUrl}
                   alt=""
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'blur(60px) brightness(0.4)' }}
+                  className="w-full h-full object-cover opacity-40"
+                  style={{ filter: 'blur(60px)' }}
                 />
               </div>
 
+              {/* Color gradient */}
               <div
                 className="absolute inset-0"
                 style={{
-                  background: `radial-gradient(ellipse at center, rgba(${dominantColor}, 0.2) 0%, rgba(0,0,0,0.85) 70%, #000000 100%)`,
-                }}
-              />
-
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%)',
+                  background: `radial-gradient(ellipse at center, rgba(${dominantColor}, 0.2), rgba(0,0,0,0.8) 70%)`,
                 }}
               />
             </motion.div>
           </AnimatePresence>
 
-          {/* Content Grid - Landscape */}
-          <div className="relative h-full flex items-center max-w-[1600px] mx-auto px-16">
+          {/* Content Grid */}
+          <div className="relative h-full flex items-center max-w-7xl mx-auto px-16">
             <div className="grid grid-cols-2 gap-16 items-center w-full">
-              {/* Left: Poster Carousel */}
+              
+              {/* LEFT: Poster */}
               <div className="relative flex items-center justify-center">
-                <motion.div
+                <div 
                   className="relative"
-                  style={{
-                    width: '420px',
-                    height: '600px',
-                    x: dragXSpring,
-                  }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={handleDragEnd}
+                  style={{ width: '420px', height: '600px' }}
                 >
-                  <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                  <AnimatePresence mode="wait" custom={direction}>
                     <motion.div
                       key={currentMovie.id}
                       custom={direction}
-                      initial={{ 
-                        opacity: 0, 
-                        x: direction > 0 ? 100 : -100,
-                        scale: 0.9,
-                        rotateY: direction > 0 ? 15 : -15
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        x: 0, 
-                        scale: 1,
-                        rotateY: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        x: direction > 0 ? -100 : 100,
-                        scale: 0.9,
-                        rotateY: direction > 0 ? -15 : 15
-                      }}
-                      transition={{
-                        duration: 0.6,
-                        ease: [0.25, 0.1, 0.25, 1],
-                      }}
-                      className="absolute inset-0"
-                      style={{
-                        transformStyle: 'preserve-3d',
-                        perspective: '1000px',
-                      }}
+                      initial={{ opacity: 0, x: direction > 0 ? 100 : -100 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: direction > 0 ? -100 : 100 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="absolute inset-0 cursor-pointer group"
+                      onClick={() => onMovieSelect(currentMovie)}
                     >
                       <div
-                        className="relative w-full h-full overflow-hidden group cursor-pointer"
+                        className="relative w-full h-full overflow-hidden"
                         style={{
                           borderRadius: '24px',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                          backdropFilter: 'blur(20px) saturate(120%)',
-                          boxShadow: `0 50px 100px -20px rgba(0,0,0,0.8), 0 0 80px rgba(${dominantColor}, 0.3)`,
+                          boxShadow: `0 50px 100px rgba(0,0,0,0.8), 0 0 60px rgba(${dominantColor}, 0.3)`,
                         }}
-                        onClick={() => onMovieSelect(currentMovie)}
                       >
-                        <motion.div
-                          className="w-full h-full"
-                          animate={!prefersReducedMotion ? { scale: [1, 1.03] } : {}}
-                          transition={{
-                            duration: 20,
-                            ease: "easeInOut",
-                            repeat: Infinity,
-                            repeatType: "reverse",
-                          }}
-                        >
-                          <img
-                            src={currentMovie.posterUrl}
-                            alt={currentMovie.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </motion.div>
-
-                        <div
-                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                          style={{
-                            background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%)',
-                          }}
+                        <img
+                          src={currentMovie.posterUrl}
+                          alt={currentMovie.title}
+                          className="w-full h-full object-cover"
                         />
 
-                        <motion.div
-                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100"
-                          initial={false}
-                          whileHover={{ scale: 1.1 }}
-                          transition={{ duration: 0.3 }}
+                        {/* Hover overlay */}
+                        <div
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
                         >
                           <div
                             className="w-20 h-20 rounded-full flex items-center justify-center"
                             style={{
-                              background: 'rgba(255,255,255,0.15)',
-                              backdropFilter: 'blur(20px)',
-                              border: '2px solid rgba(255,255,255,0.3)',
+                              background: 'rgba(255,255,255,0.2)',
+                              backdropFilter: 'blur(10px)',
                             }}
                           >
                             <Play className="w-8 h-8 text-white ml-1" fill="white" />
                           </div>
-                        </motion.div>
+                        </div>
                       </div>
                     </motion.div>
                   </AnimatePresence>
-                </motion.div>
+                </div>
               </div>
 
-              {/* Right: Movie Info */}
+              {/* RIGHT: Info */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`info-${currentMovie.id}`}
-                  initial={{ opacity: 0, x: 50 }}
+                  initial={{ opacity: 0, x: 30 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className="space-y-8"
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-6"
                 >
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold"
+                  {/* Badges */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex items-center gap-2 px-4 py-2 rounded-full"
                       style={{
                         background: 'rgba(255,200,0,0.15)',
-                        backdropFilter: 'blur(20px)',
                         border: '1px solid rgba(255,200,0,0.3)',
-                        color: '#FFC800',
                       }}
                     >
-                      <Star className="w-4 h-4 fill-current" />
-                      {currentMovie.rating.toFixed(1)}
-                    </motion.div>
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      <span className="text-yellow-400 font-semibold">{currentMovie.rating.toFixed(1)}</span>
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="px-4 py-2 rounded-full text-sm font-medium text-white/80"
+                    <div
+                      className="px-4 py-2 rounded-full text-white/80"
                       style={{
-                        background: 'rgba(255,255,255,0.08)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.15)',
                       }}
                     >
                       {currentMovie.year}
-                    </motion.div>
+                    </div>
 
                     {currentMovie.genre && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="px-4 py-2 rounded-full text-sm font-medium text-white/80"
+                      <div
+                        className="px-4 py-2 rounded-full text-white/80"
                         style={{
-                          background: 'rgba(255,255,255,0.08)',
-                          backdropFilter: 'blur(20px)',
-                          border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'rgba(255,255,255,0.1)',
+                          border: '1px solid rgba(255,255,255,0.15)',
                         }}
                       >
                         {currentMovie.genre.split(',')[0].trim()}
-                      </motion.div>
+                      </div>
                     )}
                   </div>
 
-                  <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-6xl font-bold text-white leading-tight"
-                    style={{
-                      letterSpacing: '-0.02em',
-                      textShadow: '0 4px 30px rgba(0,0,0,0.8)',
-                    }}
-                  >
+                  {/* Title */}
+                  <h1 className="text-6xl font-bold text-white leading-tight">
                     {currentMovie.title}
-                  </motion.h1>
+                  </h1>
 
+                  {/* Overview */}
                   {currentMovie.overview && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="text-lg text-white/70 leading-relaxed max-w-xl line-clamp-3"
-                    >
+                    <p className="text-lg text-white/70 leading-relaxed max-w-xl line-clamp-3">
                       {currentMovie.overview}
-                    </motion.p>
+                    </p>
                   )}
 
+                  {/* CTA */}
                   <motion.button
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
                     onClick={() => onMovieSelect(currentMovie)}
-                    className="group relative px-10 py-4 rounded-full text-base font-semibold overflow-hidden"
+                    className="flex items-center gap-2 px-10 py-4 rounded-full text-white font-semibold"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1))',
+                      background: 'rgba(255,255,255,0.15)',
                       backdropFilter: 'blur(20px)',
                       border: '1px solid rgba(255,255,255,0.2)',
-                      color: 'white',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
                     }}
-                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Play className="w-5 h-5" fill="white" />
-                      Watch Now
-                    </span>
-                    <motion.div
-                      className="absolute inset-0"
-                      style={{
-                        background: `linear-gradient(135deg, rgba(${dominantColor}, 0.3), rgba(${dominantColor}, 0.1))`,
-                      }}
-                      initial={{ x: '-100%' }}
-                      whileHover={{ x: 0 }}
-                      transition={{ duration: 0.3 }}
-                    />
+                    <Play className="w-5 h-5" fill="white" />
+                    Watch Now
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            {/* Navigation Arrows */}
-            <motion.button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToPrevious();
-                handleInteraction();
-              }}
-              className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-colors z-30"
+            {/* Navigation */}
+            <button
+              onClick={goToPrevious}
+              className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-white z-30"
               style={{
-                background: 'rgba(0,0,0,0.3)',
-                backdropFilter: 'blur(20px)',
+                background: 'rgba(0,0,0,0.5)',
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
-              whileHover={{ scale: 1.1, background: 'rgba(0,0,0,0.5)' }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered ? 1 : 0.5 }}
-              transition={{ duration: 0.3 }}
             >
               <ChevronLeft className="w-6 h-6" />
-            </motion.button>
+            </button>
 
-            <motion.button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToNext();
-                handleInteraction();
-              }}
-              className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-colors z-30"
+            <button
+              onClick={goToNext}
+              className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-white z-30"
               style={{
-                background: 'rgba(0,0,0,0.3)',
-                backdropFilter: 'blur(20px)',
+                background: 'rgba(0,0,0,0.5)',
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
-              whileHover={{ scale: 1.1, background: 'rgba(0,0,0,0.5)' }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered ? 1 : 0.5 }}
-              transition={{ duration: 0.3 }}
             >
               <ChevronRight className="w-6 h-6" />
-            </motion.button>
+            </button>
           </div>
 
-          {/* Progress Dots */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3 z-30"
-          >
+          {/* Dots */}
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-30">
             {movies.map((_, index) => (
-              <motion.button
+              <button
                 key={index}
-                onClick={() => {
-                  goToSlide(index);
-                  handleInteraction();
+                onClick={() => goToSlide(index)}
+                className="h-1 rounded-full transition-all"
+                style={{
+                  width: index === currentIndex ? '40px' : '8px',
+                  background: index === currentIndex ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
                 }}
-                className="relative"
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <div
-                  className="h-1 rounded-full"
-                  style={{
-                    width: index === currentIndex ? '40px' : '8px',
-                    background: 'rgba(255,255,255,0.2)',
-                    transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                  }}
-                />
-                {index === currentIndex && (
-                  <motion.div
-                    className="absolute top-0 left-0 h-1 rounded-full"
-                    style={{
-                      background: `linear-gradient(90deg, rgba(${dominantColor}, 0.8), rgba(255,255,255,0.9))`,
-                      boxShadow: `0 0 10px rgba(${dominantColor}, 0.5)`,
-                    }}
-                    initial={{ width: 0 }}
-                    animate={{ width: '40px' }}
-                    transition={{
-                      duration: autoPlayInterval / 1000,
-                      ease: 'linear',
-                    }}
-                  />
-                )}
-              </motion.button>
+              />
             ))}
-          </motion.div>
+          </div>
         </div>
-      ) : (
-        /* Mobile/Tablet Portrait Layout */
+      )}
+
+      {/* MOBILE/TABLET */}
+      {!isDesktop && (
         <div
-          className="relative w-full overflow-hidden"
-          style={{ height: isMobile ? '75vh' : '80vh', minHeight: '600px' }}
-          onTouchStart={() => setIsHovered(true)}
-          onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
+          className="relative w-full overflow-hidden bg-black"
+          style={{ height: '75vh', minHeight: '600px' }}
         >
-          {/* Background */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`mobile-bg-${currentMovie.id}`}
               className="absolute inset-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               transition={{ duration: 0.8 }}
               style={{
-                background: `radial-gradient(ellipse at center top, rgba(${dominantColor}, 0.15) 0%, rgba(0,0,0,0.95) 60%)`,
+                background: `radial-gradient(circle at top, rgba(${dominantColor}, 0.15), rgba(0,0,0,0.95) 60%)`,
               }}
             />
           </AnimatePresence>
 
-          {/* Poster */}
-          <div className="relative h-full flex flex-col items-center justify-center px-6 py-8">
-            <motion.div
-              className="relative"
-              style={{
-                width: isMobile ? '280px' : '340px',
-                height: isMobile ? '420px' : '510px',
-                x: dragXSpring,
-              }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
-              onDragEnd={handleDragEnd}
+          <div className="relative h-full flex flex-col items-center justify-center px-6 py-20">
+            <div 
+              className="relative mb-8"
+              style={{ width: '320px', height: '480px' }}
             >
-              <AnimatePresence initial={false} custom={direction} mode="popLayout">
+              <AnimatePresence mode="wait">
                 <motion.div
-                  key={currentMovie.id}
-                  custom={direction}
-                  initial={{ opacity: 0, x: direction > 0 ? 80 : -80, scale: 0.9 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: direction > 0 ? -80 : 80, scale: 0.9 }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                  key={`mobile-${currentMovie.id}`}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
                   className="absolute inset-0"
                 >
                   <div
-                    className="relative w-full h-full overflow-hidden cursor-pointer"
+                    className="relative w-full h-full overflow-hidden"
                     style={{
                       borderRadius: '20px',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      boxShadow: `0 30px 60px -15px rgba(0,0,0,0.8), 0 0 50px rgba(${dominantColor}, 0.2)`,
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      boxShadow: `0 40px 80px rgba(0,0,0,0.7), 0 0 40px rgba(${dominantColor}, 0.25)`,
                     }}
-                    onClick={() => onMovieSelect(currentMovie)}
                   >
                     <img
                       src={currentMovie.posterUrl}
@@ -513,53 +359,65 @@ export const CinematicCarousel = ({
                       className="w-full h-full object-cover"
                     />
 
-                    {/* Gradient overlay */}
                     <div
                       className="absolute inset-0"
                       style={{
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%)',
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent 40%)',
                       }}
                     />
 
-                    {/* Movie info on poster */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
-                          style={{
-                            background: 'rgba(255,200,0,0.2)',
-                            color: '#FFC800',
-                          }}
-                        >
-                          <Star className="w-3 h-3 fill-current" />
-                          {currentMovie.rating.toFixed(1)}
-                        </div>
-                        <span className="text-white/60 text-xs">{currentMovie.year}</span>
+                    {/* Badges */}
+                    <div className="absolute top-4 left-4 flex gap-2">
+                      <div
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                        style={{
+                          background: 'rgba(255,200,0,0.2)',
+                          border: '1px solid rgba(255,200,0,0.4)',
+                        }}
+                      >
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        <span className="text-yellow-400 text-xs font-bold">{currentMovie.rating.toFixed(1)}</span>
                       </div>
+                      <div
+                        className="px-3 py-1.5 rounded-full text-white text-xs"
+                        style={{
+                          background: 'rgba(255,255,255,0.1)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                        }}
+                      >
+                        {currentMovie.year}
+                      </div>
+                    </div>
 
-                      <h2 className="text-xl font-bold text-white line-clamp-2">
+                    {/* Title & Button */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4">
+                      <h2 className="text-3xl font-bold text-white leading-tight">
                         {currentMovie.title}
                       </h2>
+
+                      <button
+                        onClick={() => onMovieSelect(currentMovie)}
+                        className="w-full py-4 rounded-2xl text-base font-semibold bg-white text-black"
+                      >
+                        Watch Now
+                      </button>
                     </div>
                   </div>
                 </motion.div>
               </AnimatePresence>
-            </motion.div>
+            </div>
 
             {/* Dots */}
-            <div className="flex items-center gap-2 mt-6">
+            <div className="flex gap-2.5">
               {movies.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => {
-                    goToSlide(index);
-                    handleInteraction();
+                  onClick={() => goToSlide(index)}
+                  className="h-1 rounded-full transition-all"
+                  style={{
+                    width: index === currentIndex ? '32px' : '6px',
+                    background: index === currentIndex ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
                   }}
-                  className={`transition-all duration-300 rounded-full ${
-                    index === currentIndex
-                      ? 'w-6 h-2 bg-white'
-                      : 'w-2 h-2 bg-white/30'
-                  }`}
                 />
               ))}
             </div>
