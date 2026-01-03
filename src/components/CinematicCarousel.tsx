@@ -23,7 +23,7 @@ interface CinematicCarouselProps {
 export function CinematicCarousel({
   movies,
   onMovieSelect,
-  autoPlayInterval = 6500,
+  autoPlayInterval = 5200,
 }: CinematicCarouselProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -35,13 +35,16 @@ export function CinematicCarousel({
   const [dominant, setDominant] = useState("59,130,246");
   const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
   const interacted = useRef(false);
-
   const current = list[index];
-  if (!current || total === 0) return null;
 
-  const bgImage = current.backdropUrl || current.posterUrl;
+  // Swipe refs
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const swiping = useRef(false);
 
+  // Hooks first (no early return before hooks). [web:255]
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
@@ -59,7 +62,7 @@ export function CinematicCarousel({
     if (isTransitioning) return;
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 520);
+    window.setTimeout(() => setIsTransitioning(false), 360); // snappier
   };
 
   const goTo = (i: number) => {
@@ -67,9 +70,10 @@ export function CinematicCarousel({
     onUserInteract();
     setIsTransitioning(true);
     setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 520);
+    window.setTimeout(() => setIsTransitioning(false), 360);
   };
 
+  // Autoplay (stops after interaction)
   useEffect(() => {
     if (reduceMotion) return;
     if (total <= 1) return;
@@ -83,6 +87,7 @@ export function CinematicCarousel({
     return () => window.clearInterval(t);
   }, [autoPlayInterval, paused, reduceMotion, total]);
 
+  // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -98,68 +103,113 @@ export function CinematicCarousel({
     return () => window.removeEventListener("keydown", onKey);
   }, [isTransitioning, total]);
 
+  // Swipe handlers
+  const SWIPE_X = 45;
+  const SWIPE_Y = 90;
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    onUserInteract();
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    swiping.current = true;
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!swiping.current || startX.current == null || startY.current == null) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+    if (Math.abs(dy) > SWIPE_Y && Math.abs(dy) > Math.abs(dx)) swiping.current = false;
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!swiping.current || startX.current == null || startY.current == null) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    swiping.current = false;
+    startX.current = null;
+    startY.current = null;
+
+    if (Math.abs(dy) > SWIPE_Y) return;
+    if (Math.abs(dx) < SWIPE_X) return;
+
+    if (dx < 0) go(1);
+    else go(-1);
+  };
+
+  if (!current || total === 0) return null;
+
+  const bgImage = current.backdropUrl || current.posterUrl;
+
   return (
     <section
       className="relative w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       onTouchStart={onUserInteract}
       aria-roledescription="carousel"
       aria-label="Featured movies"
     >
       <div
         className="relative w-full"
-        style={{
-          height: "calc(100vh - 72px)",
-          minHeight: isDesktop ? 760 : 680,
-          maxHeight: 980,
-        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        style={{ height: "calc(100vh - 72px)", minHeight: isDesktop ? 760 : 690, maxHeight: 980 }}
       >
-        {/* BACKDROP (hero) */}
-        <img
-          key={current.id}
-          src={bgImage}
-          alt=""
-          className={`absolute inset-0 w-full h-full object-cover ${
-            reduceMotion ? "" : "kenburnsBack"
-          }`}
-          style={{ filter: "saturate(1.08) contrast(1.06)" }}
-        />
+        {/* BACKDROP */}
+        <div className="absolute inset-0">
+          <img
+            key={current.id}
+            src={bgImage}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCine"}`}
+            style={{
+              // Slightly brighter so poster/backdrop looks better
+              filter: "saturate(1.10) contrast(1.06) brightness(1.08)",
+              transform: "scale(1.03)",
+            }}
+            decoding="async"
+          />
 
-        {/* Controlled cinematic grading */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.18) 35%, rgba(0,0,0,0.94) 100%)",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(0,0,0,0.62) 100%)",
-          }}
-        />
-        <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
+          {/* Lighter overlay (less dark) using transparent gradients. [web:335] */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 55% 18%, rgba(${dominant},0.22) 0%, rgba(${dominant},0.07) 44%, rgba(0,0,0,0) 78%)`,
+            }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_40%,rgba(0,0,0,0.68)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_50%,rgba(0,0,0,0.30)_100%)]" />
+          <div className="absolute inset-0 cinematic-grain opacity-[0.015]" />
+        </div>
 
-        {/* ARROWS: fixed edges, above sheet, never overlap */}
+        {/* Click hero = View Details */}
+        <button
+          type="button"
+          onClick={() => {
+            onUserInteract();
+            onMovieSelect(current);
+          }}
+          className="absolute inset-0 z-10 cursor-pointer"
+          aria-label={`View details for ${current.title}`}
+        >
+          <span className="sr-only">View details</span>
+        </button>
+
+        {/* Arrows */}
         {total > 1 && (
           <>
             <button
               type="button"
               aria-label="Previous"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 onUserInteract();
                 go(-1);
               }}
               disabled={isTransitioning}
-              className="navArrow left-4 sm:left-6"
+              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -167,82 +217,62 @@ export function CinematicCarousel({
             <button
               type="button"
               aria-label="Next"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 onUserInteract();
                 go(1);
               }}
               disabled={isTransitioning}
-              className="navArrow right-4 sm:right-6"
+              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
 
-        {/* BOTTOM SHEET + DOTS (planned spacing) */}
+        {/* Bottom overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            {/* Sheet */}
-            <div className="infoSheet">
+            {/* Wider on desktop to fill empty space */}
+            <div key={`sheet-${current.id}`} className="infoSheetFixed w-full lg:w-[min(1100px,100%)]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
-                  <span className="text-white font-semibold text-sm">
-                    {current.rating.toFixed(1)}
-                  </span>
+                  <span className="text-white font-semibold text-sm">{current.rating.toFixed(1)}</span>
                 </div>
                 <div className="badgePill">
-                  <span className="text-white/90 font-medium text-sm">
-                    {current.year}
-                  </span>
+                  <span className="text-white/90 font-medium text-sm">{current.year}</span>
                 </div>
                 {current.genre && (
                   <div className="badgePill">
-                    <span className="text-white/90 font-medium text-sm">
-                      {current.genre.split(",")[0].trim()}
-                    </span>
+                    <span className="text-white/90 font-medium text-sm">{current.genre.split(",")[0].trim()}</span>
                   </div>
                 )}
               </div>
 
-              <h1 className="mt-3 text-white font-extrabold tracking-[-0.03em] leading-[1.05] text-4xl sm:text-5xl lg:text-6xl">
-                {current.title}
-              </h1>
+              <h1 className="titleClamp">{current.title}</h1>
 
-              {isDesktop && current.overview && (
-                <p className="mt-3 text-white/72 text-base sm:text-lg leading-relaxed max-w-2xl line-clamp-2">
-                  {current.overview}
-                </p>
-              )}
+              <div className="overviewSlot">
+                {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
+              </div>
 
-              {/* CTA hierarchy: View Details glass = primary; Play Now = secondary */}
-              <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:max-w-md">
+              <div className="ctaRowOne">
                 <button
                   type="button"
-                  onClick={() => {
+                  className="ctaGlassPrimary"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onUserInteract();
                     onMovieSelect(current);
                   }}
-                  className="ctaGlassPrimary"
                 >
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onUserInteract();
-                    onMovieSelect(current);
-                  }}
-                  className="ctaSecondary"
-                >
-                  Play Now
-                </button>
               </div>
             </div>
 
-            {/* Dots BELOW sheet (never overlap) */}
+            {/* Dots */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -252,18 +282,19 @@ export function CinematicCarousel({
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => goTo(i)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goTo(i);
+                        }}
                         disabled={isTransitioning}
                         aria-label={`Go to slide ${i + 1} of ${total}`}
                         aria-current={active ? "true" : "false"}
                         style={{
-                          width: active ? 26 : 6,
-                          height: 6,
+                          width: active ? 28 : 7,
+                          height: 7,
                           borderRadius: 9999,
-                          background: active
-                            ? `rgba(${dominant},0.95)`
-                            : "rgba(255,255,255,0.30)",
-                          transition: "all 380ms ease",
+                          background: active ? `rgba(${dominant},0.95)` : "rgba(255,255,255,0.28)",
+                          transition: "all 200ms ease",
                         }}
                       />
                     );
@@ -284,112 +315,122 @@ export function CinematicCarousel({
         }
 
         .navArrow{
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 30;
-          width: 54px;
-          height: 54px;
-          border-radius: 9999px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          color: rgba(255,255,255,0.92);
-          background: rgba(255,255,255,0.14);
-          border: 1px solid rgba(255,255,255,0.20);
-          box-shadow: 0 14px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20);
+          position:absolute; z-index:30;
+          width:54px; height:54px; border-radius:9999px;
+          display:flex; align-items:center; justify-content:center;
+          color:rgba(255,255,255,0.92);
+          background:rgba(255,255,255,0.14);
+          border:1px solid rgba(255,255,255,0.20);
+          box-shadow:0 14px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           backdrop-filter: blur(18px) saturate(140%);
-          transition: transform 220ms ease, background 220ms ease;
+          transition: transform 140ms ease, background 140ms ease;
         }
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
-        .navArrow:active{ transform: translateY(-50%) scale(0.96); }
 
-        .infoSheet{
-          width: 100%;
+        /* Shorter box (1 button only) */
+        .infoSheetFixed{
+          height: 215px;
           border-radius: 22px;
-          padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.35);
+          padding: 16px 16px 14px;
+          background: rgba(0,0,0,0.28);
           border: 1px solid rgba(255,255,255,0.14);
-          box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+          box-shadow: 0 24px 70px rgba(0,0,0,0.50);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           backdrop-filter: blur(18px) saturate(140%);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
         .badgePill{
-          display:flex;
-          align-items:center;
-          gap:8px;
-          padding: 8px 12px;
-          border-radius: 9999px;
-          background: rgba(255,255,255,0.10);
-          border: 1px solid rgba(255,255,255,0.16);
+          display:flex; align-items:center; gap:8px;
+          padding:8px 12px;
+          border-radius:9999px;
+          background:rgba(255,255,255,0.10);
+          border:1px solid rgba(255,255,255,0.16);
           -webkit-backdrop-filter: blur(14px) saturate(140%);
           backdrop-filter: blur(14px) saturate(140%);
         }
 
-        /* PRIMARY (glass): most emphasis */
-        .ctaGlassPrimary{
-          height: 48px;
-          width: 100%;
-          border-radius: 9999px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:10px;
-          font-weight: 700;
+        .titleClamp{
+          margin-top: 6px;
+          color:#fff;
+          font-weight:850;
+          letter-spacing:-0.03em;
+          line-height:1.05;
+          font-size:clamp(30px, 3.8vw, 60px);
+          display:-webkit-box;
+          -webkit-line-clamp:2;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
+        }
+
+        .overviewSlot{ height: 36px; margin-top: 4px; }
+        .overviewClamp{
+          color: rgba(255,255,255,0.78);
           font-size: 15px;
-          color: rgba(255,255,255,0.95);
-          background: rgba(255,255,255,0.18);
-          border: 1px solid rgba(255,255,255,0.28);
+          line-height: 1.5;
+          display:-webkit-box;
+          -webkit-line-clamp:2;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
+        }
+
+        .ctaRowOne{ display:grid; grid-template-columns:1fr; gap:12px; margin-top: 8px; }
+
+        .ctaGlassPrimary{
+          height:48px;
+          width:100%;
+          border-radius:9999px;
+          display:flex; align-items:center; justify-content:center; gap:10px;
+          font-weight:750;
+          font-size:15px;
+          color:rgba(255,255,255,0.96);
+          background:rgba(255,255,255,0.20);
+          border:1px solid rgba(255,255,255,0.28);
           -webkit-backdrop-filter: blur(18px) saturate(170%);
           backdrop-filter: blur(18px) saturate(170%);
-          box-shadow: 0 18px 46px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.24);
-          transition: transform 220ms ease, background 220ms ease;
+          box-shadow:0 18px 46px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+          transition: transform 140ms ease, background 140ms ease;
         }
-        .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
-        .ctaGlassPrimary:active{ transform: translateY(0px); }
-
-        /* SECONDARY (quiet): outline/ghost */
-        .ctaSecondary{
-          height: 48px;
-          width: 100%;
-          border-radius: 9999px;
-          font-weight: 600;
-          font-size: 15px;
-          color: rgba(255,255,255,0.78);
-          background: rgba(0,0,0,0.10);
-          border: 1px solid rgba(255,255,255,0.14);
-          -webkit-backdrop-filter: blur(10px);
-          backdrop-filter: blur(10px);
-          transition: transform 220ms ease, background 220ms ease, color 220ms ease;
-        }
-        .ctaSecondary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
-        .ctaSecondary:active{ transform: translateY(0px); }
+        .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.24); }
 
         .dotsBar{
-          display:flex;
-          align-items:center;
-          gap: 10px;
-          padding: 10px 18px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.28);
-          border: 1px solid rgba(255,255,255,0.12);
+          display:flex; align-items:center; gap:10px;
+          padding:10px 18px;
+          border-radius:9999px;
+          background:rgba(0,0,0,0.22);
+          border:1px solid rgba(255,255,255,0.10);
           -webkit-backdrop-filter: blur(14px);
           backdrop-filter: blur(14px);
         }
 
+        /* Cinematic but fast (transform + opacity). [web:255] */
         @media (prefers-reduced-motion: no-preference){
-          .kenburnsBack{ animation: kenback 12s ease-out infinite alternate; }
-          @keyframes kenback{ from{ transform: scale(1.03); } to{ transform: scale(1.055); } }
+          .bgCine{
+            will-change: transform, opacity;
+            animation: bgEnter 420ms cubic-bezier(0.2,0.9,0.2,1);
+          }
+          @keyframes bgEnter{
+            from{ opacity:0; transform: scale(1.055); filter: blur(2px) saturate(1.10) contrast(1.06) brightness(1.08); }
+            to{ opacity:1; transform: scale(1.03); filter: blur(0px) saturate(1.10) contrast(1.06) brightness(1.08); }
+          }
+          .infoSheetFixed{
+            will-change: transform, opacity;
+            animation: sheetIn 300ms cubic-bezier(0.2,0.9,0.2,1);
+          }
+          @keyframes sheetIn{
+            from{ opacity:0; transform: translateY(10px); }
+            to{ opacity:1; transform: translateY(0); }
+          }
         }
-        @media (prefers-reduced-motion: reduce){
-          .kenburnsBack{ animation: none !important; }
+
+        @media (max-width: 640px){
+          .overviewSlot{ display:none; }
+          .infoSheetFixed{ height: 210px; }
         }
       `}</style>
     </section>
   );
-      }
-
-
-              
+}
