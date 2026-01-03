@@ -35,8 +35,8 @@ export function CinematicCarousel({
   const [dominant, setDominant] = useState("59,130,246");
   const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const interacted = useRef(false);
 
+  const interacted = useRef(false);
   const current = list[index];
   if (!current || total === 0) return null;
 
@@ -59,7 +59,7 @@ export function CinematicCarousel({
     if (isTransitioning) return;
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 520);
+    window.setTimeout(() => setIsTransitioning(false), 620);
   };
 
   const goTo = (i: number) => {
@@ -67,7 +67,7 @@ export function CinematicCarousel({
     onUserInteract();
     setIsTransitioning(true);
     setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 520);
+    window.setTimeout(() => setIsTransitioning(false), 620);
   };
 
   useEffect(() => {
@@ -110,45 +110,43 @@ export function CinematicCarousel({
         className="relative w-full"
         style={{
           height: "calc(100vh - 72px)",
-          minHeight: isDesktop ? 760 : 680,
+          minHeight: isDesktop ? 760 : 690,
           maxHeight: 980,
         }}
       >
-        {/* BACKDROP (hero) */}
-        <img
-          key={current.id}
-          src={bgImage}
-          alt=""
-          className={`absolute inset-0 w-full h-full object-cover ${
-            reduceMotion ? "" : "kenburnsBack"
-          }`}
-          style={{ filter: "saturate(1.08) contrast(1.06)" }}
-        />
+        {/* BACKDROP LAYER (cinematic crossfade + push) */}
+        <div className="absolute inset-0">
+          <img
+            key={current.id}
+            src={bgImage}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover ${
+              reduceMotion ? "" : "bgCine"
+            }`}
+            style={{ filter: "saturate(1.08) contrast(1.06)" }}
+          />
 
-        {/* Controlled cinematic grading */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.18) 35%, rgba(0,0,0,0.94) 100%)",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(0,0,0,0.62) 100%)",
-          }}
-        />
-        <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
+          {/* controlled grading */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
+            }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.25)_0%,rgba(0,0,0,0.18)_35%,rgba(0,0,0,0.94)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.62)_100%)]" />
+          <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
+        </div>
 
-        {/* ARROWS: fixed edges, above sheet, never overlap */}
+        {/* SAFE AREA: reserve bottom space so arrows NEVER overlap sheet */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute left-0 right-0 bottom-0"
+            style={{ height: isDesktop ? 220 : 240 }}
+          />
+        </div>
+
+        {/* ARROWS: fixed “control lane” at 45% height (never collides) */}
         {total > 1 && (
           <>
             <button
@@ -159,7 +157,7 @@ export function CinematicCarousel({
                 go(-1);
               }}
               disabled={isTransitioning}
-              className="navArrow left-4 sm:left-6"
+              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -172,18 +170,31 @@ export function CinematicCarousel({
                 go(1);
               }}
               disabled={isTransitioning}
-              className="navArrow right-4 sm:right-6"
+              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
 
-        {/* BOTTOM SHEET + DOTS (planned spacing) */}
+        {/* FULL-BLEED POSTER INTERACTION (tap anywhere opens details) */}
+        <button
+          type="button"
+          onClick={() => {
+            onUserInteract();
+            onMovieSelect(current);
+          }}
+          className="absolute inset-0 z-10 cursor-pointer"
+          aria-label={`Open ${current.title}`}
+        >
+          <span className="sr-only">Open</span>
+        </button>
+
+        {/* Bottom planned overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            {/* Sheet */}
-            <div className="infoSheet">
+            {/* fixed width + fixed padding = consistent look */}
+            <div className="infoSheet max-w-[760px]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -205,21 +216,23 @@ export function CinematicCarousel({
                 )}
               </div>
 
-              <h1 className="mt-3 text-white font-extrabold tracking-[-0.03em] leading-[1.05] text-4xl sm:text-5xl lg:text-6xl">
+              {/* clamp title to avoid height jumps */}
+              <h1 className="mt-3 text-white font-extrabold tracking-[-0.03em] leading-[1.05] text-4xl sm:text-5xl lg:text-6xl line-clamp-2">
                 {current.title}
               </h1>
 
               {isDesktop && current.overview && (
-                <p className="mt-3 text-white/72 text-base sm:text-lg leading-relaxed max-w-2xl line-clamp-2">
+                <p className="mt-3 text-white/72 text-base sm:text-lg leading-relaxed line-clamp-2">
                   {current.overview}
                 </p>
               )}
 
-              {/* CTA hierarchy: View Details glass = primary; Play Now = secondary */}
               <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:max-w-md">
+                {/* PRIMARY: View Details glass */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onUserInteract();
                     onMovieSelect(current);
                   }}
@@ -229,9 +242,11 @@ export function CinematicCarousel({
                   View Details
                 </button>
 
+                {/* SECONDARY: quiet */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onUserInteract();
                     onMovieSelect(current);
                   }}
@@ -242,7 +257,7 @@ export function CinematicCarousel({
               </div>
             </div>
 
-            {/* Dots BELOW sheet (never overlap) */}
+            {/* Dots: always BELOW sheet, centered */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -252,7 +267,10 @@ export function CinematicCarousel({
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => goTo(i)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goTo(i);
+                        }}
                         disabled={isTransitioning}
                         aria-label={`Go to slide ${i + 1} of ${total}`}
                         aria-current={active ? "true" : "false"}
@@ -285,8 +303,6 @@ export function CinematicCarousel({
 
         .navArrow{
           position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
           z-index: 30;
           width: 54px;
           height: 54px;
@@ -304,6 +320,7 @@ export function CinematicCarousel({
         }
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
         .navArrow:active{ transform: translateY(-50%) scale(0.96); }
+        .navArrow:disabled{ opacity: 0.45; }
 
         .infoSheet{
           width: 100%;
@@ -328,7 +345,6 @@ export function CinematicCarousel({
           backdrop-filter: blur(14px) saturate(140%);
         }
 
-        /* PRIMARY (glass): most emphasis */
         .ctaGlassPrimary{
           height: 48px;
           width: 100%;
@@ -350,7 +366,6 @@ export function CinematicCarousel({
         .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
         .ctaGlassPrimary:active{ transform: translateY(0px); }
 
-        /* SECONDARY (quiet): outline/ghost */
         .ctaSecondary{
           height: 48px;
           width: 100%;
@@ -379,14 +394,17 @@ export function CinematicCarousel({
           backdrop-filter: blur(14px);
         }
 
+        /* Cinematic slide change: fade + slight push */
         @media (prefers-reduced-motion: no-preference){
-          .kenburnsBack{ animation: kenback 12s ease-out infinite alternate; }
-          @keyframes kenback{ from{ transform: scale(1.03); } to{ transform: scale(1.055); } }
-        }
-        @media (prefers-reduced-motion: reduce){
-          .kenburnsBack{ animation: none !important; }
+          .bgCine{
+            animation: bgEnter 620ms cubic-bezier(0.22,0.61,0.36,1);
+          }
+          @keyframes bgEnter{
+            from{ opacity: 0; transform: scale(1.06); filter: blur(2px) saturate(1.08) contrast(1.06); }
+            to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.08) contrast(1.06); }
+          }
         }
       `}</style>
     </section>
   );
-      }
+    }
