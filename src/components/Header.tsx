@@ -105,6 +105,15 @@ const Header = () => {
                 Profile
               </Button>
             )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/assessment")}
+              className={location.pathname === "/assessment" ? "text-primary bg-accent/10" : ""}
+            >
+              ✨ Movie Mood
+            </Button>
           </nav>
 
           <div className="flex items-center gap-2">
