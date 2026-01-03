@@ -34,12 +34,18 @@ export function CinematicCarousel({
   const [index, setIndex] = useState(0);
   const [dominant, setDominant] = useState("59,130,246");
   const [paused, setPaused] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [imageLoaded, setImageLoaded] = useState(true);
 
   const interacted = useRef(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const navigationQueue = useRef<number[]>([]);
+  const isNavigating = useRef(false);
+
   const current = list[index];
-  const prevIndex = useRef(index);
+  const nextIndex = (index + 1) % total;
+  const prevIndex = (index - 1 + total) % total;
 
   useEffect(() => {
     if (!current?.posterUrl) return;
@@ -53,24 +59,37 @@ export function CinematicCarousel({
     setPaused(true);
   };
 
+  const processNavigationQueue = () => {
+    if (isNavigating.current || navigationQueue.current.length === 0) return;
+    
+    isNavigating.current = true;
+    const targetIndex = navigationQueue.current.shift()!;
+    
+    setImageLoaded(false);
+    setIndex(targetIndex);
+    
+    setTimeout(() => {
+      setImageLoaded(true);
+      isNavigating.current = false;
+      processNavigationQueue();
+    }, 50);
+  };
+
   const go = (dir: 1 | -1) => {
     if (total <= 1) return;
-    if (isTransitioning) return;
-    setIsTransitioning(true);
-    setImageLoaded(false);
-    prevIndex.current = index;
-    setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 900);
+    setDirection(dir);
+    const targetIndex = (index + dir + total) % total;
+    navigationQueue.current.push(targetIndex);
+    processNavigationQueue();
   };
 
   const goTo = (i: number) => {
     if (i === index) return;
     onUserInteract();
-    setIsTransitioning(true);
-    setImageLoaded(false);
-    prevIndex.current = index;
-    setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 900);
+    const dir = i > index ? 1 : -1;
+    setDirection(dir);
+    navigationQueue.current.push(i);
+    processNavigationQueue();
   };
 
   useEffect(() => {
@@ -89,21 +108,44 @@ export function CinematicCarousel({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
+        e.preventDefault();
         onUserInteract();
         go(-1);
       }
       if (e.key === "ArrowRight") {
+        e.preventDefault();
         onUserInteract();
         go(1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isTransitioning, total]);
+  }, [total, index]);
 
-  useEffect(() => {
-    setImageLoaded(false);
-  }, [current?.id]);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      onUserInteract();
+      if (diff > 0) {
+        go(1);
+      } else {
+        go(-1);
+      }
+    }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
 
   if (!current || total === 0) return null;
 
@@ -114,7 +156,9 @@ export function CinematicCarousel({
       className="relative w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onTouchStart={onUserInteract}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       aria-roledescription="carousel"
       aria-label="Featured movies"
     >
@@ -126,34 +170,79 @@ export function CinematicCarousel({
           maxHeight: 980,
         }}
       >
-        {/* Enhanced Background with Parallax */}
+        {/* Enhanced Background Layers */}
         <div className="absolute inset-0">
+          {/* Previous Image (fade out) */}
           <div className="bgImageWrapper">
             <img
-              key={current.id}
               src={bgImage}
               alt=""
               className="bgImage"
-              onLoad={() => setImageLoaded(true)}
               style={{
-                filter: "saturate(1.15) contrast(1.08) brightness(1.05)",
-                transform: imageLoaded ? "scale(1.02)" : "scale(1.08)",
+                filter: "saturate(1.25) contrast(1.12) brightness(1.15)",
+                transform: imageLoaded ? "scale(1)" : "scale(1.15)",
                 opacity: imageLoaded ? 1 : 0,
               }}
             />
           </div>
 
-          {/* Lighter, More Cinematic Overlays */}
+          {/* Vibrant Color Overlay */}
           <div
             className="colorGradient"
             style={{
-              background: `radial-gradient(ellipse 80% 50% at 50% 20%, rgba(${dominant},0.22) 0%, rgba(${dominant},0.08) 45%, rgba(0,0,0,0) 75%)`,
+              background: `radial-gradient(ellipse 85% 60% at 50% 25%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.12) 50%, rgba(0,0,0,0) 80%)`,
             }}
           />
+
+          {/* Lighter Bottom Gradient */}
           <div className="bottomGradient" />
           <div className="vignette" />
           <div className="filmGrain" />
         </div>
+
+        {/* Cinematic Poster Showcase (Desktop) */}
+        {isDesktop && (
+          <div className="absolute left-20 top-1/2 -translate-y-1/2 z-15 pointer-events-none">
+            <div className="relative" style={{ width: "340px", height: "510px" }}>
+              {/* Previous Poster (slide out) */}
+              {!imageLoaded && (
+                <div
+                  className="posterCard"
+                  style={{
+                    animation: direction === 1 ? "slideOutLeft 600ms ease-out forwards" : "slideOutRight 600ms ease-out forwards",
+                  }}
+                >
+                  <img
+                    src={list[direction === 1 ? prevIndex : nextIndex]?.posterUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Current Poster (slide in) */}
+              <div
+                className="posterCard"
+                style={{
+                  animation: imageLoaded
+                    ? direction === 1
+                      ? "slideInFromRight 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                      : "slideInFromLeft 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards"
+                    : "none",
+                  opacity: imageLoaded ? 1 : 0,
+                }}
+              >
+                <img
+                  src={current.posterUrl}
+                  alt={current.title}
+                  className="w-full h-full object-cover"
+                  onLoad={() => setImageLoaded(true)}
+                />
+                <div className="posterShine" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Clickable Area */}
         <button
@@ -168,7 +257,7 @@ export function CinematicCarousel({
           <span className="sr-only">Open</span>
         </button>
 
-        {/* Navigation Arrows */}
+        {/* Always Responsive Navigation Arrows */}
         {total > 1 && (
           <>
             <button
@@ -179,8 +268,7 @@ export function CinematicCarousel({
                 onUserInteract();
                 go(-1);
               }}
-              disabled={isTransitioning}
-              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
+              className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -193,19 +281,18 @@ export function CinematicCarousel({
                 onUserInteract();
                 go(1);
               }}
-              disabled={isTransitioning}
-              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2 disabled:opacity-40"
+              className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
 
-        {/* Content Sheet with Animations */}
+        {/* Content Sheet with Enhanced Animations */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
             <div key={`sheet-${current.id}`} className="infoSheetFixed">
-              {/* Badges with Stagger Animation */}
+              {/* Badges */}
               <div className="badgeRow">
                 <div className="badgePill" style={{ animationDelay: "0ms" }}>
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -221,7 +308,7 @@ export function CinematicCarousel({
                 )}
               </div>
 
-              {/* Title with Slide Animation */}
+              {/* Title */}
               <h1 className="titleClamp">{current.title}</h1>
 
               {/* Overview */}
@@ -229,7 +316,7 @@ export function CinematicCarousel({
                 {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
               </div>
 
-              {/* CTA Button with Scale Animation */}
+              {/* CTA Button */}
               <div className="ctaRowOne">
                 <button type="button" className="ctaGlassPrimary" onClick={() => onMovieSelect(current)}>
                   <Play className="h-4 w-4" fill="currentColor" />
@@ -252,7 +339,6 @@ export function CinematicCarousel({
                           e.stopPropagation();
                           goTo(i);
                         }}
-                        disabled={isTransitioning}
                         aria-label={`Go to slide ${i + 1} of ${total}`}
                         aria-current={active ? "true" : "false"}
                         className="dotButton"
@@ -271,7 +357,7 @@ export function CinematicCarousel({
       </div>
 
       <style>{`
-        /* Enhanced Background Animation */
+        /* Optimized Background Transitions */
         .bgImageWrapper {
           position: absolute;
           inset: 0;
@@ -285,15 +371,17 @@ export function CinematicCarousel({
           height: 100%;
           object-fit: cover;
           object-position: center;
-          transition: all 1200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), 
+                      opacity 800ms ease-out,
+                      filter 800ms ease-out;
           will-change: transform, opacity;
         }
 
-        /* Lighter Overlays for Better Image Quality */
+        /* Vibrant, Lighter Overlays */
         .colorGradient {
           position: absolute;
           inset: 0;
-          transition: background 1000ms ease;
+          transition: background 900ms ease-out;
           pointer-events: none;
         }
 
@@ -302,10 +390,10 @@ export function CinematicCarousel({
           inset: 0;
           background: linear-gradient(
             180deg,
-            rgba(0,0,0,0.15) 0%,
-            rgba(0,0,0,0.08) 35%,
-            rgba(0,0,0,0.75) 85%,
-            rgba(0,0,0,0.92) 100%
+            rgba(0,0,0,0) 0%,
+            rgba(0,0,0,0.05) 40%,
+            rgba(0,0,0,0.65) 80%,
+            rgba(0,0,0,0.88) 100%
           );
           pointer-events: none;
         }
@@ -315,9 +403,9 @@ export function CinematicCarousel({
           inset: 0;
           background: radial-gradient(
             ellipse at center,
-            rgba(0,0,0,0) 40%,
-            rgba(0,0,0,0.35) 85%,
-            rgba(0,0,0,0.55) 100%
+            rgba(0,0,0,0) 45%,
+            rgba(0,0,0,0.25) 80%,
+            rgba(0,0,0,0.45) 100%
           );
           pointer-events: none;
         }
@@ -325,13 +413,92 @@ export function CinematicCarousel({
         .filmGrain {
           position: absolute;
           inset: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-          opacity: 0.018;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+          opacity: 0.015;
           mix-blend-mode: overlay;
           pointer-events: none;
         }
 
-        /* Enhanced Navigation Arrows */
+        /* Cinematic Poster Card */
+        .posterCard {
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 
+            0 60px 140px rgba(0,0,0,0.85),
+            0 30px 70px rgba(0,0,0,0.6),
+            0 0 100px rgba(255,255,255,0.08),
+            inset 0 1px 0 rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .posterShine {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            135deg,
+            transparent 0%,
+            rgba(255,255,255,0.05) 45%,
+            rgba(255,255,255,0.15) 50%,
+            rgba(255,255,255,0.05) 55%,
+            transparent 100%
+          );
+          animation: shine 3s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        @keyframes shine {
+          0%, 100% { transform: translateX(-100%) translateY(-100%); }
+          50% { transform: translateX(100%) translateY(100%); }
+        }
+
+        /* Poster Slide Animations */
+        @keyframes slideInFromRight {
+          0% {
+            opacity: 0;
+            transform: translateX(80px) scale(0.92) rotateY(15deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+          }
+        }
+
+        @keyframes slideInFromLeft {
+          0% {
+            opacity: 0;
+            transform: translateX(-80px) scale(0.92) rotateY(-15deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+          }
+        }
+
+        @keyframes slideOutLeft {
+          0% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-80px) scale(0.92) rotateY(-15deg);
+          }
+        }
+
+        @keyframes slideOutRight {
+          0% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(80px) scale(0.92) rotateY(15deg);
+          }
+        }
+
+        /* Always Responsive Navigation */
         .navArrow {
           position: absolute;
           z-index: 30;
@@ -347,35 +514,36 @@ export function CinematicCarousel({
           box-shadow: 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
           backdrop-filter: blur(20px) saturate(150%);
           -webkit-backdrop-filter: blur(20px) saturate(150%);
-          transition: all 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+          transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
           cursor: pointer;
         }
 
-        .navArrow:hover:not(:disabled) {
-          transform: scale(1.1);
-          background: rgba(255,255,255,0.22);
+        .navArrow:hover {
+          transform: scale(1.15);
+          background: rgba(255,255,255,0.24);
           box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
         }
 
-        .navArrow:active:not(:disabled) {
+        .navArrow:active {
           transform: scale(0.95);
+          transition: all 100ms ease;
         }
 
-        /* Info Sheet with Slide-up Animation */
+        /* Info Sheet */
         .infoSheetFixed {
           width: 100%;
           height: 230px;
           border-radius: 24px;
           padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.32);
+          background: rgba(0,0,0,0.28);
           border: 1px solid rgba(255,255,255,0.16);
           box-shadow: 0 28px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
-          backdrop-filter: blur(24px) saturate(150%);
-          -webkit-backdrop-filter: blur(24px) saturate(150%);
+          backdrop-filter: blur(28px) saturate(160%);
+          -webkit-backdrop-filter: blur(28px) saturate(160%);
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          animation: slideUpFade 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          animation: slideUpFade 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         @keyframes slideUpFade {
@@ -389,7 +557,6 @@ export function CinematicCarousel({
           }
         }
 
-        /* Badge Row with Stagger */
         .badgeRow {
           display: flex;
           flex-wrap: wrap;
@@ -403,18 +570,18 @@ export function CinematicCarousel({
           gap: 8px;
           padding: 9px 14px;
           border-radius: 9999px;
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.20);
+          background: rgba(255,255,255,0.14);
+          border: 1px solid rgba(255,255,255,0.22);
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
-          animation: badgeFadeIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation: badgeFadeIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           opacity: 0;
         }
 
         @keyframes badgeFadeIn {
           from {
             opacity: 0;
-            transform: scale(0.85) translateY(-5px);
+            transform: scale(0.8) translateY(-8px);
           }
           to {
             opacity: 1;
@@ -422,7 +589,6 @@ export function CinematicCarousel({
           }
         }
 
-        /* Enhanced Title */
         .titleClamp {
           margin-top: 8px;
           color: #fff;
@@ -435,7 +601,7 @@ export function CinematicCarousel({
           -webkit-box-orient: vertical;
           overflow: hidden;
           text-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-          animation: titleSlideIn 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 100ms forwards;
+          animation: titleSlideIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
           opacity: 0;
         }
 
@@ -456,14 +622,14 @@ export function CinematicCarousel({
         }
 
         .overviewClamp {
-          color: rgba(255,255,255,0.78);
+          color: rgba(255,255,255,0.82);
           font-size: 16px;
           line-height: 1.6;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          animation: fadeIn 600ms ease 200ms forwards;
+          animation: fadeIn 500ms ease 150ms forwards;
           opacity: 0;
         }
 
@@ -479,7 +645,6 @@ export function CinematicCarousel({
           margin-top: 10px;
         }
 
-        /* Enhanced CTA Button */
         .ctaGlassPrimary {
           height: 52px;
           width: 100%;
@@ -489,82 +654,4 @@ export function CinematicCarousel({
           justify-content: center;
           gap: 10px;
           font-weight: 700;
-          font-size: 15px;
-          color: rgba(255,255,255,0.97);
-          background: rgba(255,255,255,0.20);
-          border: 1px solid rgba(255,255,255,0.32);
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-          transition: all 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
-          animation: buttonPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms forwards;
-          opacity: 0;
-          transform: scale(0.9);
-        }
-
-        @keyframes buttonPop {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .ctaGlassPrimary:hover {
-          background: rgba(255,255,255,0.28);
-          transform: translateY(-2px) scale(1.02);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
-        }
-
-        .ctaGlassPrimary:active {
-          transform: translateY(0) scale(0.98);
-        }
-
-        /* Enhanced Dots Bar */
-        .dotsBar {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 20px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.30);
-          border: 1px solid rgba(255,255,255,0.14);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-        }
-
-        .dotButton {
-          height: 6px;
-          border-radius: 9999px;
-          transition: all 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
-          border: none;
-          padding: 0;
-        }
-
-        .dotButton:hover:not(:disabled) {
-          transform: scale(1.3);
-          opacity: 1;
-        }
-
-        @media (max-width: 640px) {
-          .infoSheetFixed {
-            height: 225px;
-          }
-          .overviewSlot {
-            display: none;
-          }
-          .navArrow {
-            width: 50px;
-            height: 50px;
-          }
-        }
-      `}</style>
-    </section>
-  );
-        }
+          font-size: 15
