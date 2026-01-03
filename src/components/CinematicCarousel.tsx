@@ -31,30 +31,34 @@ export const CinematicCarousel = ({
   const currentMovie = movies[currentIndex];
 
   const slideVariants = {
-    enter: {
-      scale: 0.92,
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1200 : -1200,
       opacity: 0,
-      filter: "blur(20px)",
-    },
+      scale: 0.85,
+      rotateY: direction > 0 ? 25 : -25,
+    }),
     center: {
-      scale: 1,
+      x: 0,
       opacity: 1,
-      filter: "blur(0px)",
+      scale: 1,
+      rotateY: 0,
       transition: {
-        scale: { type: "spring", stiffness: 300, damping: 30, mass: 0.8 },
-        opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
-        filter: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
+        x: { type: "spring", stiffness: 280, damping: 35, mass: 0.9 },
+        opacity: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+        scale: { type: "spring", stiffness: 300, damping: 30 },
+        rotateY: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
       }
     },
-    exit: {
-      scale: 1.08,
+    exit: (direction: number) => ({
+      x: direction > 0 ? -1200 : 1200,
       opacity: 0,
-      filter: "blur(20px)",
+      scale: 0.85,
+      rotateY: direction > 0 ? -25 : 25,
       transition: {
         duration: 0.4,
         ease: [0.76, 0, 0.24, 1]
       }
-    }
+    })
   };
 
   const contentVariants = {
@@ -110,9 +114,9 @@ export const CinematicCarousel = ({
   if (!currentMovie) return null;
 
   return (
-    <section className="relative w-full h-screen flex items-center justify-center px-4 md:px-8 lg:px-16 bg-background">
-      <div className="relative w-full h-[85vh] max-w-[95vw] mx-auto">
-        <div className="relative w-full h-full rounded-[2rem] md:rounded-[3rem] lg:rounded-[4rem] overflow-hidden bg-black shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
+    <section className="relative w-full h-screen flex items-center justify-center px-3 md:px-6 lg:px-10 bg-background" style={{ perspective: "2000px" }}>
+      <div className="relative w-full h-[92vh] max-w-[98vw] mx-auto">
+        <div className="relative w-full h-full rounded-[2.5rem] md:rounded-[3.5rem] lg:rounded-[4.5rem] overflow-hidden bg-black shadow-[0_50px_150px_-30px_rgba(0,0,0,0.6)]">
 
           <AnimatePresence initial={false} custom={direction} mode="wait">
             <motion.div
@@ -133,8 +137,8 @@ export const CinematicCarousel = ({
                   decoding="async"
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/30" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
 
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -143,44 +147,44 @@ export const CinematicCarousel = ({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="absolute inset-0 flex flex-col justify-end p-8 md:p-12 lg:p-16"
+                    className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 lg:p-14 pb-20 md:pb-24"
                   >
-                    <div className="max-w-3xl space-y-4 md:space-y-6">
+                    <div className="max-w-4xl space-y-3 md:space-y-5">
                       <motion.div
-                        className="flex items-center gap-3 text-white/90 text-sm md:text-base"
-                        initial={{ opacity: 0, x: -30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
+                        className="flex flex-wrap items-center gap-2.5 md:gap-3 text-white text-sm md:text-base"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
                       >
-                        <div className="flex items-center gap-2 bg-white/15 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/20">
-                          <span className="text-yellow-400 text-lg">★</span>
-                          <span className="font-bold">{currentMovie.rating.toFixed(1)}</span>
+                        <div className="flex items-center gap-2 bg-white/20 backdrop-blur-xl px-4 py-2 rounded-full border border-white/30 shadow-lg">
+                          <span className="text-yellow-400 text-lg md:text-xl">★</span>
+                          <span className="font-bold text-base md:text-lg">{currentMovie.rating.toFixed(1)}</span>
                         </div>
-                        <span className="text-white/50">•</span>
-                        <span className="font-semibold">{currentMovie.year}</span>
+                        <span className="text-white/60 text-lg">•</span>
+                        <span className="font-semibold text-base md:text-lg bg-white/15 backdrop-blur-xl px-4 py-2 rounded-full border border-white/20">{currentMovie.year}</span>
                         {currentMovie.genre && (
                           <>
-                            <span className="text-white/50">•</span>
-                            <span className="font-semibold">{currentMovie.genre}</span>
+                            <span className="text-white/60 text-lg">•</span>
+                            <span className="font-semibold text-base md:text-lg bg-white/15 backdrop-blur-xl px-4 py-2 rounded-full border border-white/20">{currentMovie.genre}</span>
                           </>
                         )}
                       </motion.div>
 
                       <motion.h2
-                        className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight"
-                        initial={{ opacity: 0, x: -30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.45, duration: 0.6 }}
+                        className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[1.05] tracking-tight drop-shadow-2xl"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35, duration: 0.6 }}
                       >
                         {currentMovie.title}
                       </motion.h2>
 
                       {currentMovie.overview && (
                         <motion.p
-                          className="text-white/90 text-base md:text-lg lg:text-xl leading-relaxed line-clamp-3 max-w-2xl"
-                          initial={{ opacity: 0, x: -30 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.5, duration: 0.6 }}
+                          className="text-white text-base md:text-xl lg:text-2xl leading-relaxed line-clamp-2 max-w-3xl drop-shadow-lg font-medium"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4, duration: 0.6 }}
                         >
                           {currentMovie.overview}
                         </motion.p>
@@ -191,13 +195,13 @@ export const CinematicCarousel = ({
                           e.stopPropagation();
                           onMovieSelect(currentMovie);
                         }}
-                        className="group inline-flex items-center gap-3 bg-white text-black px-8 py-4 rounded-full font-bold text-base md:text-lg hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
+                        className="group inline-flex items-center gap-3 bg-white text-black px-9 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-xl hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 mt-2"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6, duration: 0.5 }}
+                        transition={{ delay: 0.5, duration: 0.5 }}
                         whileHover={{ gap: "1rem" }}
                       >
-                        <Play className="w-5 h-5 fill-current transition-transform group-hover:scale-110" />
+                        <Play className="w-5 h-5 md:w-6 md:h-6 fill-current transition-transform group-hover:scale-110" />
                         View Details
                       </motion.button>
                     </div>
@@ -215,12 +219,12 @@ export const CinematicCarousel = ({
                   goToPrevious();
                   handleInteraction();
                 }}
-                className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 z-20 w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200"
+                className="absolute left-4 md:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-all duration-200 shadow-2xl"
                 aria-label="Previous slide"
-                whileHover={{ scale: 1.1, x: -4 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.15, x: -6 }}
+                whileTap={{ scale: 0.9 }}
               >
-                <ChevronLeft className="w-7 h-7 md:w-8 md:h-8" />
+                <ChevronLeft className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
               </motion.button>
 
               <motion.button
@@ -229,15 +233,15 @@ export const CinematicCarousel = ({
                   goToNext();
                   handleInteraction();
                 }}
-                className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 z-20 w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200"
+                className="absolute right-4 md:right-6 lg:right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-all duration-200 shadow-2xl"
                 aria-label="Next slide"
-                whileHover={{ scale: 1.1, x: 4 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.15, x: 6 }}
+                whileTap={{ scale: 0.9 }}
               >
-                <ChevronRight className="w-7 h-7 md:w-8 md:h-8" />
+                <ChevronRight className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
               </motion.button>
 
-              <div className="absolute bottom-8 md:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
+              <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
                 {movies.map((_, index) => (
                   <motion.button
                     key={index}
@@ -247,15 +251,15 @@ export const CinematicCarousel = ({
                       handleInteraction();
                     }}
                     className="relative group"
-                    whileHover={{ scale: 1.3 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.4 }}
+                    whileTap={{ scale: 0.85 }}
                     aria-label={`Go to slide ${index + 1}`}
                   >
                     <div
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                      className={`h-2 rounded-full transition-all duration-300 ${
                         index === currentIndex
-                          ? "w-12 bg-white shadow-lg shadow-white/50"
-                          : "w-1.5 bg-white/50 group-hover:bg-white/80 group-hover:w-6"
+                          ? "w-14 md:w-16 bg-white shadow-lg shadow-white/60"
+                          : "w-2 bg-white/60 group-hover:bg-white group-hover:w-8"
                       }`}
                     />
                   </motion.button>
