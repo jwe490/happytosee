@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { extractDominantColor } from "@/utils/colorExtractor";
 
+export function CinematicCarousel(...)
+
 interface Movie {
   id: number;
   title: string;
@@ -19,6 +21,18 @@ interface CinematicCarouselProps {
   onMovieSelect: (movie: Movie) => void;
   autoPlayInterval?: number;
 }
+
+const upgradeTmdbImage = (
+  url: string | undefined,
+  type: "backdrop" | "poster"
+) => {
+  if (!url) return "";
+  if (!url.includes("image.tmdb.org/t/p/")) return url;
+
+  const size = type === "backdrop" ? "w1280" : "w780";
+  return url.replace(//t/p/(wd+|original)//, `/t/p/${size}/`);
+};
+
 
 export function CinematicCarousel({
   movies,
@@ -49,8 +63,11 @@ export function CinematicCarousel({
   if (!current || total === 0) return null;
 
   // Prefer backdrop for fullscreen (better “hero” quality)
-  const bgImage = current.backdropUrl || current.posterUrl;
-
+  const bgImage = upgradeTmdbImage(
+  current.backdropUrl || current.posterUrl,
+  "backdrop"
+);
+const posterImage = upgradeTmdbImage(current.posterUrl, "poster");
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
