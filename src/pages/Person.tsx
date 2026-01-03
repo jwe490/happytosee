@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import { Movie as RecommendedMovie } from "@/hooks/useMovieRecommendations";
 
 interface Movie {
   id: number;
@@ -83,7 +84,7 @@ const Person = () => {
   });
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<RecommendedMovie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
 
   useEffect(() => {
@@ -93,7 +94,17 @@ const Person = () => {
   }, [id]);
 
   const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
+    // Convert local Movie type to RecommendedMovie type for ExpandedMovieView
+    const recommendedMovie: RecommendedMovie = {
+      id: movie.id,
+      title: movie.title,
+      rating: movie.rating,
+      year: movie.year ?? 0,
+      genre: "",
+      posterUrl: movie.posterUrl,
+      moodMatch: "",
+    };
+    setSelectedMovie(recommendedMovie);
     setIsMovieViewOpen(true);
   };
 

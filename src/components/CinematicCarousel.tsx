@@ -11,7 +11,7 @@ interface Movie {
   posterUrl: string;
   backdropUrl?: string;
   rating: number;
-  year: number;
+  year: number | string;
   genre?: string;
 }
 
@@ -94,15 +94,6 @@ export const CinematicCarousel = ({
 
   if (!currentMovie || movies.length === 0) return null;
 
-  // Responsive card dimensions
-  const getCardDimensions = () => {
-    if (isMobile) return { width: 300, height: 450, aspectRatio: '2/3' };
-    if (isTablet) return { width: 340, height: 510, aspectRatio: '2/3' };
-    return { width: 420, height: 600, aspectRatio: '2/3' }; // Desktop portrait
-  };
-
-  const cardDims = getCardDimensions();
-
   return (
     <section className="relative w-full">
       {/* Desktop Landscape Layout */}
@@ -123,7 +114,6 @@ export const CinematicCarousel = ({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              {/* Backdrop Image with Heavy Blur */}
               <div className="absolute inset-0">
                 <img
                   src={currentMovie.backdropUrl || currentMovie.posterUrl}
@@ -133,7 +123,6 @@ export const CinematicCarousel = ({
                 />
               </div>
 
-              {/* Color Overlay */}
               <div
                 className="absolute inset-0"
                 style={{
@@ -141,7 +130,6 @@ export const CinematicCarousel = ({
                 }}
               />
 
-              {/* Vignette */}
               <div
                 className="absolute inset-0"
                 style={{
@@ -200,7 +188,6 @@ export const CinematicCarousel = ({
                         perspective: '1000px',
                       }}
                     >
-                      {/* Card with Glassmorphism */}
                       <div
                         className="relative w-full h-full overflow-hidden group cursor-pointer"
                         style={{
@@ -212,7 +199,6 @@ export const CinematicCarousel = ({
                         }}
                         onClick={() => onMovieSelect(currentMovie)}
                       >
-                        {/* Poster */}
                         <motion.div
                           className="w-full h-full"
                           animate={!prefersReducedMotion ? { scale: [1, 1.03] } : {}}
@@ -230,7 +216,6 @@ export const CinematicCarousel = ({
                           />
                         </motion.div>
 
-                        {/* Gradient Overlay */}
                         <div
                           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                           style={{
@@ -238,7 +223,6 @@ export const CinematicCarousel = ({
                           }}
                         />
 
-                        {/* Hover Play Button */}
                         <motion.div
                           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100"
                           initial={false}
@@ -272,7 +256,6 @@ export const CinematicCarousel = ({
                   transition={{ duration: 0.5, delay: 0.2 }}
                   className="space-y-8"
                 >
-                  {/* Badges */}
                   <div className="flex items-center gap-3 flex-wrap">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -321,7 +304,6 @@ export const CinematicCarousel = ({
                     )}
                   </div>
 
-                  {/* Title */}
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -335,7 +317,6 @@ export const CinematicCarousel = ({
                     {currentMovie.title}
                   </motion.h1>
 
-                  {/* Overview */}
                   {currentMovie.overview && (
                     <motion.p
                       initial={{ opacity: 0, y: 20 }}
@@ -347,7 +328,6 @@ export const CinematicCarousel = ({
                     </motion.p>
                   )}
 
-                  {/* CTA Button */}
                   <motion.button
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -382,7 +362,7 @@ export const CinematicCarousel = ({
               </AnimatePresence>
             </div>
 
-            {/* Navigation Arrows - Minimal */}
+            {/* Navigation Arrows */}
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
@@ -426,7 +406,7 @@ export const CinematicCarousel = ({
             </motion.button>
           </div>
 
-          {/* Progress Dots - Bottom Center */}
+          {/* Progress Dots */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -444,7 +424,6 @@ export const CinematicCarousel = ({
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.9 }}
               >
-                {/* Background track */}
                 <div
                   className="h-1 rounded-full"
                   style={{
@@ -453,7 +432,6 @@ export const CinematicCarousel = ({
                     transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
                   }}
                 />
-                {/* Active progress */}
                 {index === currentIndex && (
                   <motion.div
                     className="absolute top-0 left-0 h-1 rounded-full"
@@ -495,4 +473,99 @@ export const CinematicCarousel = ({
               }}
             />
           </AnimatePresence>
-        
+
+          {/* Poster */}
+          <div className="relative h-full flex flex-col items-center justify-center px-6 py-8">
+            <motion.div
+              className="relative"
+              style={{
+                width: isMobile ? '280px' : '340px',
+                height: isMobile ? '420px' : '510px',
+                x: dragXSpring,
+              }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
+            >
+              <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                <motion.div
+                  key={currentMovie.id}
+                  custom={direction}
+                  initial={{ opacity: 0, x: direction > 0 ? 80 : -80, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: direction > 0 ? -80 : 80, scale: 0.9 }}
+                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="absolute inset-0"
+                >
+                  <div
+                    className="relative w-full h-full overflow-hidden cursor-pointer"
+                    style={{
+                      borderRadius: '20px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: `0 30px 60px -15px rgba(0,0,0,0.8), 0 0 50px rgba(${dominantColor}, 0.2)`,
+                    }}
+                    onClick={() => onMovieSelect(currentMovie)}
+                  >
+                    <img
+                      src={currentMovie.posterUrl}
+                      alt={currentMovie.title}
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Gradient overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%)',
+                      }}
+                    />
+
+                    {/* Movie info on poster */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                          style={{
+                            background: 'rgba(255,200,0,0.2)',
+                            color: '#FFC800',
+                          }}
+                        >
+                          <Star className="w-3 h-3 fill-current" />
+                          {currentMovie.rating.toFixed(1)}
+                        </div>
+                        <span className="text-white/60 text-xs">{currentMovie.year}</span>
+                      </div>
+
+                      <h2 className="text-xl font-bold text-white line-clamp-2">
+                        {currentMovie.title}
+                      </h2>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Dots */}
+            <div className="flex items-center gap-2 mt-6">
+              {movies.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    goToSlide(index);
+                    handleInteraction();
+                  }}
+                  className={`transition-all duration-300 rounded-full ${
+                    index === currentIndex
+                      ? 'w-6 h-2 bg-white'
+                      : 'w-2 h-2 bg-white/30'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};

@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { useCollections } from "@/hooks/useCollections";
-import { User, History, FolderHeart, Eye, Plus, Trash2, Globe, Lock, Edit3, ChevronRight, Film } from "lucide-react";
+import { User, History, FolderHeart, Eye, Plus, Trash2, Globe, Lock, Edit3, ChevronRight, Film, Share2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { GuestProfileView } from "@/components/profile/GuestProfileView";
 import { ProfileSkeleton, CollectionSkeleton } from "@/components/ui/loading-skeleton";
+import { CollectionShareButton } from "@/components/CollectionShareButton";
 
 const Profile = () => {
   const { profile, user, isLoading: profileLoading, authReady, updateProfile } = useProfile();
@@ -230,7 +231,7 @@ const Profile = () => {
                         >
                           <div className="p-3 space-y-3">
                             {/* Actions */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <span>Visibility:</span>
                                 <Switch
@@ -241,6 +242,15 @@ const Profile = () => {
                                 <span>{collection.is_public ? "Public" : "Private"}</span>
                               </div>
                               <div className="flex-1" />
+                              {collection.is_public && (
+                                <CollectionShareButton
+                                  collectionId={collection.id}
+                                  collectionName={collection.name}
+                                  mood={(collection as any).mood}
+                                  size="sm"
+                                  variant="outline"
+                                />
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
