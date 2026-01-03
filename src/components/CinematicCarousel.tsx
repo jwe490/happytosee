@@ -16,11 +16,15 @@ interface Movie {
 
 interface CinematicCarouselProps {
   movies: Movie[];
-  onMovieSelect: (movie: Movie) => void; // View Details action
+  onMovieSelect: (movie: Movie) => void;
   autoPlayInterval?: number;
 }
 
-export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 5200 }: CinematicCarouselProps) {
+export function CinematicCarousel({
+  movies,
+  onMovieSelect,
+  autoPlayInterval = 6500,
+}: CinematicCarouselProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
@@ -35,12 +39,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
   const interacted = useRef(false);
   const current = list[index];
 
-  // Swipe refs
-  const startX = useRef<number | null>(null);
-  const startY = useRef<number | null>(null);
-  const swiping = useRef(false);
-
-  // Hooks must run before any early return. [web:255]
+  // IMPORTANT: hooks first, no early return before hooks. [web:255][web:292]
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
@@ -58,7 +57,7 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     if (isTransitioning) return;
     setIsTransitioning(true);
     setIndex((p) => (p + dir + total) % total);
-    window.setTimeout(() => setIsTransitioning(false), 420);
+    window.setTimeout(() => setIsTransitioning(false), 720);
   };
 
   const goTo = (i: number) => {
@@ -66,10 +65,9 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     onUserInteract();
     setIsTransitioning(true);
     setIndex(i);
-    window.setTimeout(() => setIsTransitioning(false), 420);
+    window.setTimeout(() => setIsTransitioning(false), 720);
   };
 
-  // Autoplay
   useEffect(() => {
     if (reduceMotion) return;
     if (total <= 1) return;
@@ -83,7 +81,6 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     return () => window.clearInterval(t);
   }, [autoPlayInterval, paused, reduceMotion, total]);
 
-  // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -99,86 +96,46 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
     return () => window.removeEventListener("keydown", onKey);
   }, [isTransitioning, total]);
 
-  // Swipe handlers
-  const SWIPE_X = 45;
-  const SWIPE_Y = 80;
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    onUserInteract();
-    startX.current = e.clientX;
-    startY.current = e.clientY;
-    swiping.current = true;
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!swiping.current || startX.current == null || startY.current == null) return;
-    const dx = e.clientX - startX.current;
-    const dy = e.clientY - startY.current;
-    if (Math.abs(dy) > SWIPE_Y && Math.abs(dy) > Math.abs(dx)) swiping.current = false;
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!swiping.current || startX.current == null || startY.current == null) return;
-    const dx = e.clientX - startX.current;
-    const dy = e.clientY - startY.current;
-
-    swiping.current = false;
-    startX.current = null;
-    startY.current = null;
-
-    if (Math.abs(dy) > SWIPE_Y) return;
-    if (Math.abs(dx) < SWIPE_X) return;
-
-    if (dx < 0) go(1);
-    else go(-1);
-  };
-
   if (!current || total === 0) return null;
 
-  const rawBg = current.backdropUrl || current.posterUrl;
-  const bgImage = tmdbUpgrade(rawBg, "w1280"); // safe HQ upgrade [web:143]
+  const bgImage = current.backdropUrl || current.posterUrl;
 
   return (
     <section
       className="relative w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
       onTouchStart={onUserInteract}
       aria-roledescription="carousel"
       aria-label="Featured movies"
     >
       <div
         className="relative w-full"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        style={{ height: "calc(100vh - 72px)", minHeight: isDesktop ? 760 : 690, maxHeight: 980 }}
+        style={{
+          height: "calc(100vh - 72px)",
+          minHeight: isDesktop ? 760 : 690,
+          maxHeight: 980,
+        }}
       >
-        {/* BACKDROP */}
         <div className="absolute inset-0">
           <img
             key={current.id}
             src={bgImage}
             alt=""
-            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCineFast"}`}
-            style={{ filter: "saturate(1.18) contrast(1.10) brightness(1.12)", transform: "scale(1.035)" }}
-            loading="eager"
-            decoding="async"
+            className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCine"}`}
+            style={{ filter: "saturate(1.08) contrast(1.06)", transform: "scale(1.03)" }}
           />
 
-          {/* Softer overlays */}
           <div
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at 55% 18%, rgba(${dominant},0.24) 0%, rgba(${dominant},0.08) 44%, rgba(0,0,0,0) 74%)`,
+              background: `radial-gradient(ellipse at 50% 18%, rgba(${dominant},0.28) 0%, rgba(${dominant},0.10) 40%, rgba(0,0,0,0) 72%)`,
             }}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.10)_38%,rgba(0,0,0,0.74)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_42%,rgba(0,0,0,0.40)_100%)]" />
-          <div className="absolute inset-0 cinematic-grain opacity-[0.018]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.25)_0%,rgba(0,0,0,0.18)_35%,rgba(0,0,0,0.94)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.62)_100%)]" />
+          <div className="absolute inset-0 cinematic-grain opacity-[0.025]" />
         </div>
 
-        {/* Click hero = View Details */}
         <button
           type="button"
           onClick={() => {
@@ -186,12 +143,11 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
             onMovieSelect(current);
           }}
           className="absolute inset-0 z-10 cursor-pointer"
-          aria-label={`View details for ${current.title}`}
+          aria-label={`Open ${current.title}`}
         >
-          <span className="sr-only">View details</span>
+          <span className="sr-only">Open</span>
         </button>
 
-        {/* Arrows */}
         {total > 1 && (
           <>
             <button
@@ -224,10 +180,9 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
           </>
         )}
 
-        {/* Bottom overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            <div key={`sheet-${current.id}`} className="infoSheetFixed max-w-[920px] lg:max-w-[1040px]">
+            <div key={`sheet-${current.id}`} className="infoSheetFixed max-w-[760px]">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -249,17 +204,8 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
                 {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
               </div>
 
-              {/* SINGLE button only */}
               <div className="ctaRowOne">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onUserInteract();
-                    onMovieSelect(current);
-                  }}
-                  className="ctaGlassPrimary"
-                >
+                <button type="button" onClick={() => onMovieSelect(current)} className="ctaGlassPrimary">
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
                 </button>
@@ -283,11 +229,11 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
                         aria-label={`Go to slide ${i + 1} of ${total}`}
                         aria-current={active ? "true" : "false"}
                         style={{
-                          width: active ? 28 : 7,
-                          height: 7,
+                          width: active ? 26 : 6,
+                          height: 6,
                           borderRadius: 9999,
-                          background: active ? `rgba(${dominant},0.95)` : "rgba(255,255,255,0.28)",
-                          transition: "all 220ms ease",
+                          background: active ? `rgba(${dominant},0.95)` : "rgba(255,255,255,0.30)",
+                          transition: "all 380ms ease",
                         }}
                       />
                     );
@@ -300,124 +246,55 @@ export function CinematicCarousel({ movies, onMovieSelect, autoPlayInterval = 52
       </div>
 
       <style>{`
-        .cinematic-grain{
-          background-image: radial-gradient(rgba(0,0,0,0.7) 1px, transparent 1px);
-          background-size: 3px 3px;
-          mix-blend-mode: overlay;
-          pointer-events: none;
-        }
-        .navArrow{
-          position: absolute; z-index: 30;
-          width: 54px; height: 54px; border-radius: 9999px;
-          display:flex; align-items:center; justify-content:center;
-          color: rgba(255,255,255,0.92);
-          background: rgba(255,255,255,0.14);
-          border: 1px solid rgba(255,255,255,0.20);
+        .cinematic-grain{ background-image: radial-gradient(rgba(0,0,0,0.7) 1px, transparent 1px); background-size: 3px 3px; mix-blend-mode: overlay; pointer-events: none; }
+
+        .navArrow{ position: absolute; z-index: 30; width: 54px; height: 54px; border-radius: 9999px; display:flex; align-items:center; justify-content:center;
+          color: rgba(255,255,255,0.92); background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.20);
           box-shadow: 0 14px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.20);
-          -webkit-backdrop-filter: blur(18px) saturate(140%);
-          backdrop-filter: blur(18px) saturate(140%);
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
-
-        .infoSheetFixed{
-          width: 100%;
-          height: 260px;
-          border-radius: 22px;
-          padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.30);
-          border: 1px solid rgba(255,255,255,0.14);
-          box-shadow: 0 24px 70px rgba(0,0,0,0.55);
-          -webkit-backdrop-filter: blur(18px) saturate(140%);
-          backdrop-filter: blur(18px) saturate(140%);
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-        .badgePill{
-          display:flex; align-items:center; gap:8px;
-          padding: 8px 12px;
-          border-radius: 9999px;
-          background: rgba(255,255,255,0.10);
-          border: 1px solid rgba(255,255,255,0.16);
-          -webkit-backdrop-filter: blur(14px) saturate(140%);
-          backdrop-filter: blur(14px) saturate(140%);
-        }
-        .titleClamp{
-          margin-top: 8px;
-          color: #fff;
-          font-weight: 850;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          font-size: clamp(30px, 3.8vw, 60px);
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .overviewSlot{ height: 52px; margin-top: 6px; }
-        .overviewClamp{
-          color: rgba(255,255,255,0.76);
-          font-size: 16px;
-          line-height: 1.55;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+          -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
         }
 
-        .ctaRowOne{
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-          margin-top: 10px;
+        .infoSheetFixed{ width: 100%; height: 240px; border-radius: 22px; padding: 18px 18px 16px; background: rgba(0,0,0,0.36);
+          border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+          -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+          display: flex; flex-direction: column; justify-content: space-between;
         }
-        .ctaGlassPrimary{
-          height: 50px;
-          width: 100%;
-          border-radius: 9999px;
-          display:flex; align-items:center; justify-content:center; gap:10px;
-          font-weight: 750;
-          font-size: 15px;
-          color: rgba(255,255,255,0.96);
-          background: rgba(255,255,255,0.20);
-          border: 1px solid rgba(255,255,255,0.28);
-          -webkit-backdrop-filter: blur(18px) saturate(170%);
-          backdrop-filter: blur(18px) saturate(170%);
-          box-shadow: 0 18px 46px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.22);
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.24); }
 
-        .dotsBar{
-          display:flex; align-items:center; gap: 10px;
-          padding: 10px 18px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.22);
-          border: 1px solid rgba(255,255,255,0.10);
-          -webkit-backdrop-filter: blur(14px);
-          backdrop-filter: blur(14px);
+        .badgePill{ display:flex; align-items:center; gap: 8px; padding: 8px 12px; border-radius: 9999px; background: rgba(255,255,255,0.10);
+          border: 1px solid rgba(255,255,255,0.16); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+        }
+
+        .titleClamp{ margin-top: 8px; color: #fff; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
+          font-size: clamp(28px, 4.2vw, 56px); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .overviewSlot{ height: 44px; margin-top: 6px; }
+        .overviewClamp{ color: rgba(255,255,255,0.72); font-size: 16px; line-height: 1.55; display: -webkit-box;
+          -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .ctaRowOne{ display:grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+        .ctaGlassPrimary{ height: 48px; width: 100%; border-radius: 9999px; display:flex; align-items:center; justify-content:center; gap: 10px;
+          font-weight: 700; font-size: 15px; color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28);
+          -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); box-shadow: 0 18px 46px rgba(0,0,0,0.34);
+        }
+
+        .dotsBar{ display:flex; align-items:center; gap: 10px; padding: 10px 18px; border-radius: 9999px; background: rgba(0,0,0,0.28);
+          border: 1px solid rgba(255,255,255,0.12); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
         }
 
         @media (prefers-reduced-motion: no-preference){
-          .bgCineFast{ animation: bgEnterFast 420ms cubic-bezier(0.2,0.9,0.2,1); }
-          @keyframes bgEnterFast{
-            from{ opacity: 0; transform: scale(1.06); filter: blur(3px) saturate(1.18) contrast(1.10) brightness(1.12); }
-            to{ opacity: 1; transform: scale(1.035); filter: blur(0px) saturate(1.18) contrast(1.10) brightness(1.12); }
+          .bgCine{ animation: bgEnter 720ms cubic-bezier(0.22,0.61,0.36,1); }
+          @keyframes bgEnter{ from{ opacity: 0; transform: scale(1.07); filter: blur(3px) saturate(1.08) contrast(1.06); }
+            to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.08) contrast(1.06); }
           }
-          .infoSheetFixed{ animation: sheetInFast 360ms cubic-bezier(0.2,0.9,0.2,1); }
-          @keyframes sheetInFast{ from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: translateY(0); } }
         }
 
         @media (max-width: 640px){
-          .infoSheetFixed{ height: 255px; max-width: 760px; }
+          .infoSheetFixed{ height: 255px; }
           .overviewSlot{ display: none; }
-        }
-        @media (min-width: 1024px){
-          .infoSheetFixed{ height: 300px; padding: 22px 22px 18px; }
-          .overviewSlot{ height: 60px; }
         }
       `}</style>
     </section>
   );
-}
+                        }
