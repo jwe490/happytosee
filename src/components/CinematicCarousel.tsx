@@ -40,8 +40,6 @@ export function CinematicCarousel({
   const interacted = useRef(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const navigationQueue = useRef<number[]>([]);
-  const isNavigating = useRef(false);
 
   const current = list[index];
   const nextIndex = (index + 1) % total;
@@ -59,28 +57,12 @@ export function CinematicCarousel({
     setPaused(true);
   };
 
-  const processNavigationQueue = () => {
-    if (isNavigating.current || navigationQueue.current.length === 0) return;
-    
-    isNavigating.current = true;
-    const targetIndex = navigationQueue.current.shift()!;
-    
-    setImageLoaded(false);
-    setIndex(targetIndex);
-    
-    setTimeout(() => {
-      setImageLoaded(true);
-      isNavigating.current = false;
-      processNavigationQueue();
-    }, 50);
-  };
-
   const go = (dir: 1 | -1) => {
     if (total <= 1) return;
     setDirection(dir);
-    const targetIndex = (index + dir + total) % total;
-    navigationQueue.current.push(targetIndex);
-    processNavigationQueue();
+    setImageLoaded(false);
+    setIndex((prev) => (prev + dir + total) % total);
+    setTimeout(() => setImageLoaded(true), 100);
   };
 
   const goTo = (i: number) => {
@@ -88,8 +70,9 @@ export function CinematicCarousel({
     onUserInteract();
     const dir = i > index ? 1 : -1;
     setDirection(dir);
-    navigationQueue.current.push(i);
-    processNavigationQueue();
+    setImageLoaded(false);
+    setIndex(i);
+    setTimeout(() => setImageLoaded(true), 100);
   };
 
   useEffect(() => {
@@ -99,11 +82,14 @@ export function CinematicCarousel({
 
     const t = window.setInterval(() => {
       if (interacted.current) return;
-      go(1);
+      setDirection(1);
+      setImageLoaded(false);
+      setIndex((prev) => (prev + 1) % total);
+      setTimeout(() => setImageLoaded(true), 100);
     }, autoPlayInterval);
 
     return () => window.clearInterval(t);
-  }, [autoPlayInterval, paused, reduceMotion, total, index]);
+  }, [autoPlayInterval, paused, reduceMotion, total]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -120,7 +106,7 @@ export function CinematicCarousel({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [total, index]);
+  }, [total]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -150,6 +136,8 @@ export function CinematicCarousel({
   if (!current || total === 0) return null;
 
   const bgImage = current.backdropUrl || current.posterUrl;
+  const prevMovie = list[prevIndex];
+  const nextMovie = list[nextIndex];
 
   return (
     <section
@@ -170,11 +158,11 @@ export function CinematicCarousel({
           maxHeight: 980,
         }}
       >
-        {/* Enhanced Background Layers */}
+        {/* Enhanced Background */}
         <div className="absolute inset-0">
-          {/* Previous Image (fade out) */}
           <div className="bgImageWrapper">
             <img
+              key={current.id}
               src={bgImage}
               alt=""
               className="bgImage"
@@ -186,7 +174,6 @@ export function CinematicCarousel({
             />
           </div>
 
-          {/* Vibrant Color Overlay */}
           <div
             className="colorGradient"
             style={{
@@ -194,34 +181,17 @@ export function CinematicCarousel({
             }}
           />
 
-          {/* Lighter Bottom Gradient */}
           <div className="bottomGradient" />
           <div className="vignette" />
           <div className="filmGrain" />
         </div>
 
-        {/* Cinematic Poster Showcase (Desktop) */}
+        {/* Cinematic Poster (Desktop) */}
         {isDesktop && (
           <div className="absolute left-20 top-1/2 -translate-y-1/2 z-15 pointer-events-none">
             <div className="relative" style={{ width: "340px", height: "510px" }}>
-              {/* Previous Poster (slide out) */}
-              {!imageLoaded && (
-                <div
-                  className="posterCard"
-                  style={{
-                    animation: direction === 1 ? "slideOutLeft 600ms ease-out forwards" : "slideOutRight 600ms ease-out forwards",
-                  }}
-                >
-                  <img
-                    src={list[direction === 1 ? prevIndex : nextIndex]?.posterUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              {/* Current Poster (slide in) */}
               <div
+                key={current.id}
                 className="posterCard"
                 style={{
                   animation: imageLoaded
@@ -236,7 +206,6 @@ export function CinematicCarousel({
                   src={current.posterUrl}
                   alt={current.title}
                   className="w-full h-full object-cover"
-                  onLoad={() => setImageLoaded(true)}
                 />
                 <div className="posterShine" />
               </div>
@@ -257,7 +226,7 @@ export function CinematicCarousel({
           <span className="sr-only">Open</span>
         </button>
 
-        {/* Always Responsive Navigation Arrows */}
+        {/* Navigation Arrows */}
         {total > 1 && (
           <>
             <button
@@ -283,16 +252,15 @@ export function CinematicCarousel({
               }}
               className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-6 h-6" />
             </button>
           </>
         )}
 
-        {/* Content Sheet with Enhanced Animations */}
+        {/* Content Sheet */}
         <div className="absolute inset-x-0 bottom-0 z-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
             <div key={`sheet-${current.id}`} className="infoSheetFixed">
-              {/* Badges */}
               <div className="badgeRow">
                 <div className="badgePill" style={{ animationDelay: "0ms" }}>
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -308,15 +276,12 @@ export function CinematicCarousel({
                 )}
               </div>
 
-              {/* Title */}
               <h1 className="titleClamp">{current.title}</h1>
 
-              {/* Overview */}
               <div className="overviewSlot">
                 {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
               </div>
 
-              {/* CTA Button */}
               <div className="ctaRowOne">
                 <button type="button" className="ctaGlassPrimary" onClick={() => onMovieSelect(current)}>
                   <Play className="h-4 w-4" fill="currentColor" />
@@ -325,7 +290,6 @@ export function CinematicCarousel({
               </div>
             </div>
 
-            {/* Progress Dots */}
             {total > 1 && (
               <div className="mt-4 flex justify-center">
                 <div className="dotsBar">
@@ -357,7 +321,6 @@ export function CinematicCarousel({
       </div>
 
       <style>{`
-        /* Optimized Background Transitions */
         .bgImageWrapper {
           position: absolute;
           inset: 0;
@@ -372,12 +335,10 @@ export function CinematicCarousel({
           object-fit: cover;
           object-position: center;
           transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), 
-                      opacity 800ms ease-out,
-                      filter 800ms ease-out;
+                      opacity 800ms ease-out;
           will-change: transform, opacity;
         }
 
-        /* Vibrant, Lighter Overlays */
         .colorGradient {
           position: absolute;
           inset: 0;
@@ -419,7 +380,6 @@ export function CinematicCarousel({
           pointer-events: none;
         }
 
-        /* Cinematic Poster Card */
         .posterCard {
           position: absolute;
           inset: 0;
@@ -428,8 +388,7 @@ export function CinematicCarousel({
           box-shadow: 
             0 60px 140px rgba(0,0,0,0.85),
             0 30px 70px rgba(0,0,0,0.6),
-            0 0 100px rgba(255,255,255,0.08),
-            inset 0 1px 0 rgba(255,255,255,0.1);
+            0 0 100px rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.12);
         }
 
@@ -453,7 +412,6 @@ export function CinematicCarousel({
           50% { transform: translateX(100%) translateY(100%); }
         }
 
-        /* Poster Slide Animations */
         @keyframes slideInFromRight {
           0% {
             opacity: 0;
@@ -476,29 +434,6 @@ export function CinematicCarousel({
           }
         }
 
-        @keyframes slideOutLeft {
-          0% {
-            opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(-80px) scale(0.92) rotateY(-15deg);
-          }
-        }
-
-        @keyframes slideOutRight {
-          0% {
-            opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(80px) scale(0.92) rotateY(15deg);
-          }
-        }
-
-        /* Always Responsive Navigation */
         .navArrow {
           position: absolute;
           z-index: 30;
@@ -529,7 +464,6 @@ export function CinematicCarousel({
           transition: all 100ms ease;
         }
 
-        /* Info Sheet */
         .infoSheetFixed {
           width: 100%;
           height: 230px;
@@ -654,4 +588,79 @@ export function CinematicCarousel({
           justify-content: center;
           gap: 10px;
           font-weight: 700;
-          font-size: 15
+          font-size: 15px;
+          color: rgba(255,255,255,0.97);
+          background: rgba(255,255,255,0.22);
+          border: 1px solid rgba(255,255,255,0.34);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+          transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+          cursor: pointer;
+          animation: buttonPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms forwards;
+          opacity: 0;
+        }
+
+        @keyframes buttonPop {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .ctaGlassPrimary:hover {
+          background: rgba(255,255,255,0.30);
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+        }
+
+        .ctaGlassPrimary:active {
+          transform: translateY(0) scale(0.98);
+          transition: all 100ms ease;
+        }
+
+        .dotsBar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 20px;
+          border-radius: 9999px;
+          background: rgba(0,0,0,0.30);
+          border: 1px solid rgba(255,255,255,0.14);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+        }
+
+        .dotButton {
+          height: 6px;
+          border-radius: 9999px;
+          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+          cursor: pointer;
+          border: none;
+          padding: 0;
+        }
+
+        .dotButton:hover {
+          transform: scale(1.4);
+          opacity: 1;
+        }
+
+        @media (max-width: 1024px) {
+          .posterCard {
+            display: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .infoSheetFixed {
+            height: 225px;
+          }
+          .overviewSlot {
+            display: none;
+          }
+   
