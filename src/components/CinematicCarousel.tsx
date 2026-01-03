@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { extractDominantColor } from "@/utils/colorExtractor";
@@ -20,403 +20,406 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-export const CinematicCarousel = ({
+export function CinematicCarousel({
   movies,
   onMovieSelect,
-  autoPlayInterval = 5000,
-}: CinematicCarouselProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [dominantColor, setDominantColor] = useState("220, 38, 38");
+  autoPlayInterval = 6000,
+}: CinematicCarouselProps) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+
+  const [index, setIndex] = useState(0);
+  const [dominant, setDominant] = useState("59, 130, 246"); // fallback blue
+  const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const currentMovie = movies[currentIndex];
+  const interactingRef = useRef(false);
+  const current = movies?.[index];
+
+  const safeMovies = useMemo(() => (movies ?? []).filter(Boolean), [movies]);
+  const total = safeMovies.length;
 
   useEffect(() => {
-    if (currentMovie?.posterUrl) {
-      extractDominantColor(currentMovie.posterUrl)
-        .then((color) => setDominantColor(color))
-        .catch(() => setDominantColor("220, 38, 38"));
-    }
-  }, [currentMovie]);
+    if (!current?.posterUrl) return;
+    extractDominantColor(current.posterUrl)
+      .then((c) => setDominant(c))
+      .catch(() => setDominant("59, 130, 246"));
+  }, [current?.posterUrl]);
 
+  // Autoplay: pause on any interaction + respect reduced motion
   useEffect(() => {
-    if (movies.length <= 1) return;
-    const interval = setInterval(() => {
-      goToNext();
+    if (reduceMotion) return;
+    if (total <= 1) return;
+    if (paused) return;
+
+    const t = window.setInterval(() => {
+      if (interactingRef.current) return;
+      go(1);
     }, autoPlayInterval);
-    return () => clearInterval(interval);
-  }, [movies.length, autoPlayInterval, currentIndex]);
 
-  const goToNext = () => {
+    return () => window.clearInterval(t);
+  }, [autoPlayInterval, paused, reduceMotion, total]);
+
+  const go = (dir: 1 | -1) => {
+    if (total <= 1) return;
     if (isTransitioning) return;
     setIsTransitioning(true);
-    setCurrentIndex((prev) => (prev + 1) % movies.length);
-    setTimeout(() => setIsTransitioning(false), 600);
+    setIndex((prev) => (prev + dir + total) % total);
+    window.setTimeout(() => setIsTransitioning(false), 650);
   };
 
-  const goToPrevious = () => {
+  const goTo = (i: number) => {
+    if (i === index) return;
     if (isTransitioning) return;
     setIsTransitioning(true);
-    setCurrentIndex((prev) => (prev - 1 + movies.length) % movies.length);
-    setTimeout(() => setIsTransitioning(false), 600);
+    setIndex(i);
+    window.setTimeout(() => setIsTransitioning(false), 650);
   };
 
-  const goToSlide = (index: number) => {
-    if (isTransitioning || index === currentIndex) return;
-    setIsTransitioning(true);
-    setCurrentIndex(index);
-    setTimeout(() => setIsTransitioning(false), 600);
+  const onUserInteract = () => {
+    interactingRef.current = true;
+    setPaused(true); // permanently pause after interaction (your requirement)
   };
 
-  if (!currentMovie || movies.length === 0) return null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        onUserInteract();
+        go(-1);
+      }
+      if (e.key === "ArrowRight") {
+        onUserInteract();
+        go(1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [total, isTransitioning]);
+
+  if (!current || total === 0) return null;
+
+  // helpers for desktop preview cards
+  const prevIdx = (index - 1 + total) % total;
+  const nextIdx = (index + 1) % total;
 
   return (
-    <section className="relative w-full bg-black">
-      {/* DESKTOP - Netflix Style Split Layout */}
-      {isDesktop ? (
-        <div className="relative w-full" style={{ height: "calc(100vh - 80px)", minHeight: "650px", maxHeight: "850px" }}>
-          {/* Animated Background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div
-              key={currentMovie.id}
-              className="absolute inset-0 transition-opacity duration-1000"
-            >
-              <img
-                src={currentMovie.backdropUrl || currentMovie.posterUrl}
-                alt=""
-                className="w-full h-full object-cover"
-                style={{ filter: "blur(60px) brightness(0.3)" }}
+    <section
+      className="relative w-full bg-[#FAFAFA] overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onTouchStart={onUserInteract}
+      aria-roledescription="carousel"
+      aria-label="Featured movies"
+    >
+      {/* Ambient cinematic backdrop (blurred active backdrop/poster) */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(ellipse at 50% 20%, rgba(${dominant},0.18) 0%, rgba(${dominant},0.08) 35%, rgba(250,250,250,1) 100%)`,
+          }}
+        />
+        <img
+          key={current.id}
+          src={current.backdropUrl || current.posterUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            filter: "blur(80px) brightness(0.45) saturate(1.2)",
+            transform: "scale(1.08)",
+          }}
+        />
+        {/* vignette */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.10) 100%)",
+          }}
+        />
+        {/* subtle grain */}
+        <div className="absolute inset-0 cinematic-grain opacity-[0.03]" />
+      </div>
+
+      {/* Layout wrapper */}
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 py-10 lg:py-14">
+        {/* Carousel stage */}
+        <div className="relative mx-auto h-[520px] lg:h-[620px] flex items-center justify-center">
+          {/* Arrows (always visible) */}
+          <button
+            type="button"
+            onClick={() => {
+              onUserInteract();
+              go(-1);
+            }}
+            disabled={isTransitioning}
+            className="glass-arrow absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-20 disabled:opacity-50"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              onUserInteract();
+              go(1);
+            }}
+            disabled={isTransitioning}
+            className="glass-arrow absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-20 disabled:opacity-50"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+
+          {/* Desktop side previews (subtle) */}
+          {isDesktop && total > 1 && (
+            <>
+              <PosterPreview
+                movie={safeMovies[prevIdx]}
+                side="left"
+                dominant={dominant}
               />
+              <PosterPreview
+                movie={safeMovies[nextIdx]}
+                side="right"
+                dominant={dominant}
+              />
+            </>
+          )}
+
+          {/* Active card */}
+          <div className="relative z-10 w-[300px] h-[460px] sm:w-[340px] sm:h-[520px] lg:w-[360px] lg:h-[540px] rounded-[20px] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+            {/* Poster */}
+            <img
+              key={current.id}
+              src={current.posterUrl}
+              alt={current.title}
+              className={`absolute inset-0 w-full h-full object-cover ${
+                reduceMotion ? "" : "kenburns"
+              }`}
+              draggable={false}
+              onPointerDown={onUserInteract}
+            />
+
+            {/* cinematic bottom gradient */}
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.10)_35%,rgba(0,0,0,0.92)_100%)]" />
+
+            {/* subtle glass border */}
+            <div className="absolute inset-0 pointer-events-none border border-white/25" />
+
+            {/* Badges (glass) */}
+            <div className="absolute top-5 left-5 z-10 flex flex-col gap-2">
+              <div className="badge-glass flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
+                <span className="text-white font-semibold text-sm">
+                  {current.rating.toFixed(1)}
+                </span>
+              </div>
+              <div className="badge-glass">
+                <span className="text-white/90 font-medium text-sm">
+                  {current.year}
+                </span>
+              </div>
+              {current.genre && (
+                <div className="badge-glass">
+                  <span className="text-white/90 font-medium text-sm">
+                    {current.genre.split(",")[0].trim()}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Bottom content */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-5 sm:p-6">
+              <h3 className="text-white font-extrabold text-[22px] sm:text-[24px] leading-[1.15] tracking-[-0.01em] drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)]">
+                {current.title}
+              </h3>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUserInteract();
+                    onMovieSelect(current);
+                  }}
+                  className="glass-cta w-full h-12 rounded-full flex items-center justify-center gap-2 text-[15px] font-semibold text-slate-900"
+                  aria-label={`View details for ${current.title}`}
+                >
+                  <Play className="h-4 w-4" fill="currentColor" />
+                  View Details
+                </button>
+              </div>
+            </div>
+
+            {/* Ambient glow under active card */}
             <div
-              className="absolute inset-0 transition-all duration-1000"
+              className="pointer-events-none absolute -bottom-10 left-[10%] right-[10%] h-24 blur-[48px] opacity-70"
               style={{
-                background: `linear-gradient(90deg, rgba(0,0,0,0.98) 0%, rgba(${dominantColor},0.08) 50%, rgba(0,0,0,0.98) 100%)`,
+                background: `radial-gradient(ellipse, rgba(${dominant},0.35) 0%, rgba(${dominant},0.10) 45%, transparent 70%)`,
               }}
             />
           </div>
-
-          {/* Content Container */}
-          <div className="relative h-full max-w-[1600px] mx-auto px-20 flex items-center">
-            <div className="grid grid-cols-5 gap-16 items-center w-full">
-              
-              {/* LEFT SIDE - Poster (2 columns) */}
-              <div className="col-span-2 flex items-center justify-end">
-                <div
-                  key={`poster-${currentMovie.id}`}
-                  className="relative group cursor-pointer"
-                  onClick={() => onMovieSelect(currentMovie)}
-                  style={{
-                    width: "380px",
-                    height: "570px",
-                    animation: "fadeIn 0.6s ease-out",
-                  }}
-                >
-                  <div
-                    className="relative w-full h-full rounded-2xl overflow-hidden"
-                    style={{
-                      boxShadow: `0 60px 120px rgba(0,0,0,0.9), 0 0 100px rgba(${dominantColor},0.5)`,
-                    }}
-                  >
-                    <img
-                      src={currentMovie.posterUrl}
-                      alt={currentMovie.title}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                      <div
-                        className="w-24 h-24 rounded-full flex items-center justify-center backdrop-blur-xl"
-                        style={{
-                          background: "rgba(255,255,255,0.25)",
-                          border: "2px solid rgba(255,255,255,0.4)",
-                        }}
-                      >
-                        <Play className="w-12 h-12 text-white ml-2" fill="white" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT SIDE - Movie Info (3 columns) */}
-              <div
-                key={`info-${currentMovie.id}`}
-                className="col-span-3 space-y-8 pl-8"
-                style={{
-                  animation: "slideInRight 0.6s ease-out",
-                }}
-              >
-                {/* Badges */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full"
-                    style={{
-                      background: "rgba(255,215,0,0.15)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,215,0,0.35)",
-                    }}
-                  >
-                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                    <span className="text-yellow-400 font-bold text-lg">
-                      {currentMovie.rating.toFixed(1)}
-                    </span>
-                  </div>
-
-                  <div
-                    className="px-5 py-2.5 rounded-full text-white/90 font-semibold text-base"
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                    }}
-                  >
-                    {currentMovie.year}
-                  </div>
-
-                  {currentMovie.genre && (
-                    <div
-                      className="px-5 py-2.5 rounded-full text-white/90 font-semibold text-base"
-                      style={{
-                        background: "rgba(255,255,255,0.12)",
-                        backdropFilter: "blur(20px)",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                      }}
-                    >
-                      {currentMovie.genre.split(",")[0].trim()}
-                    </div>
-                  )}
-                </div>
-
-                {/* Title */}
-                <h1
-                  className="font-bold text-white leading-[1.1]"
-                  style={{
-                    fontSize: "clamp(3rem, 5vw, 5rem)",
-                    letterSpacing: "-0.03em",
-                    textShadow: "0 8px 32px rgba(0,0,0,0.9)",
-                  }}
-                >
-                  {currentMovie.title}
-                </h1>
-
-                {/* Overview */}
-                {currentMovie.overview && (
-                  <p className="text-xl text-white/75 leading-relaxed max-w-2xl line-clamp-3">
-                    {currentMovie.overview}
-                  </p>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-4 pt-2">
-                  <button
-                    onClick={() => onMovieSelect(currentMovie)}
-                    className="flex items-center gap-3 px-12 py-4 rounded-full font-bold text-lg transition-all hover:scale-105 active:scale-95"
-                    style={{
-                      background: "white",
-                      color: "black",
-                      boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
-                    }}
-                  >
-                    <Play className="w-6 h-6" fill="black" />
-                    Play Now
-                  </button>
-
-                  <button
-                    className="px-10 py-4 rounded-full font-semibold text-white text-lg transition-all hover:bg-white/25"
-                    style={{
-                      background: "rgba(255,255,255,0.18)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,255,255,0.25)",
-                    }}
-                  >
-                    More Info
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation Arrows */}
-            <button
-              onClick={goToPrevious}
-              disabled={isTransitioning}
-              className="absolute left-8 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:scale-110 transition-all disabled:opacity-50 z-30"
-              style={{
-                background: "rgba(0,0,0,0.6)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}
-            >
-              <ChevronLeft className="w-8 h-8" />
-            </button>
-
-            <button
-              onClick={goToNext}
-              disabled={isTransitioning}
-              className="absolute right-8 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:scale-110 transition-all disabled:opacity-50 z-30"
-              style={{
-                background: "rgba(0,0,0,0.6)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}
-            >
-              <ChevronRight className="w-8 h-8" />
-            </button>
-          </div>
-
-          {/* Progress Dots */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 z-30">
-            {movies.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                disabled={isTransitioning}
-                className="rounded-full transition-all hover:scale-125 disabled:opacity-50"
-                style={{
-                  width: index === currentIndex ? "48px" : "10px",
-                  height: "4px",
-                  background:
-                    index === currentIndex
-                      ? `rgb(${dominantColor})`
-                      : "rgba(255,255,255,0.35)",
-                }}
-              />
-            ))}
-          </div>
         </div>
-      ) : (
-        /* MOBILE - Clean Portrait Layout */
-        <div className="relative w-full min-h-screen bg-black py-4">
-          <div
-            className="absolute inset-0 transition-opacity duration-1000"
-            style={{
-              background: `radial-gradient(circle at top, rgba(${dominantColor},0.25), rgba(0,0,0,0.98))`,
-            }}
-          />
 
-          <div className="relative h-full flex flex-col items-center justify-center px-5 py-12 space-y-6">
-            {/* Poster Card */}
-            <div
-              key={`mobile-${currentMovie.id}`}
-              className="relative"
-              style={{
-                width: "min(90vw, 360px)",
-                height: "min(135vw, 540px)",
-                animation: "fadeIn 0.5s ease-out",
-              }}
-            >
-              <div
-                className="relative w-full h-full rounded-3xl overflow-hidden"
-                style={{
-                  boxShadow: `0 50px 100px rgba(0,0,0,0.9), 0 0 80px rgba(${dominantColor},0.4)`,
-                }}
-              >
-                <img
-                  src={currentMovie.posterUrl}
-                  alt={currentMovie.title}
-                  className="w-full h-full object-cover"
-                />
-
-                {/* Bottom Gradient */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: "linear-gradient(to top, rgba(0,0,0,0.98) 0%, transparent 60%)",
-                  }}
-                />
-
-                {/* Top Badges */}
-                <div className="absolute top-6 left-6 flex gap-2.5">
-                  <div
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-full"
-                    style={{
-                      background: "rgba(255,215,0,0.2)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,215,0,0.4)",
-                    }}
-                  >
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span className="text-yellow-400 text-sm font-bold">
-                      {currentMovie.rating.toFixed(1)}
-                    </span>
-                  </div>
-
-                  <div
-                    className="px-3.5 py-2 rounded-full text-white text-sm font-medium"
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                    }}
-                  >
-                    {currentMovie.year}
-                  </div>
-                </div>
-
-                {/* Bottom Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-7 space-y-5">
-                  <h2 className="text-4xl font-bold text-white leading-tight">
-                    {currentMovie.title}
-                  </h2>
-
-                  {currentMovie.genre && (
-                    <p className="text-white/70 text-base">
-                      {currentMovie.genre.split(",")[0].trim()}
-                    </p>
-                  )}
-
+        {/* Dots (outside carousel, on page surface) */}
+        {total > 1 && (
+          <div className="mt-6 flex justify-center">
+            <div className="dots-surface flex items-center gap-2.5 px-4 py-2 rounded-full">
+              {safeMovies.map((m, i) => {
+                const active = i === index;
+                return (
                   <button
-                    onClick={() => onMovieSelect(currentMovie)}
-                    className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3"
-                    style={{
-                      background: "white",
-                      color: "black",
-                      boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      onUserInteract();
+                      goTo(i);
                     }}
-                  >
-                    <Play className="w-5 h-5" fill="black" />
-                    Watch Now
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Dots */}
-            <div className="flex items-center gap-2.5 pt-4">
-              {movies.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  disabled={isTransitioning}
-                  className="rounded-full transition-all disabled:opacity-50"
-                  style={{
-                    width: index === currentIndex ? "40px" : "8px",
-                    height: "4px",
-                    background:
-                      index === currentIndex
-                        ? `rgb(${dominantColor})`
-                        : "rgba(255,255,255,0.35)",
-                  }}
-                />
-              ))}
+                    disabled={isTransitioning}
+                    aria-label={`Go to slide ${i + 1} of ${total}`}
+                    aria-current={active ? "true" : "false"}
+                    className="disabled:opacity-50"
+                    style={{
+                      width: active ? 22 : 6,
+                      height: 6,
+                      borderRadius: 9999,
+                      background: active
+                        ? `rgba(${dominant},0.95)`
+                        : "rgba(148,163,184,0.65)",
+                      transition: "all 400ms ease",
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      {/* component styles (scoped) */}
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+        /* subtle grain (simple CSS noise substitute); replace with real noise png if you have one */
+        .cinematic-grain {
+          background-image:
+            radial-gradient(rgba(0,0,0,0.65) 1px, transparent 1px);
+          background-size: 3px 3px;
+          mix-blend-mode: overlay;
         }
-        
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(40px); }
-          to { opacity: 1; transform: translateX(0); }
+
+        .glass-arrow{
+          width: 56px;
+          height: 56px;
+          border-radius: 9999px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color: rgba(15,23,42,0.92);
+          background: rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.28);
+          box-shadow: 0 10px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.45);
+          -webkit-backdrop-filter: blur(20px) saturate(150%);
+          backdrop-filter: blur(20px) saturate(150%);
+          transition: transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
+        }
+        .glass-arrow:hover{
+          transform: translateY(-50%) scale(1.06);
+          background: rgba(255,255,255,0.26);
+          box-shadow: 0 14px 34px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.55);
+        }
+        /* keep hover transform correct (button already translated by utility classes) */
+        .glass-arrow:hover{ transform: scale(1.06); }
+
+        .badge-glass{
+          width: fit-content;
+          padding: 8px 12px;
+          border-radius: 9999px;
+          background: rgba(0,0,0,0.35);
+          border: 1px solid rgba(255,255,255,0.16);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.20);
+          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          backdrop-filter: blur(16px) saturate(150%);
+        }
+
+        .glass-cta{
+          background: rgba(255,255,255,0.22);
+          border: 1px solid rgba(255,255,255,0.35);
+          box-shadow: 0 10px 26px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.55);
+          -webkit-backdrop-filter: blur(16px) saturate(180%);
+          backdrop-filter: blur(16px) saturate(180%);
+          transition: transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
+        }
+        .glass-cta:hover{
+          transform: translateY(-1px);
+          background: rgba(255,255,255,0.30);
+          box-shadow: 0 14px 34px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.60);
+        }
+
+        .dots-surface{
+          background: rgba(0,0,0,0.06);
+          border: 1px solid rgba(0,0,0,0.08);
+          -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+        }
+
+        @media (max-width: 640px){
+          .glass-arrow{ width: 48px; height: 48px; }
+        }
+
+        /* Minimal Ken Burns only when user allows motion */
+        @media (prefers-reduced-motion: no-preference){
+          .kenburns{
+            animation: kenburns 12s ease-out infinite alternate;
+          }
+          @keyframes kenburns{
+            from{ transform: scale(1); }
+            to{ transform: scale(1.015); }
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce){
+          .kenburns{ animation: none !important; }
         }
       `}</style>
     </section>
   );
-};
+}
+
+function PosterPreview({
+  movie,
+  side,
+  dominant,
+}: {
+  movie: Movie;
+  side: "left" | "right";
+  dominant: string;
+}) {
+  const isLeft = side === "left";
+  return (
+    <div
+      className="absolute top-1/2 -translate-y-1/2 z-0 pointer-events-none"
+      style={{
+        left: isLeft ? "calc(50% - 420px)" : undefined,
+        right: !isLeft ? "calc(50% - 420px)" : undefined,
+      }}
+      aria-hidden="true"
+    >
+      <div
+        className="relative w-[260px] h-[390px] rounded-[18px] overflow-hidden"
+        style={{
+          transform: `translateX(${isLeft ? "-10px" : "10px"}) scale(0.88)`,
+          opacity: 0.25,
+          filter: "blur(1px) brightness(0.75)",
+          boxShadow: `0 18px 60px rgba(0,0,0,0.18), 0 0 80px rgba(${dominant},0.10)`,
+        }}
+      >
+        <img
+          src={movie.posterUrl}
+          alt=""
+          className="w-full h-full object-cover"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-black/10" />
+      </div>
+    </div>
+  );
+}
