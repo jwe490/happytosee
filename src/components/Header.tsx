@@ -79,7 +79,7 @@ const Header = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleNavigation("/")}
-              className={location.pathname === "/" ? "text-primary" : ""}
+              className={location.pathname === "/mood-share" ? "text-primary" : ""}
             >
               Home
             </Button>
