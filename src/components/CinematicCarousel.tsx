@@ -1,561 +1,541 @@
-<!-- COMPLETE GLASSMORPHIC CINEMATIC CAROUSEL -->
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, useMotionValue, useSpring, PanInfo } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-mobile";
+import { extractDominantColor } from "@/utils/colorExtractor";
+import { FilmGrain } from "./FilmGrain";
 
-<section class="cinematic-carousel-section">
-  <!-- Cinematic Background with Color Extraction -->
-  <div class="cinematic-background" id="cinematicBg"></div>
-  
-  <!-- Vignette Overlay -->
-  <div class="vignette-overlay"></div>
-  
-  <!-- Edge Fade (Letterbox) -->
-  <div class="letterbox-mask"></div>
-  
-  <!-- Carousel Container -->
-  <div class="carousel-wrapper">
-    <div class="cards-container" id="cardsContainer">
-      
-      <!-- Movie Card (Repeat for each) -->
-      <div class="movie-card" data-color="59,130,246">
-        <!-- Poster -->
-        <img src="poster.jpg" alt="Movie" class="poster-img">
-        
-        <!-- Glass Container Effect -->
-        <div class="glass-container"></div>
-        
-        <!-- Gradient Overlay -->
-        <div class="dark-gradient"></div>
-        
-        <!-- Glassmorphic Badges -->
-        <div class="badge-group">
-          <div class="rating-badge-glass">
-            <span class="star-icon">⭐</span>
-            <span>7.2</span>
-          </div>
-          <div class="year-badge-glass">2025</div>
-          <div class="genre-badge-glass">Thriller</div>
-        </div>
-        
-        <!-- Movie Info -->
-        <div class="movie-details">
-          <h3 class="movie-title-text">Wake Up Dead Man: A Knives Out Mystery</h3>
-          <button class="glass-button">View Details</button>
-        </div>
-        
-        <!-- Ambient Glow -->
-        <div class="ambient-glow"></div>
-      </div>
-      
-    </div>
-    
-    <!-- Glassmorphic Navigation Arrows -->
-    <button class="glass-arrow left-arrow" id="prevArrow">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M15 18L9 12L15 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    
-    <button class="glass-arrow right-arrow" id="nextArrow">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M9 18L15 12L9 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </div>
-  
-  <!-- Dots Navigation -->
-  <div class="dots-container" id="dotsNav"></div>
-</section>
-
-<style>
-/* Cinematic Section */
-.cinematic-carousel-section {
-  position: relative;
-  width: 100%;
-  min-height: 640px;
-  padding: 60px 0 100px;
-  overflow: hidden;
-  background: #FAFAFA;
+interface Movie {
+  id: number;
+  title: string;
+  overview?: string;
+  posterUrl: string;
+  backdropUrl?: string;
+  rating: number;
+  year: number;
+  genre?: string;
 }
 
-/* Dynamic Cinematic Background */
-.cinematic-background {
-  position: absolute;
-  inset: -100px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(59, 130, 246, 0.12) 0%,
-    rgba(59, 130, 246, 0.08) 40%,
-    rgba(59, 130, 246, 0.03) 70%,
-    #FAFAFA 100%
-  );
-  backdrop-filter: blur(80px);
-  transition: background 1000ms ease;
-  z-index: 0;
+interface CinematicCarouselProps {
+  movies: Movie[];
+  onMovieSelect: (movie: Movie) => void;
+  autoPlayInterval?: number;
 }
 
-/* Vignette Overlay */
-.vignette-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 50%,
-    rgba(0, 0, 0, 0.08) 100%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
+export const CinematicCarousel = ({
+  movies,
+  onMovieSelect,
+  autoPlayInterval = 6000,
+}: CinematicCarouselProps) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [dominantColor, setDominantColor] = useState("15, 15, 15");
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-/* Letterbox Edge Fade */
-.letterbox-mask {
-  position: absolute;
-  inset: 0;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 2;
-}
+  const dragX = useMotionValue(0);
+  const dragXSpring = useSpring(dragX, { stiffness: 300, damping: 30 });
 
-/* Carousel Wrapper */
-.carousel-wrapper {
-  position: relative;
-  max-width: 420px;
-  height: 540px;
-  margin: 0 auto;
-  z-index: 3;
-}
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const containerHeight = isMobile ? "480px" : "560px";
+  const cardWidth = isMobile ? 280 : 320;
+  const cardHeight = isMobile ? 420 : 480;
 
-/* Cards Container */
-.cards-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
+  const currentMovie = movies[currentIndex];
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
-/* Movie Card */
-.movie-card {
-  position: absolute;
-  width: 320px;
-  height: 480px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 20px;
-  overflow: hidden;
-  transition: all 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  will-change: transform, opacity;
-}
-
-/* Card States */
-.movie-card.active {
-  z-index: 10;
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-  filter: brightness(1) blur(0);
-}
-
-.movie-card.inactive {
-  z-index: 5;
-  opacity: 0.3;
-  transform: translate(-50%, -50%) scale(0.88);
-  filter: brightness(0.6) blur(1px);
-  pointer-events: none;
-}
-
-.movie-card.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Poster Image */
-.poster-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 1;
-}
-
-/* Ken Burns Animation */
-.movie-card.active .poster-img {
-  animation: kenBurnsEffect 12s ease-out infinite alternate;
-}
-
-@keyframes kenBurnsEffect {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.015); }
-}
-
-/* Glass Container Effect */
-.glass-container {
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px) saturate(120%);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* Dark Gradient Overlay */
-.dark-gradient {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 75%;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.1) 30%,
-    rgba(0, 0, 0, 0.92) 100%
-  );
-  pointer-events: none;
-  z-index: 3;
-}
-
-/* Badge Group */
-.badge-group {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 4;
-}
-
-/* Glassmorphic Rating Badge */
-.rating-badge-glass {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  font-size: 15px;
-  font-weight: 600;
-  color: #FFFFFF;
-  width: fit-content;
-}
-
-.star-icon {
-  font-size: 14px;
-}
-
-/* Year Badge */
-.year-badge-glass {
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #FFFFFF;
-  width: fit-content;
-}
-
-/* Genre Badge */
-.genre-badge-glass {
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #FFFFFF;
-  width: fit-content;
-}
-
-/* Movie Details */
-.movie-details {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20px;
-  z-index: 4;
-}
-
-/* Movie Title */
-.movie-title-text {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  color: #FFFFFF;
-  margin: 0 0 16px 0;
-  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
-}
-
-/* Glassmorphic Button */
-.glass-button {
-  width: 100%;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1F2937;
-  cursor: pointer;
-  transition: all 250ms ease;
-  box-shadow: 
-    0 8px 24px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-.glass-button:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-}
-
-.glass-button:active {
-  transform: translateY(0);
-}
-
-/* Ambient Glow */
-.ambient-glow {
-  position: absolute;
-  bottom: -50px;
-  left: 10%;
-  right: 10%;
-  height: 100px;
-  background: radial-gradient(
-    ellipse,
-    rgba(59, 130, 246, 0.3) 0%,
-    transparent 70%
-  );
-  filter: blur(50px);
-  opacity: 0;
-  transition: opacity 600ms ease;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.movie-card.active .ambient-glow {
-  opacity: 1;
-}
-
-/* Glassmorphic Navigation Arrows */
-.glass-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 28px;
-  cursor: pointer;
-  color: #1F2937;
-  transition: all 250ms ease;
-  box-shadow: 
-    0 8px 24px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  z-index: 20;
-}
-
-.glass-arrow.left-arrow {
-  left: 24px;
-}
-
-.glass-arrow.right-arrow {
-  right: 24px;
-}
-
-.glass-arrow:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-50%) scale(1.08);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-}
-
-.glass-arrow:active {
-  transform: translateY(-50%) scale(0.96);
-}
-
-/* Dots Container */
-.dots-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 32px;
-  padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 24px;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.nav-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background: #D1D5DB;
-  cursor: pointer;
-  transition: all 400ms ease;
-}
-
-.nav-dot.active {
-  width: 20px;
-  background: #1F2937;
-}
-
-/* Mobile Responsive */
-@media (max-width: 640px) {
-  .carousel-wrapper {
-    height: 500px;
-  }
-  
-  .movie-card {
-    width: 280px;
-    height: 420px;
-  }
-  
-  .glass-arrow {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .glass-arrow.left-arrow {
-    left: 16px;
-  }
-  
-  .glass-arrow.right-arrow {
-    right: 16px;
-  }
-  
-  .movie-title-text {
-    font-size: 20px;
-  }
-}
-</style>
-
-<script>
-let currentIdx = 0;
-const movieCards = document.querySelectorAll('.movie-card');
-const totalMovies = movieCards.length;
-const dotsNav = document.getElementById('dotsNav');
-const bgElement = document.getElementById('cinematicBg');
-
-// Generate Dots
-function createDots() {
-  for (let i = 0; i < totalMovies; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'nav-dot';
-    if (i === 0) dot.classList.add('active');
-    dot.onclick = () => goTo(i);
-    dotsNav.appendChild(dot);
-  }
-}
-
-// Update Carousel
-function updateView() {
-  movieCards.forEach((card, idx) => {
-    card.classList.remove('active', 'inactive', 'hidden');
-    
-    if (idx === currentIdx) {
-      card.classList.add('active');
-      updateBackground(card);
-    } else {
-      card.classList.add('inactive');
+  useEffect(() => {
+    if (currentMovie?.posterUrl) {
+      setIsImageLoaded(false);
+      extractDominantColor(currentMovie.posterUrl).then((color) => {
+        setDominantColor(color);
+      });
     }
-  });
-  
-  // Update dots
-  document.querySelectorAll('.nav-dot').forEach((dot, idx) => {
-    dot.classList.toggle('active', idx === currentIdx);
-  });
-}
+  }, [currentMovie?.posterUrl]);
 
-// Update Background Color
-function updateBackground(card) {
-  const color = card.dataset.color || '59,130,246';
-  bgElement.style.background = `radial-gradient(
-    ellipse at center,
-    rgba(${color}, 0.12) 0%,
-    rgba(${color}, 0.08) 40%,
-    rgba(${color}, 0.03) 70%,
-    #FAFAFA 100%
-  )`;
-  
-  // Update ambient glow
-  const glow = card.querySelector('.ambient-glow');
-  if (glow) {
-    glow.style.background = `radial-gradient(ellipse, rgba(${color}, 0.3) 0%, transparent 70%)`;
-  }
-}
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % movies.length);
+  }, [movies.length]);
 
-// Navigation
-function next() {
-  currentIdx = (currentIdx + 1) % totalMovies;
-  updateView();
-}
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + movies.length) % movies.length);
+  }, [movies.length]);
 
-function prev() {
-  currentIdx = (currentIdx - 1 + totalMovies) % totalMovies;
-  updateView();
-}
+  const goToSlide = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
 
-function goTo(idx) {
-  currentIdx = idx;
-  updateView();
-}
+  useEffect(() => {
+    if (!isAutoPlaying || movies.length <= 1 || isHovered) return;
 
-// Event Listeners
-document.getElementById('nextArrow').onclick = next;
-document.getElementById('prevArrow').onclick = prev;
+    const interval = setInterval(goToNext, autoPlayInterval);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, goToNext, autoPlayInterval, movies.length, isHovered]);
 
-// Touch Swipe
-let startX = 0;
-document.querySelector('.cards-container').addEventListener('touchstart', e => {
-  startX = e.touches[0].clientX;
-});
+  const handleInteraction = () => {
+    setIsAutoPlaying(false);
+    setTimeout(() => setIsAutoPlaying(true), 10000);
+  };
 
-document.querySelector('.cards-container').addEventListener('touchend', e => {
-  const endX = e.changedTouches[0].clientX;
-  if (startX - endX > 50) next();
-  if (endX - startX > 50) prev();
-});
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const threshold = 50;
 
-// Keyboard
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight') next();
-  if (e.key === 'ArrowLeft') prev();
-});
+    if (info.offset.x > threshold) {
+      goToPrevious();
+      handleInteraction();
+    } else if (info.offset.x < -threshold) {
+      goToNext();
+      handleInteraction();
+    }
 
-// Initialize
-createDots();
-updateView();
-</script>
+    dragX.set(0);
+  };
+
+  if (!currentMovie || movies.length === 0) return null;
+
+  return (
+    <section
+      className="relative w-full overflow-hidden"
+      style={{
+        height: containerHeight,
+        cursor: 'grab',
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <motion.div
+        key={`bg-${currentMovie.id}`}
+        className="absolute inset-0 -z-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2, ease: "easeInOut" }}
+        style={{
+          background: `radial-gradient(ellipse at center, rgba(${dominantColor}, 0.15) 0%, rgba(${dominantColor}, 0.05) 40%, #0F0F0F 100%)`,
+        }}
+      />
+
+      <FilmGrain />
+
+      <div
+        className="absolute inset-0 pointer-events-none -z-10"
+        style={{
+          maskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
+        }}
+      />
+
+      <div
+        className="relative w-full h-full flex items-center justify-center"
+        style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: isMobile ? '40px 16px' : '60px 80px',
+        }}
+      >
+        <motion.div
+          className="relative flex items-center justify-center"
+          style={{
+            width: '100%',
+            x: dragXSpring,
+          }}
+          drag={!isMobile ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={handleDragEnd}
+        >
+          {movies.map((movie, index) => {
+            const offset = index - currentIndex;
+            const absOffset = Math.abs(offset);
+
+            if (isMobile && absOffset > 0) return null;
+            if (!isMobile && absOffset > 1) return null;
+
+            let scale = 1;
+            let opacity = 1;
+            let translateX = 0;
+            let translateY = 0;
+            let brightness = 1;
+            let blur = 0;
+
+            if (absOffset === 0) {
+              scale = 1.0;
+              opacity = 1;
+              translateX = 0;
+              translateY = 0;
+              brightness = 1;
+              blur = 0;
+            } else if (absOffset === 1) {
+              scale = 0.88;
+              opacity = 0.4;
+              translateX = offset > 0 ? 35 : -35;
+              translateY = 12;
+              brightness = 0.6;
+              blur = 1;
+            }
+
+            const isActive = offset === 0;
+
+            return (
+              <motion.div
+                key={movie.id}
+                className="absolute cursor-pointer will-change-transform"
+                style={{
+                  width: `${cardWidth}px`,
+                  height: `${cardHeight}px`,
+                  pointerEvents: isActive ? "auto" : "none",
+                }}
+                initial={false}
+                animate={{
+                  scale,
+                  opacity,
+                  x: `${translateX}%`,
+                  y: translateY,
+                  filter: `brightness(${brightness}) blur(${blur}px)`,
+                }}
+                transition={{
+                  duration: 0.6,
+                  ease: [0.22, 0.61, 0.36, 1],
+                  scale: {
+                    duration: 0.6,
+                    ease: [0.22, 0.61, 0.36, 1],
+                  },
+                  x: {
+                    duration: 0.65,
+                    delay: 0.05,
+                    ease: [0.22, 0.61, 0.36, 1],
+                  },
+                }}
+                onClick={() => {
+                  if (offset !== 0) {
+                    goToSlide(index);
+                    handleInteraction();
+                  }
+                }}
+              >
+                <div
+                  className="relative w-full h-full overflow-hidden"
+                  style={{
+                    borderRadius: '16px',
+                    boxShadow: isActive
+                      ? `0 24px 80px rgba(0,0,0,0.6), 0 0 120px rgba(${dominantColor}, 0.25)`
+                      : '0 24px 80px rgba(0,0,0,0.6)',
+                  }}
+                >
+                  <motion.div
+                    className="w-full h-full"
+                    animate={
+                      isActive && !prefersReducedMotion
+                        ? { scale: [1, 1.02] }
+                        : { scale: 1 }
+                    }
+                    transition={{
+                      duration: 12,
+                      ease: "easeInOut",
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                    }}
+                  >
+                    <img
+                      src={movie.posterUrl}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                      loading={index < 3 ? "eager" : "lazy"}
+                      decoding="async"
+                      onLoad={() => {
+                        if (isActive) setIsImageLoaded(true);
+                      }}
+                      style={{
+                        imageRendering: 'high-quality',
+                      }}
+                    />
+                  </motion.div>
+
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.92) 100%)',
+                      height: '75%',
+                      top: '25%',
+                    }}
+                  />
+
+                  {isActive && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="absolute flex items-center gap-2 text-white"
+                        style={{
+                          top: '20px',
+                          left: '20px',
+                          backgroundColor: 'rgba(0,0,0,0.75)',
+                          backdropFilter: 'blur(16px)',
+                          padding: '8px 12px',
+                          borderRadius: '20px',
+                          height: '32px',
+                        }}
+                      >
+                        <span className="text-yellow-400" style={{ fontSize: '14px' }}>★</span>
+                        <span className="font-medium" style={{ fontSize: '15px' }}>{movie.rating.toFixed(1)}</span>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.4 }}
+                        className="absolute text-white font-medium"
+                        style={{
+                          top: '60px',
+                          left: '20px',
+                          backgroundColor: 'rgba(0,0,0,0.65)',
+                          backdropFilter: 'blur(16px)',
+                          padding: '6px 12px',
+                          borderRadius: '12px',
+                          fontSize: '14px',
+                        }}
+                      >
+                        {movie.year}
+                      </motion.div>
+
+                      {movie.genre && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5, duration: 0.4 }}
+                          className="absolute text-white font-medium"
+                          style={{
+                            top: '100px',
+                            left: '20px',
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            backdropFilter: 'blur(16px)',
+                            padding: '6px 12px',
+                            borderRadius: '12px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          {movie.genre.split(',')[0].trim()}
+                        </motion.div>
+                      )}
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.5 }}
+                        className="absolute"
+                        style={{
+                          bottom: '20px',
+                          left: '20px',
+                          right: '20px',
+                        }}
+                      >
+                        <h2
+                          className="font-bold text-white mb-3"
+                          style={{
+                            fontSize: '26px',
+                            lineHeight: '1.15',
+                            textShadow: '0 4px 16px rgba(0,0,0,0.8)',
+                            letterSpacing: '-0.01em',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {movie.title}
+                        </h2>
+
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMovieSelect(movie);
+                          }}
+                          className="w-full font-semibold transition-all"
+                          style={{
+                            height: '44px',
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: '22px',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            color: '#1F1F1F',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                          whileHover={{
+                            backgroundColor: 'rgba(255,255,255,1)',
+                            y: -1,
+                            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+                          }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          View Details
+                        </motion.button>
+                      </motion.div>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
+
+      {movies.length > 1 && !isMobile && (
+        <>
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPrevious();
+              handleInteraction();
+            }}
+            className="absolute flex items-center justify-center transition-all z-20"
+            style={{
+              top: '50%',
+              left: '40px',
+              width: '52px',
+              height: '52px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '26px',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 0.9 : 0 }}
+            whileHover={{ opacity: 1, scale: 1.08 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ duration: 0.35 }}
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </motion.button>
+
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToNext();
+              handleInteraction();
+            }}
+            className="absolute flex items-center justify-center transition-all z-20"
+            style={{
+              top: '50%',
+              right: '40px',
+              width: '52px',
+              height: '52px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '26px',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 0.9 : 0 }}
+            whileHover={{ opacity: 1, scale: 1.08 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ duration: 0.35 }}
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-5 h-5 text-white" />
+          </motion.button>
+        </>
+      )}
+
+      {movies.length > 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="absolute left-1/2 flex items-center gap-3 z-20"
+          style={{
+            bottom: isMobile ? '16px' : '-40px',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0,0,0,0.25)',
+            backdropFilter: 'blur(12px)',
+            padding: '10px 20px',
+            borderRadius: '24px',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          {movies.map((_, index) => (
+            <motion.button
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                goToSlide(index);
+                handleInteraction();
+              }}
+              className="transition-all"
+              style={{
+                height: '5px',
+                width: index === currentIndex ? '18px' : '5px',
+                backgroundColor: index === currentIndex ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
+                borderRadius: '3px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              whileHover={{
+                backgroundColor: 'rgba(255,255,255,0.7)',
+              }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </motion.div>
+      )}
+
+      {isMobile && movies.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPrevious();
+              handleInteraction();
+            }}
+            className="absolute flex items-center justify-center z-20"
+            style={{
+              top: '50%',
+              left: '16px',
+              width: '48px',
+              height: '48px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '24px',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              goToNext();
+              handleInteraction();
+            }}
+            className="absolute flex items-center justify-center z-20"
+            style={{
+              top: '50%',
+              right: '16px',
+              width: '48px',
+              height: '48px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '24px',
+              transform: 'translateY(-50%)',
+              cursor: 'pointer',
+            }}
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
+        </>
+      )}
+    </section>
+  );
+};
