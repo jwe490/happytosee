@@ -20,13 +20,15 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-// Safe helper: only changes TMDB urls, keeps other urls untouched.
-const upgradeTmdbImage = (url: string | undefined, type: "backdrop" | "poster") => {
+/** Safest TMDB upgrade: only touches exact TMDB path format and falls back to original. [web:143] */
+function tmdbUpgrade(url: string | undefined, size: "w1280" | "original") {
   if (!url) return "";
-  if (!url.includes("image.tmdb.org/t/p/")) return url;
-  const size = type === "backdrop" ? "w1280" : "w780";
-  return url.replace(//t/p/(wd+|original)//, `/t/p/${size}/`);
-};
+  // Must be exactly like: https://image.tmdb.org/t/p/w500/xyz.jpg [web:143]
+  const m = url.match(/^(https?://image.tmdb.org/t/p/)(wd+|original)(/.+)$/);
+  if (!m) return url; // not TMDB, do nothing
+  const upgraded = `${m[1]}${size}${m[3]}`;
+  return upgraded || url;
+}
 
 export function CinematicCarousel({
   movies,
@@ -47,11 +49,7 @@ export function CinematicCarousel({
   const interacted = useRef(false);
   const current = list[index];
 
-  if (!current || total === 0) return null;
-
-  // ONLY CHANGE: force higher quality for TMDB backdrops/posters.
-  const bgImage = upgradeTmdbImage(current.backdropUrl || current.posterUrl, "backdrop");
-
+  // Hooks must always run; avoid returning before hooks.
   useEffect(() => {
     if (!current?.posterUrl) return;
     extractDominantColor(current.posterUrl)
@@ -91,7 +89,7 @@ export function CinematicCarousel({
     }, autoPlayInterval);
 
     return () => window.clearInterval(t);
-  }, [autoPlayInterval, paused, reduceMotion, total]);
+  }, [autoPlayInterval, paused, reduceMotion, total]); // keep stable
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -107,6 +105,12 @@ export function CinematicCarousel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isTransitioning, total]);
+
+  if (!current || total === 0) return null;
+
+  // If backdrop exists, upgrade it; else upgrade poster (still safe). [web:143]
+  const rawBg = current.backdropUrl || current.posterUrl;
+  const bgImage = tmdbUpgrade(rawBg, "w1280");
 
   return (
     <section
@@ -130,10 +134,7 @@ export function CinematicCarousel({
             src={bgImage}
             alt=""
             className={`absolute inset-0 w-full h-full object-cover ${reduceMotion ? "" : "bgCine"}`}
-            style={{
-              filter: "saturate(1.08) contrast(1.06)",
-              transform: "scale(1.03)",
-            }}
+            style={{ filter: "saturate(1.08) contrast(1.06)", transform: "scale(1.03)" }}
           />
 
           <div
@@ -204,9 +205,7 @@ export function CinematicCarousel({
                 </div>
                 {current.genre && (
                   <div className="badgePill">
-                    <span className="text-white/90 font-medium text-sm">
-                      {current.genre.split(",")[0].trim()}
-                    </span>
+                    <span className="text-white/90 font-medium text-sm">{current.genre.split(",")[0].trim()}</span>
                   </div>
                 )}
               </div>
@@ -305,7 +304,6 @@ export function CinematicCarousel({
           transition: transform 220ms ease, background 220ms ease;
         }
         .navArrow:hover{ transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.20); }
-        .navArrow:active{ transform: translateY(-50%) scale(0.96); }
 
         .infoSheetFixed{
           width: 100%;
@@ -347,10 +345,7 @@ export function CinematicCarousel({
           overflow: hidden;
         }
 
-        .overviewSlot{
-          height: 44px;
-          margin-top: 6px;
-        }
+        .overviewSlot{ height: 44px; margin-top: 6px; }
         .overviewClamp{
           color: rgba(255,255,255,0.72);
           font-size: 16px;
@@ -384,10 +379,7 @@ export function CinematicCarousel({
           -webkit-backdrop-filter: blur(18px) saturate(170%);
           backdrop-filter: blur(18px) saturate(170%);
           box-shadow: 0 18px 46px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.24);
-          transition: transform 220ms ease, background 220ms ease;
         }
-        .ctaGlassPrimary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.22); }
-        .ctaGlassPrimary:active{ transform: translateY(0px); }
 
         .ctaSecondary{
           height: 48px;
@@ -400,10 +392,7 @@ export function CinematicCarousel({
           border: 1px solid rgba(255,255,255,0.14);
           -webkit-backdrop-filter: blur(10px);
           backdrop-filter: blur(10px);
-          transition: transform 220ms ease, background 220ms ease, color 220ms ease;
         }
-        .ctaSecondary:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
-        .ctaSecondary:active{ transform: translateY(0px); }
 
         .dotsBar{
           display:flex;
@@ -418,35 +407,13 @@ export function CinematicCarousel({
         }
 
         @media (prefers-reduced-motion: no-preference){
-          .bgCine{
-            animation: bgEnter 720ms cubic-bezier(0.22,0.61,0.36,1);
-          }
+          .bgCine{ animation: bgEnter 720ms cubic-bezier(0.22,0.61,0.36,1); }
           @keyframes bgEnter{
             from{ opacity: 0; transform: scale(1.07); filter: blur(3px) saturate(1.08) contrast(1.06); }
             to{ opacity: 1; transform: scale(1.03); filter: blur(0px) saturate(1.08) contrast(1.06); }
           }
-
-          .infoSheetFixed{
-            animation: sheetIn 520ms cubic-bezier(0.22,0.61,0.36,1);
-          }
-          @keyframes sheetIn{
-            from{ opacity: 0; transform: translateY(10px); }
-            to{ opacity: 1; transform: translateY(0); }
-          }
-
-          .badgePill{ animation: fadeUp 520ms cubic-bezier(0.22,0.61,0.36,1) both; }
-          .titleClamp{ animation: fadeUp 560ms cubic-bezier(0.22,0.61,0.36,1) both; animation-delay: 40ms; }
-          .ctaGlassPrimary, .ctaSecondary{ animation: fadeUp 600ms cubic-bezier(0.22,0.61,0.36,1) both; animation-delay: 80ms; }
-
-          @keyframes fadeUp{
-            from{ opacity: 0; transform: translateY(6px); }
-            to{ opacity: 1; transform: translateY(0); }
-          }
-        }
-        @media (prefers-reduced-motion: reduce){
-          .bgCine, .infoSheetFixed, .badgePill, .titleClamp, .ctaGlassPrimary, .ctaSecondary{
-            animation: none !important;
-          }
+          .infoSheetFixed{ animation: sheetIn 520ms cubic-bezier(0.22,0.61,0.36,1); }
+          @keyframes sheetIn{ from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: translateY(0); } }
         }
 
         @media (max-width: 640px){
