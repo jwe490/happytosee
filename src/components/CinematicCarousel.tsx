@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Play, Info, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -28,8 +28,18 @@ export const CinematicCarousel = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [direction, setDirection] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const currentMovie = movies[currentIndex];
+
+  const { scrollYProgress } = useScroll({
+    target: carouselRef,
+    offset: ["start start", "end start"]
+  });
+
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -89,7 +99,7 @@ export const CinematicCarousel = ({
   if (!currentMovie) return null;
 
   return (
-    <div className="relative w-full h-[70vh] md:h-[80vh] lg:h-[85vh] overflow-hidden bg-black">
+    <div ref={carouselRef} className="relative w-full h-[70vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-black">
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
@@ -99,17 +109,20 @@ export const CinematicCarousel = ({
           animate="center"
           exit="exit"
           className="absolute inset-0 w-full h-full"
+          style={{ scale, opacity }}
         >
-          {/* Background Image */}
-          <div className="absolute inset-0">
+          {/* Background Image with Parallax */}
+          <motion.div className="absolute inset-0" style={{ y }}>
             <img
               src={currentMovie.backdropUrl || currentMovie.posterUrl}
               alt={currentMovie.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover brightness-110 contrast-105"
+              loading="eager"
+              decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/60" />
-          </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/30" />
+          </motion.div>
 
           {/* Content */}
           <div className="relative z-10 h-full flex flex-col justify-end px-6 md:px-12 lg:px-16 pb-16 md:pb-20 lg:pb-24">
