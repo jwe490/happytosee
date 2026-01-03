@@ -1,7 +1,32 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
-import { useMediaQuery } from "@/hooks/use-mobile";
-import { extractDominantColor } from "@/utils/colorExtractor";
+
+// Mock hook for demo - replace with your actual hook
+const useMediaQuery = (query: string) => {
+  const [matches, setMatches] = useState(false);
+  
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    setMatches(media.matches);
+    
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [query]);
+  
+  return matches;
+};
+
+// Mock color extractor - replace with your actual utility
+const extractDominantColor = async (url: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => resolve("59,130,246");
+    img.onerror = () => resolve("59,130,246");
+    img.src = url;
+  });
+};
 
 interface Movie {
   id: number;
@@ -20,7 +45,7 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-export function CinematicCarousel({
+export default function CinematicCarousel({
   movies,
   onMovieSelect,
   autoPlayInterval = 6500,
@@ -40,76 +65,122 @@ export function CinematicCarousel({
   const interacted = useRef(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const autoPlayTimerRef = useRef<number | null>(null);
+  const imageLoadTimerRef = useRef<number | null>(null);
 
-  const current = list[index];
+  const current = list[index] || null;
 
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
+      if (imageLoadTimerRef.current) clearTimeout(imageLoadTimerRef.current);
+    };
+  }, []);
+
+  // Extract dominant color
   useEffect(() => {
     if (!current?.posterUrl) return;
+    
+    let mounted = true;
+    
     extractDominantColor(current.posterUrl)
-      .then((c) => setDominant(c))
-      .catch(() => setDominant("59,130,246"));
+      .then((c) => {
+        if (mounted) setDominant(c);
+      })
+      .catch(() => {
+        if (mounted) setDominant("59,130,246");
+      });
+    
+    return () => {
+      mounted = false;
+    };
   }, [current?.posterUrl]);
 
   const onUserInteract = useCallback(() => {
     interacted.current = true;
     setPaused(true);
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
   }, []);
 
   const go = useCallback((dir: number) => {
     if (total <= 1) return;
+    
     setDirection(dir);
     setImageLoaded(false);
     setIndex((prev) => (prev + dir + total) % total);
-    setTimeout(() => setImageLoaded(true), 100);
+    
+    if (imageLoadTimerRef.current) clearTimeout(imageLoadTimerRef.current);
+    imageLoadTimerRef.current = window.setTimeout(() => {
+      setImageLoaded(true);
+    }, 100);
   }, [total]);
 
   const goTo = useCallback((i: number) => {
-    if (i === index) return;
+    if (i === index || i < 0 || i >= total) return;
+    
     onUserInteract();
     const dir = i > index ? 1 : -1;
     setDirection(dir);
     setImageLoaded(false);
     setIndex(i);
-    setTimeout(() => setImageLoaded(true), 100);
-  }, [index, onUserInteract]);
+    
+    if (imageLoadTimerRef.current) clearTimeout(imageLoadTimerRef.current);
+    imageLoadTimerRef.current = window.setTimeout(() => {
+      setImageLoaded(true);
+    }, 100);
+  }, [index, onUserInteract, total]);
 
+  // Auto-play
   useEffect(() => {
     if (reduceMotion || total <= 1 || paused) return;
 
-    const t = window.setInterval(() => {
+    if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
+
+    autoPlayTimerRef.current = window.setTimeout(() => {
       if (interacted.current) return;
       setDirection(1);
       setImageLoaded(false);
       setIndex((prev) => (prev + 1) % total);
-      setTimeout(() => setImageLoaded(true), 100);
+      
+      if (imageLoadTimerRef.current) clearTimeout(imageLoadTimerRef.current);
+      imageLoadTimerRef.current = window.setTimeout(() => {
+        setImageLoaded(true);
+      }, 100);
     }, autoPlayInterval);
 
-    return () => window.clearInterval(t);
-  }, [autoPlayInterval, paused, reduceMotion, total]);
+    return () => {
+      if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
+    };
+  }, [autoPlayInterval, paused, reduceMotion, total, index]);
 
+  // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         onUserInteract();
         go(-1);
-      }
-      if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowRight") {
         e.preventDefault();
         onUserInteract();
         go(1);
       }
     };
+    
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [go, onUserInteract]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
+    touchStartX.current = e.touches[0]?.clientX ?? 0;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0]?.clientX ?? 0;
   }, []);
 
   const handleTouchEnd = useCallback(() => {
@@ -129,7 +200,42 @@ export function CinematicCarousel({
     touchEndX.current = 0;
   }, [go, onUserInteract]);
 
-  if (!current || total === 0) return null;
+  const handleMovieSelect = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (current && typeof onMovieSelect === 'function') {
+      onUserInteract();
+      try {
+        onMovieSelect(current);
+      } catch (error) {
+        console.error('Error in onMovieSelect callback:', error);
+      }
+    }
+  }, [current, onMovieSelect, onUserInteract]);
+
+  const handlePrevClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUserInteract();
+    go(-1);
+  }, [go, onUserInteract]);
+
+  const handleNextClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUserInteract();
+    go(1);
+  }, [go, onUserInteract]);
+
+  const handleDotClick = useCallback((e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+    goTo(i);
+  }, [goTo]);
+
+  if (!current || total === 0) {
+    return (
+      <div className="w-full h-96 bg-black flex items-center justify-center">
+        <p className="text-white/60">No movies available</p>
+      </div>
+    );
+  }
 
   const bgImage = current.backdropUrl || current.posterUrl;
 
@@ -156,7 +262,7 @@ export function CinematicCarousel({
         <div className="absolute inset-0">
           <div className="bgImageWrapper">
             <img
-              key={current.id}
+              key={`bg-${current.id}`}
               src={bgImage}
               alt=""
               className="bgImage"
@@ -164,6 +270,9 @@ export function CinematicCarousel({
                 filter: "saturate(1.25) contrast(1.12) brightness(1.15)",
                 transform: imageLoaded ? "scale(1)" : "scale(1.15)",
                 opacity: imageLoaded ? 1 : 0,
+              }}
+              onError={(e) => {
+                e.currentTarget.style.opacity = '0.3';
               }}
             />
           </div>
@@ -185,7 +294,7 @@ export function CinematicCarousel({
           <div className="absolute left-20 top-1/2 -translate-y-1/2 z-15 pointer-events-none">
             <div className="relative" style={{ width: "340px", height: "510px" }}>
               <div
-                key={current.id}
+                key={`poster-${current.id}`}
                 className="posterCard"
                 style={{
                   animation: imageLoaded
@@ -200,6 +309,9 @@ export function CinematicCarousel({
                   src={current.posterUrl}
                   alt={current.title}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.opacity = '0.3';
+                  }}
                 />
                 <div className="posterShine" />
               </div>
@@ -208,29 +320,27 @@ export function CinematicCarousel({
         )}
 
         {/* Clickable Area */}
-        <button
-          type="button"
-          onClick={() => {
-            onUserInteract();
-            onMovieSelect(current);
-          }}
+        <div
+          onClick={handleMovieSelect}
           className="absolute inset-0 z-10 cursor-pointer"
+          role="button"
+          tabIndex={0}
           aria-label={`Open ${current.title}`}
-        >
-          <span className="sr-only">Open</span>
-        </button>
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleMovieSelect(e as any);
+            }
+          }}
+        />
 
-        {/* Navigation */}
+        {/* Navigation Arrows */}
         {total > 1 && (
           <>
             <button
               type="button"
-              aria-label="Previous"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(-1);
-              }}
+              aria-label="Previous movie"
+              onClick={handlePrevClick}
               className="navArrow left-4 sm:left-6 top-[45%] -translate-y-1/2"
             >
               <ChevronLeft className="h-6 w-6" />
@@ -238,12 +348,8 @@ export function CinematicCarousel({
 
             <button
               type="button"
-              aria-label="Next"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(1);
-              }}
+              aria-label="Next movie"
+              onClick={handleNextClick}
               className="navArrow right-4 sm:right-6 top-[45%] -translate-y-1/2"
             >
               <ChevronRight className="h-6 w-6" />
@@ -252,20 +358,24 @@ export function CinematicCarousel({
         )}
 
         {/* Content */}
-        <div className="absolute inset-x-0 bottom-0 z-20">
+        <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
             <div key={`sheet-${current.id}`} className="infoSheetFixed">
               <div className="badgeRow">
                 <div className="badgePill" style={{ animationDelay: "0ms" }}>
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
-                  <span className="text-white font-semibold text-sm">{current.rating.toFixed(1)}</span>
+                  <span className="text-white font-semibold text-sm">
+                    {current.rating?.toFixed(1) ?? 'N/A'}
+                  </span>
                 </div>
                 <div className="badgePill" style={{ animationDelay: "80ms" }}>
                   <span className="text-white/90 font-medium text-sm">{current.year}</span>
                 </div>
                 {current.genre && (
                   <div className="badgePill" style={{ animationDelay: "160ms" }}>
-                    <span className="text-white/90 font-medium text-sm">{current.genre.split(",")[0].trim()}</span>
+                    <span className="text-white/90 font-medium text-sm">
+                      {current.genre.split(",")[0]?.trim() ?? current.genre}
+                    </span>
                   </div>
                 )}
               </div>
@@ -273,19 +383,28 @@ export function CinematicCarousel({
               <h1 className="titleClamp">{current.title}</h1>
 
               <div className="overviewSlot">
-                {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
+                {isDesktop && current.overview ? (
+                  <p className="overviewClamp">{current.overview}</p>
+                ) : (
+                  <div />
+                )}
               </div>
 
-              <div className="ctaRowOne">
-                <button type="button" className="ctaGlassPrimary" onClick={() => onMovieSelect(current)}>
+              <div className="ctaRowOne pointer-events-auto">
+                <button
+                  type="button"
+                  className="ctaGlassPrimary"
+                  onClick={handleMovieSelect}
+                >
                   <Play className="h-4 w-4" fill="currentColor" />
                   View Details
                 </button>
               </div>
             </div>
 
+            {/* Pagination Dots */}
             {total > 1 && (
-              <div className="mt-4 flex justify-center">
+              <div className="mt-4 flex justify-center pointer-events-auto">
                 <div className="dotsBar">
                   {list.map((m, i) => {
                     const active = i === index;
@@ -293,16 +412,15 @@ export function CinematicCarousel({
                       <button
                         key={m.id}
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          goTo(i);
-                        }}
+                        onClick={(e) => handleDotClick(e, i)}
                         aria-label={`Go to slide ${i + 1} of ${total}`}
                         aria-current={active ? "true" : "false"}
                         className="dotButton"
                         style={{
                           width: active ? 32 : 8,
-                          background: active ? `rgba(${dominant},0.92)` : "rgba(255,255,255,0.35)",
+                          background: active
+                            ? `rgba(${dominant},0.92)`
+                            : "rgba(255,255,255,0.35)",
                         }}
                       />
                     );
@@ -407,28 +525,4 @@ export function CinematicCarousel({
           backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
           box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
           transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-          animation: buttonPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms forwards; opacity: 0;
-        }
-        @keyframes buttonPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .ctaGlassPrimary:hover { background: rgba(255,255,255,0.30); transform: translateY(-2px) scale(1.02); }
-        .ctaGlassPrimary:active { transform: translateY(0) scale(0.98); transition: all 100ms ease; }
-        .dotsBar {
-          display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 9999px;
-          background: rgba(0,0,0,0.30); border: 1px solid rgba(255,255,255,0.14);
-          backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-        }
-        .dotButton {
-          height: 6px; border-radius: 9999px; cursor: pointer; border: none; padding: 0;
-          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .dotButton:hover { transform: scale(1.4); opacity: 1; }
-        @media (max-width: 1024px) { .posterCard { display: none; } }
-        @media (max-width: 640px) {
-          .infoSheetFixed { height: 225px; }
-          .overviewSlot { display: none; }
-          .navArrow { width: 50px; height: 50px; }
-        }
-      `}</style>
-    </section>
-  );
-}
+          animation: buttonPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 250ms fo
