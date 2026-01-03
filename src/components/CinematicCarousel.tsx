@@ -147,9 +147,9 @@ export const CinematicCarousel = ({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 lg:p-14 pb-20 md:pb-24"
+                    className="absolute inset-0 flex flex-col justify-end px-24 md:px-28 lg:px-32 py-6 md:py-10 lg:py-14 pb-20 md:pb-24"
                   >
-                    <div className="max-w-4xl space-y-3 md:space-y-5">
+                    <div className="max-w-4xl space-y-3 md:space-y-5 w-full">
                       <motion.div
                         className="flex flex-wrap items-center gap-2.5 md:gap-3 text-white text-sm md:text-base"
                         initial={{ opacity: 0, y: 20 }}
@@ -219,10 +219,11 @@ export const CinematicCarousel = ({
                   goToPrevious();
                   handleInteraction();
                 }}
-                className="absolute left-4 md:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-all duration-200 shadow-2xl"
+                className="absolute left-4 md:left-6 lg:left-8 top-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-colors duration-200 shadow-2xl"
+                style={{ transform: "translateY(-50%)", transformOrigin: "center" }}
                 aria-label="Previous slide"
                 whileHover={{ scale: 1.15, x: -6 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
               >
                 <ChevronLeft className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
               </motion.button>
@@ -233,10 +234,11 @@ export const CinematicCarousel = ({
                   goToNext();
                   handleInteraction();
                 }}
-                className="absolute right-4 md:right-6 lg:right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-all duration-200 shadow-2xl"
+                className="absolute right-4 md:right-6 lg:right-8 top-1/2 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-colors duration-200 shadow-2xl"
+                style={{ transform: "translateY(-50%)", transformOrigin: "center" }}
                 aria-label="Next slide"
                 whileHover={{ scale: 1.15, x: 6 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
               >
                 <ChevronRight className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
               </motion.button>
