@@ -84,6 +84,15 @@ const Header = () => {
               Home
             </Button>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/")}
+              className={location.pathname === "/mood-share" ? "text-primary" : ""}
+            >
+              Movie Mood Share
+            </Button>
+
             {user && (
               <Button
                 variant="ghost"
