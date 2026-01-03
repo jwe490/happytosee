@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import { extractDominantColor } from "@/utils/colorExtractor";
@@ -17,25 +17,16 @@ interface Movie {
 interface CinematicCarouselProps {
   movies?: Movie[];
   onMovieSelect: (movie: Movie) => void;
-  autoPlayInterval?: number;
 }
 
-export function CinematicCarousel({
-  movies = [],
-  onMovieSelect,
-  autoPlayInterval = 5200,
-}: CinematicCarouselProps) {
+export function CinematicCarousel({ movies = [], onMovieSelect }: CinematicCarouselProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   const list = useMemo(() => (movies ?? []).filter(Boolean), [movies]);
   const total = list.length;
 
   const [index, setIndex] = useState(0);
   const [dominant, setDominant] = useState("59,130,246");
-  const [paused, setPaused] = useState(false);
-
-  const interacted = useRef(false);
 
   const current = total > 0 ? list[Math.min(index, total - 1)] : undefined;
 
@@ -46,10 +37,10 @@ export function CinematicCarousel({
       .catch(() => setDominant("59,130,246"));
   }, [current?.posterUrl]);
 
-  const onUserInteract = useCallback(() => {
-    interacted.current = true;
-    setPaused(true);
-  }, []);
+  useEffect(() => {
+    if (total === 0) return;
+    if (index > total - 1) setIndex(0);
+  }, [index, total]);
 
   const go = useCallback(
     (dir: 1 | -1) => {
@@ -59,84 +50,40 @@ export function CinematicCarousel({
     [total],
   );
 
-  useEffect(() => {
-    if (reduceMotion || total <= 1 || paused) return;
-    const t = window.setInterval(() => {
-      if (interacted.current) return;
-      go(1);
-    }, autoPlayInterval);
-    return () => window.clearInterval(t);
-  }, [autoPlayInterval, paused, reduceMotion, total, go]);
-
   if (!current) return null;
 
   const bgImage = current.backdropUrl || current.posterUrl;
 
   return (
-    <section
-      className="relative w-full bg-black"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      aria-roledescription="carousel"
-      aria-label="Featured movies"
-    >
-      {/* IMPORTANT: no fixed 100vh height; use minHeight so page can scroll normally */}
-      <div
-        className="relative w-full"
-        style={{
-          minHeight: isDesktop ? 560 : 520,
-          maxHeight: 820,
-        }}
-      >
-        {/* Visual layers should not steal clicks */}
+    <section className="w-full bg-black">
+      {/* Fixed block height: cannot hide other sections */}
+      <div className="relative w-full" style={{ height: isDesktop ? 620 : 520 }}>
+        {/* Background (NOT clickable, cannot block page) */}
         <div className="absolute inset-0 pointer-events-none">
           <img
             key={current.id}
             src={bgImage}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{
-              filter: "saturate(1.10) contrast(1.06) brightness(1.08)",
-              transform: "scale(1.03)",
-            }}
-            decoding="async"
+            style={{ filter: "saturate(1.1) contrast(1.06) brightness(1.08)" }}
           />
-
           <div
             className="absolute inset-0"
             style={{
               background: `radial-gradient(ellipse at 55% 18%, rgba(${dominant},0.22) 0%, rgba(${dominant},0.07) 44%, rgba(0,0,0,0) 78%)`,
             }}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_40%,rgba(0,0,0,0.68)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_50%,rgba(0,0,0,0.30)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.10)_0%,rgba(0,0,0,0.06)_40%,rgba(0,0,0,0.70)_100%)]" />
         </div>
 
-        {/* Clickable hero area ONLY inside this carousel */}
-        <button
-          type="button"
-          onClick={() => {
-            onUserInteract();
-            onMovieSelect(current);
-          }}
-          className="absolute inset-0 z-10"
-          aria-label={`View details for ${current.title}`}
-        >
-          <span className="sr-only">View details</span>
-        </button>
-
-        {/* Controls */}
+        {/* Arrows */}
         {total > 1 && (
           <>
             <button
               type="button"
               aria-label="Previous"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(-1);
-              }}
-              className="navArrow left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30"
+              onClick={() => go(-1)}
+              className="navArrow left-4 sm:left-6 top-1/2 -translate-y-1/2"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -144,26 +91,18 @@ export function CinematicCarousel({
             <button
               type="button"
               aria-label="Next"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserInteract();
-                go(1);
-              }}
-              className="navArrow right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30"
+              onClick={() => go(1)}
+              className="navArrow right-4 sm:right-6 top-1/2 -translate-y-1/2"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
 
-        {/* Bottom info (does not block page outside carousel) */}
-        <div className="absolute inset-x-0 bottom-0 z-30">
+        {/* Bottom card */}
+        <div className="absolute inset-x-0 bottom-0">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pb-6">
-            <div
-              className="infoSheetFixed w-full"
-              onClick={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-            >
+            <div className="infoSheetFixed">
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="badgePill">
                   <Star className="h-4 w-4 text-yellow-300 fill-yellow-300" />
@@ -181,19 +120,13 @@ export function CinematicCarousel({
 
               <h2 className="titleClamp">{current.title}</h2>
 
-              <div className="overviewSlot">
-                {isDesktop && current.overview ? <p className="overviewClamp">{current.overview}</p> : <div />}
-              </div>
+              {isDesktop && current.overview ? (
+                <p className="overviewClamp">{current.overview}</p>
+              ) : (
+                <div />
+              )}
 
-              <button
-                type="button"
-                className="ctaGlassPrimary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUserInteract();
-                  onMovieSelect(current);
-                }}
-              >
+              <button type="button" className="ctaGlassPrimary" onClick={() => onMovieSelect(current)}>
                 <Play className="h-4 w-4" fill="currentColor" />
                 View Details
               </button>
@@ -203,7 +136,7 @@ export function CinematicCarousel({
 
         <style>{`
           .navArrow{
-            position:absolute;
+            position:absolute; z-index:10;
             width:54px; height:54px; border-radius:9999px;
             display:flex; align-items:center; justify-content:center;
             color:rgba(255,255,255,0.92);
@@ -214,7 +147,8 @@ export function CinematicCarousel({
             -webkit-backdrop-filter: blur(18px) saturate(140%);
           }
           .infoSheetFixed{
-            height: 215px;
+            width:100%;
+            height: 210px;
             border-radius: 22px;
             padding: 16px 16px 14px;
             background: rgba(0,0,0,0.28);
@@ -245,7 +179,6 @@ export function CinematicCarousel({
             -webkit-box-orient:vertical;
             overflow:hidden;
           }
-          .overviewSlot{ height: 36px; margin-top: 4px; }
           .overviewClamp{
             color: rgba(255,255,255,0.78);
             font-size: 15px;
@@ -267,11 +200,11 @@ export function CinematicCarousel({
             border:1px solid rgba(255,255,255,0.28);
           }
           @media (max-width: 640px){
-            .overviewSlot{ display:none; }
-            .infoSheetFixed{ height: 210px; }
+            .overviewClamp{ display:none; }
+            .infoSheetFixed{ height: 200px; }
           }
         `}</style>
       </div>
     </section>
   );
-            }
+}
