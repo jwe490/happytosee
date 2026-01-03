@@ -113,18 +113,7 @@ export const CinematicCarousel = ({
           background: radial-gradient(ellipse at center, rgba(${dominantColor}, 0.15) 0%, rgba(${dominantColor}, 0.05) 40%, #0F0F0F 100%),
         }}
       />
-
-      <FilmGrain />
-
       <div
-        className="absolute inset-0 pointer-events-none -z-10"
-        style={{
-          maskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
-        }}
-      />
-
-<div
         className="relative w-full h-full flex items-center justify-center"
         style={{
           maxWidth: '1400px',
@@ -240,7 +229,16 @@ export const CinematicCarousel = ({
                       alt={movie.title}
                       className="w-full h-full object-cover"
 
-loading={index < 3 ? "eager" : "lazy"}
+      <FilmGrain />
+
+      <div
+        className="absolute inset-0 pointer-events-none -z-10"
+        style={{
+          maskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)',
+        }}
+      />
+  loading={index < 3 ? "eager" : "lazy"}
                       decoding="async"
                       onLoad={() => {
                         if (isActive) setIsImageLoaded(true);
@@ -327,8 +325,7 @@ loading={index < 3 ? "eager" : "lazy"}
                         style={{
                           bottom: '20px',
                           left: '20px',
-
-right: '20px',
+                          right: '20px',
                         }}
                       >
                         <h2
@@ -429,8 +426,7 @@ right: '20px',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '26px',
-
-transform: 'translateY(-50%)',
+              transform: 'translateY(-50%)',
               cursor: 'pointer',
             }}
             initial={{ opacity: 0 }}
