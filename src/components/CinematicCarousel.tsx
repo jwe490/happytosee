@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
 
 interface Movie {
   id: number;
@@ -32,56 +32,22 @@ export const CinematicCarousel = ({
 
   const slideVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 1200 : -1200,
+      x: direction > 0 ? 500 : -500,
       opacity: 0,
-      scale: 0.85,
-      rotateY: direction > 0 ? 25 : -25,
     }),
     center: {
       x: 0,
       opacity: 1,
-      scale: 1,
-      rotateY: 0,
       transition: {
-        x: { type: "spring" as const, stiffness: 280, damping: 35, mass: 0.9 },
-        opacity: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
-        scale: { type: "spring" as const, stiffness: 300, damping: 30 },
-        rotateY: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+        x: { type: "spring" as const, stiffness: 300, damping: 30 },
+        opacity: { duration: 0.3 },
       }
     },
     exit: (direction: number) => ({
-      x: direction > 0 ? -1200 : 1200,
+      x: direction > 0 ? -500 : 500,
       opacity: 0,
-      scale: 0.85,
-      rotateY: direction > 0 ? -25 : 25,
-      transition: {
-        duration: 0.4,
-        ease: [0.76, 0, 0.24, 1] as const
-      }
+      transition: { duration: 0.3 }
     })
-  };
-
-  const contentVariants = {
-    enter: {
-      y: 60,
-      opacity: 0,
-    },
-    center: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        delay: 0.3,
-        duration: 0.6,
-        ease: [0.22, 1, 0.36, 1] as const
-      }
-    },
-    exit: {
-      y: -30,
-      opacity: 0,
-      transition: {
-        duration: 0.3
-      }
-    }
   };
 
   const goToNext = useCallback(() => {
@@ -114,10 +80,27 @@ export const CinematicCarousel = ({
   if (!currentMovie) return null;
 
   return (
-    <section className="relative w-full h-screen flex items-center justify-center px-3 md:px-6 lg:px-10 bg-background" style={{ perspective: "2000px" }}>
-      <div className="relative w-full h-[92vh] max-w-[98vw] mx-auto">
-        <div className="relative w-full h-full rounded-[2.5rem] md:rounded-[3.5rem] lg:rounded-[4.5rem] overflow-hidden bg-black shadow-[0_50px_150px_-30px_rgba(0,0,0,0.6)]">
+    <section className="relative w-full px-4 md:px-8 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Featured Label */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg md:text-xl font-semibold text-foreground">Featured</h2>
+          <div className="flex items-center gap-2">
+            {movies.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => { goToSlide(index); handleInteraction(); }}
+                className={`h-1.5 rounded-full transition-all ${
+                  index === currentIndex ? "w-6 bg-foreground" : "w-1.5 bg-muted-foreground/40 hover:bg-muted-foreground"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
 
+        {/* Carousel Container */}
+        <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-card shadow-lg aspect-[16/9] md:aspect-[21/9]">
           <AnimatePresence initial={false} custom={direction} mode="wait">
             <motion.div
               key={currentIndex}
@@ -128,147 +111,78 @@ export const CinematicCarousel = ({
               exit="exit"
               className="absolute inset-0"
             >
-              <div className="relative w-full h-full">
-                <img
-                  src={currentMovie.backdropUrl || currentMovie.posterUrl}
-                  alt={currentMovie.title}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                />
+              {/* Background Image */}
+              <img
+                src={currentMovie.backdropUrl || currentMovie.posterUrl}
+                alt={currentMovie.title}
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
 
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-2xl pb-20 md:pb-24 pt-32 md:pt-40">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={`content-${currentIndex}`}
-                      variants={contentVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      className="px-6 md:px-10 lg:px-16"
-                    >
-                      <div className="max-w-5xl space-y-3 md:space-y-5">
-                        <motion.div
-                          className="flex flex-wrap items-center gap-2.5 md:gap-3 text-white text-sm md:text-base"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3, duration: 0.5 }}
-                        >
-                          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-xl px-4 py-2 rounded-full border border-white/30 shadow-lg">
-                            <span className="text-yellow-400 text-lg md:text-xl">★</span>
-                            <span className="font-bold text-base md:text-lg">{currentMovie.rating.toFixed(1)}</span>
-                          </div>
-                          <span className="text-white/60 text-lg">•</span>
-                          <span className="font-semibold text-base md:text-lg bg-white/15 backdrop-blur-xl px-4 py-2 rounded-full border border-white/20">{currentMovie.year}</span>
-                          {currentMovie.genre && (
-                            <>
-                              <span className="text-white/60 text-lg">•</span>
-                              <span className="font-semibold text-base md:text-lg bg-white/15 backdrop-blur-xl px-4 py-2 rounded-full border border-white/20">{currentMovie.genre}</span>
-                            </>
-                          )}
-                        </motion.div>
+              {/* Content */}
+              <div className="absolute inset-0 flex items-center">
+                <div className="px-6 md:px-10 lg:px-12 max-w-xl space-y-3 md:space-y-4">
+                  {/* Rating & Year */}
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      <span className="font-semibold text-white">{currentMovie.rating.toFixed(1)}</span>
+                    </div>
+                    <span className="text-white/80">{currentMovie.year}</span>
+                    {currentMovie.genre && (
+                      <span className="text-white/60">• {currentMovie.genre}</span>
+                    )}
+                  </div>
 
-                        <motion.h2
-                          className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight drop-shadow-2xl"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.35, duration: 0.6 }}
-                        >
-                          {currentMovie.title}
-                        </motion.h2>
+                  {/* Title */}
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight">
+                    {currentMovie.title}
+                  </h3>
 
-                        {currentMovie.overview && (
-                          <motion.p
-                            className="text-white/90 text-base md:text-lg lg:text-xl leading-relaxed line-clamp-2 max-w-4xl drop-shadow-lg"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4, duration: 0.6 }}
-                          >
-                            {currentMovie.overview}
-                          </motion.p>
-                        )}
+                  {/* Overview */}
+                  {currentMovie.overview && (
+                    <p className="text-white/80 text-sm md:text-base line-clamp-2 hidden sm:block">
+                      {currentMovie.overview}
+                    </p>
+                  )}
 
-                        <motion.button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMovieSelect(currentMovie);
-                          }}
-                          className="group inline-flex items-center gap-3 bg-white text-black px-8 py-3.5 md:px-10 md:py-4 rounded-full font-bold text-base md:text-lg hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 mt-2"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.5, duration: 0.5 }}
-                          whileHover={{ gap: "1rem" }}
-                        >
-                          <Play className="w-5 h-5 md:w-6 md:h-6 fill-current transition-transform group-hover:scale-110" />
-                          View Details
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => onMovieSelect(currentMovie)}
+                    className="inline-flex items-center gap-2 bg-white text-black px-5 py-2.5 md:px-6 md:py-3 rounded-full font-semibold text-sm md:text-base hover:bg-white/90 transition-colors"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    View Details
+                  </button>
                 </div>
               </div>
             </motion.div>
           </AnimatePresence>
 
+          {/* Navigation Arrows */}
           {movies.length > 1 && (
             <>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToPrevious();
-                  handleInteraction();
-                }}
-                className="absolute left-4 md:left-6 lg:left-8 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-colors duration-200 shadow-2xl active:bg-white/30"
-                style={{ top: "50%", transform: "translateY(-50%)" }}
-                aria-label="Previous slide"
+                onClick={() => { goToPrevious(); handleInteraction(); }}
+                className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                aria-label="Previous"
               >
-                <ChevronLeft className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToNext();
-                  handleInteraction();
-                }}
-                className="absolute right-4 md:right-6 lg:right-8 z-20 w-16 h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 rounded-full bg-white/15 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white hover:bg-white/25 hover:border-white/40 transition-colors duration-200 shadow-2xl active:bg-white/30"
-                style={{ top: "50%", transform: "translateY(-50%)" }}
-                aria-label="Next slide"
+                onClick={() => { goToNext(); handleInteraction(); }}
+                className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                aria-label="Next"
               >
-                <ChevronRight className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 stroke-[3]" />
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
               </button>
-
-              <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
-                {movies.map((_, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToSlide(index);
-                      handleInteraction();
-                    }}
-                    className="relative group"
-                    whileHover={{ scale: 1.4 }}
-                    whileTap={{ scale: 0.85 }}
-                    aria-label={`Go to slide ${index + 1}`}
-                  >
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        index === currentIndex
-                          ? "w-14 md:w-16 bg-white shadow-lg shadow-white/60"
-                          : "w-2 bg-white/60 group-hover:bg-white group-hover:w-8"
-                      }`}
-                    />
-                  </motion.button>
-                ))}
-              </div>
             </>
           )}
         </div>
-
-        <div className="absolute -inset-8 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 rounded-[4rem] lg:rounded-[5rem] -z-10 blur-3xl opacity-60" />
       </div>
     </section>
   );

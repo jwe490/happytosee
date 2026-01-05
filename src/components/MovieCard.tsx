@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Star, Bookmark, BookmarkCheck, Play } from "lucide-react";
+import { Star, Bookmark, BookmarkCheck } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
@@ -31,23 +31,24 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
-        delay: index * 0.03,
+        delay: Math.min(index * 0.03, 0.3),
         duration: 0.3,
         ease: "easeOut"
       }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="group relative cursor-pointer"
+      className="group cursor-pointer"
     >
-      <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-card shadow-md hover:shadow-2xl ring-1 ring-border/20 hover:ring-primary/50 transition-all duration-300">
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-lg transition-shadow duration-300">
+        {/* Poster Image */}
         <img
           src={movie.posterUrl}
           alt={movie.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = `https://picsum.photos/seed/${encodeURIComponent(movie.title.replace(/\s+/g, ''))}/400/600`;
@@ -55,22 +56,20 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
           loading="lazy"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/20 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md">
+        {/* Rating Badge */}
+        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm">
           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-xs font-bold text-white">{movie.rating}</span>
+          <span className="text-xs font-semibold text-white">{movie.rating}</span>
         </div>
 
+        {/* Watchlist Button */}
         {user && (
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={handleWatchlistClick}
-            className={`absolute top-3 left-3 p-2 rounded-full transition-all duration-200 ${
+            className={`absolute top-2 left-2 p-1.5 rounded-full transition-all ${
               inWatchlist
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "bg-black/60 backdrop-blur-md text-white opacity-0 group-hover:opacity-100"
+                ? "bg-accent text-accent-foreground"
+                : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
             }`}
           >
             {inWatchlist ? (
@@ -78,33 +77,26 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
             ) : (
               <Bookmark className="w-4 h-4" />
             )}
-          </motion.button>
+          </button>
         )}
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileHover={{ opacity: 1 }}
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            whileHover={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
-          >
-            <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-          </motion.div>
-        </motion.div>
+        {/* Gradient for text readability */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+      </div>
 
-        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black via-black/90 to-transparent translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <h3 className="font-bold text-white text-sm leading-tight line-clamp-2 mb-1">
-            {movie.title}
-          </h3>
-          <div className="flex items-center gap-2 text-white/70 text-xs">
-            <span>{movie.year}</span>
-            <span>•</span>
-            <span className="line-clamp-1">{movie.genre}</span>
-          </div>
+      {/* Movie Info - Always visible below card */}
+      <div className="mt-2 space-y-0.5 px-1">
+        <h3 className="font-medium text-foreground text-sm leading-tight line-clamp-2">
+          {movie.title}
+        </h3>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{movie.year}</span>
+          {movie.genre && (
+            <>
+              <span>•</span>
+              <span className="line-clamp-1">{movie.genre}</span>
+            </>
+          )}
         </div>
       </div>
     </motion.div>

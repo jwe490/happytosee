@@ -14,13 +14,14 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { description, type, movieTitle, movieOverview, watchHistory, mood } = body;
+    const { description, type, movieTitle, movieOverview, mood, excludeIds } = body;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({
-        error: "Movie service is not configured. Please contact support.",
+        error: "Movie service is not configured.",
         movies: []
       }), {
         status: 200,
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
 
     console.log("AI search request:", { description, type });
 
+    // Handle "describe" type - use AI to parse natural language
     if (type === "describe") {
       if (!description) {
         return new Response(JSON.stringify({
@@ -40,36 +42,112 @@ Deno.serve(async (req) => {
         });
       }
 
-      const searchQuery = description.slice(0, 100);
-      const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(searchQuery)}`;
+      let searchTerms: string[] = [];
 
-      const searchResponse = await fetch(searchUrl);
+      // Use Lovable AI to extract movie titles from description
+      if (LOVABLE_API_KEY) {
+        try {
+          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
 
-      if (!searchResponse.ok) {
-        throw new Error(`TMDb search error: ${searchResponse.status}`);
+Return ONLY a JSON object in this exact format:
+{
+  "movies": ["Movie Title 1", "Movie Title 2", "Movie Title 3"],
+  "confidence": "high" | "medium" | "low"
+}
+
+Rules:
+- Return 1-5 movie titles, most likely first
+- Use correct official English titles
+- If user mentions actor names, identify their movies matching the description
+- If description is vague, provide best guesses
+- Do NOT include any explanation, just the JSON`
+                },
+                {
+                  role: "user",
+                  content: description
+                }
+              ],
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const content = aiData.choices?.[0]?.message?.content || "";
+            console.log("AI response:", content);
+
+            // Parse JSON from AI response
+            try {
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                searchTerms = parsed.movies || [];
+              }
+            } catch (parseErr) {
+              console.log("Couldn't parse AI JSON, using fallback");
+            }
+          }
+        } catch (aiErr) {
+          console.error("AI error:", aiErr);
+        }
       }
 
-      const searchData = await searchResponse.json();
-      const movies = (searchData.results || []).slice(0, 10).map((tmdbMovie: any) => ({
-        id: tmdbMovie.id,
-        title: tmdbMovie.title,
-        year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-        rating: Math.round(tmdbMovie.vote_average * 10) / 10,
-        posterUrl: tmdbMovie.poster_path
-          ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
-          : null,
-        overview: tmdbMovie.overview,
-        matchReason: "Matches your search description",
-      }));
+      // Fallback: use original description as search
+      if (searchTerms.length === 0) {
+        searchTerms = [description.slice(0, 50)];
+      }
+
+      // Search TMDB for each identified title
+      const allMovies: any[] = [];
+      const seenIds = new Set<number>();
+
+      for (const term of searchTerms.slice(0, 3)) {
+        try {
+          const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(term)}&language=en-US&page=1`;
+          const searchResponse = await fetch(searchUrl);
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            for (const movie of (searchData.results || []).slice(0, 5)) {
+              if (!seenIds.has(movie.id)) {
+                seenIds.add(movie.id);
+                allMovies.push({
+                  id: movie.id,
+                  title: movie.title,
+                  year: movie.release_date ? new Date(movie.release_date).getFullYear() : null,
+                  rating: Math.round(movie.vote_average * 10) / 10,
+                  posterUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : null,
+                  overview: movie.overview,
+                  confidence: searchTerms.indexOf(term) === 0 ? "high" : searchTerms.indexOf(term) === 1 ? "medium" : "low",
+                  matchReason: `Matches: "${term}"`,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Search error for term:", term, err);
+        }
+      }
 
       return new Response(JSON.stringify({
-        movies,
-        searchTerms: [],
+        movies: allMovies.slice(0, 10),
+        searchTerms,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Handle "summary" type
     if (type === "summary") {
       if (!movieTitle) {
         throw new Error("Movie title is required for summary");
@@ -82,20 +160,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Handle "surprise" type - get truly random fresh results
     if (type === "surprise") {
-      const randomPage = Math.floor(Math.random() * 10) + 1;
+      const randomPage = Math.floor(Math.random() * 50) + 1;
+      const randomYear = 1990 + Math.floor(Math.random() * 35); // 1990-2025
+      const excludeSet = new Set(excludeIds || []);
 
-      let discoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=vote_average.desc&vote_count.gte=500&page=${randomPage}`;
+      // Build discover URL with randomization
+      let discoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=vote_average.desc&vote_count.gte=200&page=${randomPage}&primary_release_year=${randomYear}`;
 
+      // Add mood-based genre
       if (mood) {
         const moodToGenre: Record<string, string> = {
-          "happy": "35",
-          "sad": "18",
-          "romantic": "10749",
-          "excited": "28",
-          "bored": "53",
-          "nostalgic": "18",
-          "relaxed": "35",
+          "happy": "35,10751", // Comedy, Family
+          "sad": "18", // Drama
+          "romantic": "10749", // Romance
+          "excited": "28,12", // Action, Adventure
+          "bored": "53,9648", // Thriller, Mystery
+          "nostalgic": "18,10751", // Drama, Family
+          "relaxed": "35,16", // Comedy, Animation
+          "adventurous": "12,14", // Adventure, Fantasy
         };
         const genreId = moodToGenre[mood.toLowerCase()];
         if (genreId) {
@@ -110,7 +194,17 @@ Deno.serve(async (req) => {
       }
 
       const discoverData = await discoverResponse.json();
-      const results = discoverData.results || [];
+      let results = (discoverData.results || []).filter((m: any) => !excludeSet.has(m.id));
+
+      if (results.length === 0) {
+        // Fallback to popular movies
+        const fallbackUrl = `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&page=${Math.floor(Math.random() * 10) + 1}`;
+        const fallbackResponse = await fetch(fallbackUrl);
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          results = (fallbackData.results || []).filter((m: any) => !excludeSet.has(m.id));
+        }
+      }
 
       if (results.length === 0) {
         return new Response(JSON.stringify({
@@ -124,17 +218,24 @@ Deno.serve(async (req) => {
       const randomIndex = Math.floor(Math.random() * Math.min(results.length, 10));
       const tmdbMovie = results[randomIndex];
 
+      const surpriseReasons = [
+        "A hidden gem you might love!",
+        "Critics loved this one!",
+        "Underrated masterpiece",
+        "Perfect for your mood",
+        "You won't regret this pick",
+        "A fan favorite",
+      ];
+
       return new Response(JSON.stringify({
         movie: {
           id: tmdbMovie.id,
           title: tmdbMovie.title,
           year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
           rating: Math.round(tmdbMovie.vote_average * 10) / 10,
-          posterUrl: tmdbMovie.poster_path
-            ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}`
-            : null,
+          posterUrl: tmdbMovie.poster_path ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}` : null,
           overview: tmdbMovie.overview,
-          surpriseReason: "A hidden gem you might enjoy!",
+          surpriseReason: surpriseReasons[Math.floor(Math.random() * surpriseReasons.length)],
         }
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
