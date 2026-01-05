@@ -43,10 +43,10 @@ export const CinematicCarousel = ({
       scale: 1,
       rotateY: 0,
       transition: {
-        x: { type: "spring", stiffness: 280, damping: 35, mass: 0.9 },
-        opacity: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-        scale: { type: "spring", stiffness: 300, damping: 30 },
-        rotateY: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+        x: { type: "spring" as const, stiffness: 280, damping: 35, mass: 0.9 },
+        opacity: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
+        scale: { type: "spring" as const, stiffness: 300, damping: 30 },
+        rotateY: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
       }
     },
     exit: (direction: number) => ({
@@ -56,7 +56,7 @@ export const CinematicCarousel = ({
       rotateY: direction > 0 ? -25 : 25,
       transition: {
         duration: 0.4,
-        ease: [0.76, 0, 0.24, 1]
+        ease: [0.76, 0, 0.24, 1] as const
       }
     })
   };
@@ -72,7 +72,7 @@ export const CinematicCarousel = ({
       transition: {
         delay: 0.3,
         duration: 0.6,
-        ease: [0.22, 1, 0.36, 1]
+        ease: [0.22, 1, 0.36, 1] as const
       }
     },
     exit: {

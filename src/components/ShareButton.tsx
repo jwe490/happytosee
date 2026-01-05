@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Share2, Copy, Check, Twitter, MessageCircle, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -99,27 +98,11 @@ export function ShareButton({ title, text, url, size = "icon", variant = "ghost"
             onClick={handleCopyLink}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
           >
-            <AnimatePresence mode="wait">
-              {copied ? (
-                <motion.div
-                  key="check"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                >
-                  <Check className="w-4 h-4 text-green-500" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="copy"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                >
-                  <Link2 className="w-4 h-4" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {copied ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Link2 className="w-4 h-4" />
+            )}
             <span className="text-sm">{copied ? "Copied!" : "Copy link"}</span>
           </button>
         </div>

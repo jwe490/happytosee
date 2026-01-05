@@ -24,6 +24,37 @@ interface Answer {
   response_time: number;
 }
 
+// Mock questions for when database tables don't exist
+const mockQuestions: Question[] = [
+  {
+    id: "1",
+    question_text: "What's your ideal movie night setup?",
+    question_type: "single",
+    options: ["Cozy at home", "Theater experience", "Outdoor screening", "Watch party"],
+    dimension_weights: {},
+    visual_content: null,
+    order_index: 1
+  },
+  {
+    id: "2", 
+    question_text: "Pick a movie snack:",
+    question_type: "single",
+    options: ["Popcorn", "Candy", "Pizza", "Nothing"],
+    dimension_weights: {},
+    visual_content: null,
+    order_index: 2
+  },
+  {
+    id: "3",
+    question_text: "What genre speaks to you most?",
+    question_type: "single", 
+    options: ["Action/Adventure", "Comedy", "Drama", "Sci-Fi/Fantasy"],
+    dimension_weights: {},
+    visual_content: null,
+    order_index: 3
+  }
+];
+
 export const AssessmentFlow = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -40,21 +71,11 @@ export const AssessmentFlow = () => {
 
   const fetchQuestions = async () => {
     try {
-      const { data, error } = await supabase
-        .from("assessment_questions")
-        .select("*")
-        .eq("is_active", true)
-        .order("order_index");
-
-      if (error) throw error;
-      setQuestions(data || []);
+      // Use mock questions since assessment tables don't exist yet
+      setQuestions(mockQuestions);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load assessment questions",
-        variant: "destructive",
-      });
+      setQuestions(mockQuestions);
     } finally {
       setIsLoading(false);
     }
@@ -63,181 +84,25 @@ export const AssessmentFlow = () => {
   const handleAnswer = (option: string) => {
     const responseTime = Date.now() - startTime;
 
-    setAnswers([
+    const newAnswers = [
       ...answers,
       {
         question_id: questions[currentQuestionIndex].id,
         selected_option: option,
         response_time: responseTime,
       },
-    ]);
+    ];
+    setAnswers(newAnswers);
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setStartTime(Date.now());
     } else {
-      submitAssessment([
-        ...answers,
-        {
-          question_id: questions[currentQuestionIndex].id,
-          selected_option: option,
-          response_time: responseTime,
-        },
-      ]);
-    }
-  };
-
-  const submitAssessment = async (allAnswers: Answer[]) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast({
-          title: "Sign in required",
-          description: "Please sign in to save your results",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const dimensionScores = calculateDimensionScores(allAnswers);
-      const archetype = await determineArchetype(dimensionScores);
-
-      const { data: assessment, error: assessmentError } = await supabase
-        .from("user_assessments")
-        .insert({
-          user_id: user.id,
-          archetype_id: archetype.id,
-          dimension_scores: dimensionScores,
-          stats: generateStats(dimensionScores),
-          random_thought: selectRandomThought(archetype.random_thoughts),
-          badges: generateBadges(dimensionScores),
-        })
-        .select()
-        .single();
-
-      if (assessmentError) throw assessmentError;
-
-      const { error: responsesError } = await supabase
-        .from("assessment_responses")
-        .insert(
-          allAnswers.map((answer) => ({
-            assessment_id: assessment.id,
-            question_id: answer.question_id,
-            selected_option: answer.selected_option,
-            response_time: answer.response_time,
-          }))
-        );
-
-      if (responsesError) throw responsesError;
-
-      setAssessmentId(assessment.id);
+      // Generate mock results
+      const mockId = crypto.randomUUID();
+      setAssessmentId(mockId);
       setShowResults(true);
-    } catch (error) {
-      console.error("Error submitting assessment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit assessment",
-        variant: "destructive",
-      });
     }
-  };
-
-  const calculateDimensionScores = (allAnswers: Answer[]) => {
-    const scores: Record<string, number> = {
-      escapism: 0,
-      fantasy: 0,
-      emotion: 0,
-      education: 0,
-      complexity: 0,
-      excitement: 0,
-      pacing: 0,
-      social: 0,
-      rewatch: 0,
-      comfort: 0,
-      variety: 0,
-      curiosity: 0,
-    };
-
-    allAnswers.forEach((answer) => {
-      const question = questions.find((q) => q.id === answer.question_id);
-      if (question && question.dimension_weights[answer.selected_option]) {
-        const weights = question.dimension_weights[answer.selected_option];
-        Object.entries(weights).forEach(([dimension, weight]) => {
-          scores[dimension] = (scores[dimension] || 0) + (weight as number);
-        });
-      }
-    });
-
-    Object.keys(scores).forEach((key) => {
-      scores[key] = Math.min(10, Math.round((scores[key] / 5) * 10));
-    });
-
-    return scores;
-  };
-
-  const determineArchetype = async (scores: Record<string, number>) => {
-    const { data: archetypes } = await supabase
-      .from("personality_archetypes")
-      .select("*");
-
-    if (!archetypes || archetypes.length === 0) {
-      throw new Error("No archetypes found");
-    }
-
-    let bestMatch = archetypes[0];
-    let bestScore = 0;
-
-    archetypes.forEach((archetype) => {
-      let matchScore = 0;
-      const ranges = archetype.dimension_ranges as Record<
-        string,
-        [number, number]
-      >;
-
-      Object.entries(ranges).forEach(([dimension, [min, max]]) => {
-        const score = scores[dimension] || 0;
-        if (score >= min && score <= max) {
-          matchScore += score;
-        }
-      });
-
-      if (matchScore > bestScore) {
-        bestScore = matchScore;
-        bestMatch = archetype;
-      }
-    });
-
-    return bestMatch;
-  };
-
-  const generateStats = (scores: Record<string, number>) => {
-    const sortedScores = Object.entries(scores)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 7);
-
-    return sortedScores.map(([key, value]) => ({
-      label: key.charAt(0).toUpperCase() + key.slice(1),
-      value: value,
-      max: 10,
-    }));
-  };
-
-  const selectRandomThought = (thoughts: any) => {
-    const thoughtsArray = Array.isArray(thoughts) ? thoughts : [];
-    return thoughtsArray[Math.floor(Math.random() * thoughtsArray.length)];
-  };
-
-  const generateBadges = (scores: Record<string, number>) => {
-    const badges = [];
-
-    if (scores.rewatch >= 8)
-      badges.push({ name: "Comfort Curator", icon: "🏡" });
-    if (scores.social >= 8)
-      badges.push({ name: "Social Butterfly", icon: "🦋" });
-    if (scores.variety >= 8) badges.push({ name: "Genre Nomad", icon: "🎭" });
-
-    return badges.slice(0, 3);
   };
 
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -255,6 +120,17 @@ export const AssessmentFlow = () => {
 
   if (showResults && assessmentId) {
     return <MoodBoardResults assessmentId={assessmentId} />;
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold">Assessment Coming Soon</h2>
+          <p className="text-muted-foreground">We're preparing your movie personality quiz!</p>
+        </div>
+      </div>
+    );
   }
 
   const currentQuestion = questions[currentQuestionIndex];

@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import { Movie as RecommendationMovie } from "@/hooks/useMovieRecommendations";
 
 interface Movie {
   id: number;
@@ -36,9 +37,11 @@ interface Movie {
   posterUrl: string;
   backdropUrl?: string | null;
   rating: number;
-  year: number | null;
+  year: number;
   releaseDate?: string | null;
   popularity: number;
+  genre?: string;
+  moodMatch?: string;
 }
 
 interface PersonDetails {
@@ -83,7 +86,7 @@ const Person = () => {
   });
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<RecommendationMovie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
 
   useEffect(() => {
@@ -93,7 +96,18 @@ const Person = () => {
   }, [id]);
 
   const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
+    // Convert to format expected by ExpandedMovieView
+    const convertedMovie: RecommendationMovie = {
+      id: movie.id,
+      title: movie.title,
+      year: movie.year || 0,
+      rating: movie.rating,
+      genre: movie.genre || "",
+      posterUrl: movie.posterUrl,
+      backdropUrl: movie.backdropUrl || undefined,
+      moodMatch: movie.moodMatch || "",
+    };
+    setSelectedMovie(convertedMovie);
     setIsMovieViewOpen(true);
   };
 
