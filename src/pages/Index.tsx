@@ -65,9 +65,9 @@ const Index = () => {
       setTrendingMovies(movies.slice(0, 8).map((movie: any) => ({
         id: movie.id,
         title: movie.title,
-        year: movie.year,
+        year: typeof movie.year === 'number' ? movie.year : parseInt(movie.year) || 0,
         rating: movie.rating,
-        genre: movie.genre,
+        genre: movie.genre || "",
         posterUrl: movie.posterUrl,
         backdropUrl: movie.backdropUrl,
         overview: movie.overview,
