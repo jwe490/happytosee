@@ -24,7 +24,7 @@ interface Answer {
   response_time: number;
 }
 
-// Enhanced mock questions with emojis and catchy descriptions
+// Comprehensive assessment questions for movie personality profiling
 const mockQuestions: Question[] = [
   {
     id: "1",
@@ -36,7 +36,7 @@ const mockQuestions: Question[] = [
       { emoji: "💔", label: "Emotional Ride", description: "Deep stories, strong feelings" },
       { emoji: "⚡", label: "High Energy", description: "Action, thrill, excitement" }
     ],
-    dimension_weights: {},
+    dimension_weights: { mood: { relaxed: 2, social: 2, emotional: 2, energetic: 2 } },
     visual_content: null,
     order_index: 1
   },
@@ -50,7 +50,7 @@ const mockQuestions: Question[] = [
       { emoji: "🍕", label: "Pizza Night", description: "Full meal experience" },
       { emoji: "🥂", label: "Wine & Cheese", description: "Sophisticated vibes" }
     ],
-    dimension_weights: {},
+    dimension_weights: { style: { classic: 2, fun: 2, casual: 2, refined: 2 } },
     visual_content: null,
     order_index: 2
   },
@@ -64,9 +64,79 @@ const mockQuestions: Question[] = [
       { emoji: "🎭", label: "Drama", description: "Award-worthy performances" },
       { emoji: "🚀", label: "Sci-Fi/Fantasy", description: "Escape to other worlds" }
     ],
-    dimension_weights: {},
+    dimension_weights: { genre: { action: 2, comedy: 2, drama: 2, scifi: 2 } },
     visual_content: null,
     order_index: 3
+  },
+  {
+    id: "4",
+    question_text: "How do you prefer your endings?",
+    question_type: "single",
+    options: [
+      { emoji: "🌈", label: "Happy Endings", description: "Everything works out perfectly" },
+      { emoji: "🤯", label: "Plot Twists", description: "Blow my mind!" },
+      { emoji: "💭", label: "Open Ended", description: "Leave me thinking" },
+      { emoji: "😢", label: "Bittersweet", description: "Beautiful yet heartbreaking" }
+    ],
+    dimension_weights: { ending: { happy: 2, twist: 2, open: 2, sad: 2 } },
+    visual_content: null,
+    order_index: 4
+  },
+  {
+    id: "5",
+    question_text: "What era of movies do you love most?",
+    question_type: "single",
+    options: [
+      { emoji: "📼", label: "Classic Cinema", description: "Golden age masterpieces" },
+      { emoji: "🎞️", label: "80s & 90s", description: "Nostalgic favorites" },
+      { emoji: "🎬", label: "2000s Blockbusters", description: "Modern spectacles" },
+      { emoji: "✨", label: "Latest Releases", description: "Fresh off the screen" }
+    ],
+    dimension_weights: { era: { classic: 2, retro: 2, modern: 2, new: 2 } },
+    visual_content: null,
+    order_index: 5
+  },
+  {
+    id: "6",
+    question_text: "What draws you to a movie first?",
+    question_type: "single",
+    options: [
+      { emoji: "⭐", label: "Star Power", description: "Favorite actors & directors" },
+      { emoji: "📖", label: "Story & Script", description: "Compelling narratives" },
+      { emoji: "🎨", label: "Visual Style", description: "Stunning cinematography" },
+      { emoji: "📊", label: "Reviews & Ratings", description: "Critical acclaim" }
+    ],
+    dimension_weights: { priority: { cast: 2, story: 2, visual: 2, reviews: 2 } },
+    visual_content: null,
+    order_index: 6
+  },
+  {
+    id: "7",
+    question_text: "How long do you like your movies?",
+    question_type: "single",
+    options: [
+      { emoji: "⚡", label: "Quick & Snappy", description: "Under 90 minutes" },
+      { emoji: "⏱️", label: "Just Right", description: "90-120 minutes" },
+      { emoji: "🎭", label: "Epic Length", description: "2+ hours of cinema" },
+      { emoji: "📺", label: "Series Format", description: "Mini-series over movies" }
+    ],
+    dimension_weights: { duration: { short: 2, medium: 2, long: 2, series: 2 } },
+    visual_content: null,
+    order_index: 7
+  },
+  {
+    id: "8",
+    question_text: "What's your movie-watching mood today?",
+    question_type: "single",
+    options: [
+      { emoji: "🧘", label: "Relaxed", description: "Something easy & light" },
+      { emoji: "🎢", label: "Adventurous", description: "Take me on a journey" },
+      { emoji: "🧠", label: "Thought-Provoking", description: "Challenge my mind" },
+      { emoji: "❤️", label: "Romantic", description: "Feel the love" }
+    ],
+    dimension_weights: { current_mood: { relaxed: 2, adventurous: 2, intellectual: 2, romantic: 2 } },
+    visual_content: null,
+    order_index: 8
   }
 ];
 

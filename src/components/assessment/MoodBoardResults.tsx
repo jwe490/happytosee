@@ -1,65 +1,141 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Share2, RotateCw, Trophy, Sparkles } from "lucide-react";
+import { Share2, RotateCw, Trophy, Sparkles, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MoodBoardResultsProps {
   assessmentId: string;
+  answers?: { question_id: string; selected_option: string }[];
 }
 
-// Mock archetypes for when database doesn't have the tables
+interface RecommendedMovie {
+  id: number;
+  title: string;
+  year: number;
+  rating: number;
+  posterUrl: string;
+  genre: string;
+}
+
+// Archetypes with associated genres for recommendations
 const mockArchetypes = [
   {
     name: "The Explorer",
     icon: "🎬",
     description: "You love discovering new films and hidden gems. Your watchlist is always growing!",
     traits: ["Curious", "Open-minded", "Adventurous", "Eclectic"],
-    color_scheme: ["#667eea", "#764ba2", "#f093fb"]
+    color_scheme: ["#667eea", "#764ba2", "#f093fb"],
+    genres: ["Adventure", "Sci-Fi", "Fantasy"]
   },
   {
     name: "The Comfort Seeker",
     icon: "🏡",
     description: "You have your favorites and love rewatching them. Familiar stories bring you joy.",
     traits: ["Nostalgic", "Cozy", "Loyal", "Sentimental"],
-    color_scheme: ["#f093fb", "#f5576c", "#feca57"]
+    color_scheme: ["#f093fb", "#f5576c", "#feca57"],
+    genres: ["Comedy", "Romance", "Family"]
   },
   {
     name: "The Cinephile",
     icon: "🎥",
     description: "You appreciate cinema as an art form and seek out critically acclaimed films.",
     traits: ["Analytical", "Cultured", "Discerning", "Thoughtful"],
-    color_scheme: ["#4facfe", "#00f2fe", "#43e97b"]
+    color_scheme: ["#4facfe", "#00f2fe", "#43e97b"],
+    genres: ["Drama", "Thriller", "Mystery"]
+  },
+  {
+    name: "The Thrill Seeker",
+    icon: "⚡",
+    description: "You crave excitement and adrenaline. Action-packed blockbusters are your jam!",
+    traits: ["Bold", "Energetic", "Intense", "Fearless"],
+    color_scheme: ["#fa709a", "#fee140", "#f5576c"],
+    genres: ["Action", "Horror", "Thriller"]
+  },
+  {
+    name: "The Dreamer",
+    icon: "✨",
+    description: "You love magical worlds and imaginative storytelling. Fantasy fuels your soul.",
+    traits: ["Creative", "Imaginative", "Romantic", "Hopeful"],
+    color_scheme: ["#a8edea", "#fed6e3", "#d299c2"],
+    genres: ["Fantasy", "Animation", "Romance"]
   }
 ];
 
-export const MoodBoardResults = ({ assessmentId }: MoodBoardResultsProps) => {
+export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
+  const [recommendedMovies, setRecommendedMovies] = useState<RecommendedMovie[]>([]);
+  const [isLoadingMovies, setIsLoadingMovies] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Generate mock results
-  const archetype = mockArchetypes[Math.floor(Math.random() * mockArchetypes.length)];
+  // Determine archetype based on assessment ID (deterministic)
+  const archetypeIndex = assessmentId ? 
+    assessmentId.charCodeAt(0) % mockArchetypes.length : 
+    Math.floor(Math.random() * mockArchetypes.length);
+  const archetype = mockArchetypes[archetypeIndex];
+
   const stats = [
-    { label: "Escapism", value: Math.floor(Math.random() * 4) + 6, max: 10 },
-    { label: "Emotion", value: Math.floor(Math.random() * 4) + 6, max: 10 },
-    { label: "Adventure", value: Math.floor(Math.random() * 4) + 6, max: 10 },
-    { label: "Comfort", value: Math.floor(Math.random() * 4) + 6, max: 10 },
-    { label: "Variety", value: Math.floor(Math.random() * 4) + 6, max: 10 },
+    { label: "Escapism", value: 6 + (assessmentId.charCodeAt(1) || 0) % 4, max: 10 },
+    { label: "Emotion", value: 6 + (assessmentId.charCodeAt(2) || 0) % 4, max: 10 },
+    { label: "Adventure", value: 6 + (assessmentId.charCodeAt(3) || 0) % 4, max: 10 },
+    { label: "Comfort", value: 6 + (assessmentId.charCodeAt(4) || 0) % 4, max: 10 },
+    { label: "Variety", value: 6 + (assessmentId.charCodeAt(5) || 0) % 4, max: 10 },
   ];
+
   const badges = [
     { name: "Movie Buff", icon: "🎬" },
     { name: "Night Owl", icon: "🦉" },
   ];
+
   const randomThought = "Every movie is a chance to live another life for a few hours.";
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    const loadData = async () => {
+      setIsLoading(true);
+      setIsLoadingMovies(true);
+      
+      // Simulate loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
+
+      // Fetch movie recommendations based on archetype genres
+      try {
+        const { data, error } = await supabase.functions.invoke('recommend-movies', {
+          body: { 
+            genres: archetype.genres,
+            limit: 5
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.movies && Array.isArray(data.movies)) {
+          setRecommendedMovies(data.movies.slice(0, 5));
+        }
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        // Fallback to trending movies
+        try {
+          const { data: trendingData } = await supabase.functions.invoke('trending-movies', {
+            body: { category: 'trending' }
+          });
+          if (trendingData?.movies) {
+            setRecommendedMovies(trendingData.movies.slice(0, 5));
+          }
+        } catch {
+          // Silent fail
+        }
+      } finally {
+        setIsLoadingMovies(false);
+      }
+    };
+
+    loadData();
+  }, [archetype.genres]);
 
   const handleShare = async () => {
     if (!resultRef.current) return;
@@ -256,10 +332,71 @@ export const MoodBoardResults = ({ assessmentId }: MoodBoardResultsProps) => {
           </div>
         </motion.div>
 
+        {/* Movie Recommendations Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.9 }}
+          transition={{ delay: 2.0 }}
+          className="space-y-4"
+        >
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Film className="w-6 h-6" />
+            Movies We Think You'll Love
+          </h2>
+          
+          {isLoadingMovies ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="aspect-[2/3] bg-muted animate-pulse rounded-xl" />
+              ))}
+            </div>
+          ) : recommendedMovies.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {recommendedMovies.map((movie, index) => (
+                <motion.div
+                  key={movie.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 2.1 + index * 0.1 }}
+                  className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="aspect-[2/3] overflow-hidden">
+                    <img
+                      src={movie.posterUrl || '/placeholder.svg'}
+                      alt={movie.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-yellow-400 text-xs">★ {movie.rating?.toFixed(1) || 'N/A'}</span>
+                      <span className="text-white/60 text-xs">{movie.year}</span>
+                    </div>
+                  </div>
+                  {/* Always visible title below */}
+                  <div className="p-2 bg-card">
+                    <p className="text-xs font-medium line-clamp-1">{movie.title}</p>
+                    <p className="text-xs text-muted-foreground">{movie.year}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No recommendations available at the moment.
+            </p>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.5 }}
           className="flex gap-3 justify-center"
         >
           <Button size="lg" onClick={handleShare} disabled={isSharing} className="gap-2 rounded-full">
