@@ -216,14 +216,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
             <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
           </motion.div>
 
-          {/* Back button */}
+          {/* Back button - Fixed position to always be visible */}
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ delay: 0.1, duration: 0.2 }}
             onClick={handleBack}
-            className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/90 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card active:scale-95 transition-all duration-150"
+            className="fixed top-4 left-4 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card shadow-lg active:scale-95 transition-all duration-150"
           >
             <ChevronLeft className="w-4 h-4" />
             <span className="text-sm font-medium">Back</span>
