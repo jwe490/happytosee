@@ -114,10 +114,15 @@ const Auth = () => {
       setSignupSuccess(true);
       toast.success("Account created! Please check your email to verify your account.");
     } catch (error: any) {
+      console.error("Signup error:", error);
       if (error.message?.includes("already registered")) {
         toast.error("This email is already registered");
+      } else if (error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key")) {
+        toast.error("Unable to connect to authentication service. Please try again later.");
+      } else if (error.message?.includes("fetch")) {
+        toast.error("Network error. Please check your connection.");
       } else {
-        toast.error(error.message || "Sign up failed");
+        toast.error(error.message || "Sign up failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
