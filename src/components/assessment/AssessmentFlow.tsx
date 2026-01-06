@@ -24,31 +24,46 @@ interface Answer {
   response_time: number;
 }
 
-// Mock questions for when database tables don't exist
+// Enhanced mock questions with emojis and catchy descriptions
 const mockQuestions: Question[] = [
   {
     id: "1",
     question_text: "What's your ideal movie night setup?",
     question_type: "single",
-    options: ["Cozy at home", "Theater experience", "Outdoor screening", "Watch party"],
+    options: [
+      { emoji: "🍿", label: "Cozy & Calm", description: "Blanket, lights off, peaceful vibes" },
+      { emoji: "🎉", label: "Fun with Friends", description: "Laughs and entertainment" },
+      { emoji: "💔", label: "Emotional Ride", description: "Deep stories, strong feelings" },
+      { emoji: "⚡", label: "High Energy", description: "Action, thrill, excitement" }
+    ],
     dimension_weights: {},
     visual_content: null,
     order_index: 1
   },
   {
     id: "2", 
-    question_text: "Pick a movie snack:",
+    question_text: "Pick your perfect movie snack:",
     question_type: "single",
-    options: ["Popcorn", "Candy", "Pizza", "Nothing"],
+    options: [
+      { emoji: "🍿", label: "Classic Popcorn", description: "Can't beat the original" },
+      { emoji: "🍫", label: "Chocolate & Candy", description: "Sweet tooth activated" },
+      { emoji: "🍕", label: "Pizza Night", description: "Full meal experience" },
+      { emoji: "🥂", label: "Wine & Cheese", description: "Sophisticated vibes" }
+    ],
     dimension_weights: {},
     visual_content: null,
     order_index: 2
   },
   {
     id: "3",
-    question_text: "What genre speaks to you most?",
+    question_text: "What genre speaks to your soul?",
     question_type: "single", 
-    options: ["Action/Adventure", "Comedy", "Drama", "Sci-Fi/Fantasy"],
+    options: [
+      { emoji: "💥", label: "Action/Adventure", description: "Explosions and epic quests" },
+      { emoji: "😂", label: "Comedy", description: "Belly laughs guaranteed" },
+      { emoji: "🎭", label: "Drama", description: "Award-worthy performances" },
+      { emoji: "🚀", label: "Sci-Fi/Fantasy", description: "Escape to other worlds" }
+    ],
     dimension_weights: {},
     visual_content: null,
     order_index: 3

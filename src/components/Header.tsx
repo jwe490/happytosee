@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, LogOut, User, Home, UserCircle } from "lucide-react";
+import { Menu, X, Bookmark, LogOut, User, Home, UserCircle, Sparkles } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 
 const Header = () => {
@@ -142,12 +142,17 @@ const Header = () => {
             </div>
 
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden"
+              className="md:hidden relative z-50 bg-background/80 backdrop-blur-sm border-border"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <motion.div
+                animate={{ rotate: isMobileMenuOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </motion.div>
             </Button>
           </div>
         </div>
@@ -190,6 +195,17 @@ const Header = () => {
                   >
                     <Home className="w-5 h-5" />
                     Home
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/assessment")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/assessment" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    ✨ Movie Mood
                   </Button>
 
                   {user && (

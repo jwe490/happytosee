@@ -150,23 +150,28 @@ const MovieGrid = ({
           </div>
         )}
 
-        <div ref={loadMoreRef} className="flex justify-center pt-4">
+        <div ref={loadMoreRef} className="flex justify-center pt-8 pb-4">
           {hasMore && onLoadMore ? (
             <Button
               onClick={onLoadMore}
               disabled={isLoadingMore}
               size="lg"
-              className="rounded-full px-8 font-semibold gap-2 shadow-lg hover:shadow-xl transition-all"
+              className="rounded-full px-10 py-6 font-semibold gap-3 shadow-lg hover:shadow-xl transition-all bg-foreground text-background hover:bg-foreground/90"
             >
               {isLoadingMore ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Loader2 className="w-5 h-5" />
+                  </motion.div>
+                  <span>Loading more...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
-                  Show More
+                  <Sparkles className="w-5 h-5" />
+                  <span>Load More Movies</span>
                 </>
               )}
             </Button>
@@ -174,12 +179,14 @@ const MovieGrid = ({
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center gap-2 py-4"
+              className="flex flex-col items-center gap-3 py-6"
             >
-              <Sparkles className="w-6 h-6 text-primary" />
-              <p className="text-sm text-muted-foreground font-medium">
-                That's all for now!
-              </p>
+              <div className="flex items-center gap-2 px-6 py-3 rounded-full bg-muted">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  You've seen all {movies.length} movies!
+                </p>
+              </div>
             </motion.div>
           ) : null}
         </div>

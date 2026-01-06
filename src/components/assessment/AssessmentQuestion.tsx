@@ -1,18 +1,16 @@
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
 
-interface Option {
-  id: string;
+interface OptionData {
+  emoji?: string;
   label: string;
-  value: string;
-  image?: string;
+  description?: string;
 }
 
 interface Question {
   id: string;
   question_text: string;
   question_type: string;
-  options: Option[];
+  options: (string | OptionData)[];
   visual_content?: any;
 }
 
@@ -26,6 +24,22 @@ export const AssessmentQuestion = ({
   onAnswer,
 }: AssessmentQuestionProps) => {
   const isVisualCards = question.question_type === "visual_cards";
+
+  // Handle both string options and object options
+  const normalizeOption = (option: string | OptionData, index: number) => {
+    if (typeof option === "string") {
+      return { id: `opt-${index}`, label: option, value: option, emoji: "", description: "" };
+    }
+    return { 
+      id: `opt-${index}`, 
+      label: option.label, 
+      value: option.label, 
+      emoji: option.emoji || "", 
+      description: option.description || "" 
+    };
+  };
+
+  const normalizedOptions = question.options.map(normalizeOption);
 
   return (
     <motion.div
@@ -44,11 +58,11 @@ export const AssessmentQuestion = ({
       <div
         className={`grid gap-4 ${
           isVisualCards
-            ? "grid-cols-2 md:grid-cols-2"
-            : "grid-cols-1 md:grid-cols-2"
+            ? "grid-cols-2"
+            : "grid-cols-1 sm:grid-cols-2"
         }`}
       >
-        {question.options.map((option, index) => (
+        {normalizedOptions.map((option, index) => (
           <motion.button
             key={option.id}
             initial={{ opacity: 0, scale: 0.9 }}
@@ -64,42 +78,50 @@ export const AssessmentQuestion = ({
             whileTap={{ scale: 0.97 }}
             onClick={() => onAnswer(option.value)}
             className={`
-              relative group p-6 rounded-2xl border-2 border-border/50
+              relative group p-5 md:p-6 rounded-2xl border-2 border-border/50
               bg-card hover:border-primary/50 hover:bg-card/80
-              transition-all duration-300 text-left
+              hover:shadow-lg transition-all duration-300 text-left
               ${isVisualCards ? "aspect-[3/4]" : ""}
             `}
           >
-            {isVisualCards && (
-              <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-            )}
+            {/* Hover gradient effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <div className="relative z-10 h-full flex flex-col justify-end space-y-2">
-              <motion.div
-                className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-300"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
-                <Check className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
-              </motion.div>
-
-              <div>
-                <h3
-                  className={`font-semibold ${
-                    isVisualCards
-                      ? "text-white text-xl"
-                      : "text-foreground text-lg"
-                  }`}
-                >
-                  {option.label}
-                </h3>
+            <div className="relative z-10 h-full flex flex-col justify-center gap-3">
+              {/* Emoji and label row */}
+              <div className="flex items-center gap-3">
+                {option.emoji && (
+                  <motion.span
+                    className="text-3xl md:text-4xl"
+                    animate={{ scale: 1 }}
+                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {option.emoji}
+                  </motion.span>
+                )}
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground text-base md:text-lg">
+                    {option.label}
+                  </h3>
+                  {option.description && (
+                    <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                      {option.description}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="absolute top-3 right-3 w-8 h-8 rounded-full border-2 border-border/50 group-hover:border-primary/50 bg-background/50 group-hover:bg-primary/20 transition-all duration-300" />
+            {/* Selection indicator */}
+            <motion.div 
+              className="absolute top-3 right-3 w-6 h-6 md:w-7 md:h-7 rounded-full border-2 border-border/50 group-hover:border-primary group-hover:bg-primary/20 transition-all duration-300 flex items-center justify-center"
+              whileHover={{ scale: 1.1 }}
+            >
+              <motion.div 
+                className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
+              />
+            </motion.div>
           </motion.button>
         ))}
       </div>
