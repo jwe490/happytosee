@@ -16,11 +16,12 @@ interface Question {
   dimension_weights: Record<string, Record<string, number>>;
   visual_content: any;
   order_index: number;
+  multiSelect?: boolean;
 }
 
 interface Answer {
   question_id: string;
-  selected_option: string;
+  selected_option: string | string[];
   response_time: number;
 }
 
@@ -41,7 +42,56 @@ const mockQuestions: Question[] = [
     order_index: 1
   },
   {
-    id: "2", 
+    id: "2",
+    question_text: "Which language movies do you prefer?",
+    question_type: "multi",
+    multiSelect: true,
+    options: [
+      { emoji: "🇺🇸", label: "English", description: "Hollywood & International English" },
+      { emoji: "🇮🇳", label: "Hindi", description: "Bollywood blockbusters" },
+      { emoji: "🇰🇷", label: "Korean", description: "K-dramas & Korean cinema" },
+      { emoji: "🇯🇵", label: "Japanese", description: "Anime & Japanese films" },
+      { emoji: "🇪🇸", label: "Spanish", description: "Latin American & Spanish cinema" },
+      { emoji: "🌎", label: "Mixed / Any", description: "Open to all languages" }
+    ],
+    dimension_weights: { language: { en: 2, hi: 2, ko: 2, ja: 2, es: 2, any: 2 } },
+    visual_content: null,
+    order_index: 2
+  },
+  {
+    id: "3",
+    question_text: "What kind of movies do you enjoy?",
+    question_type: "single",
+    options: [
+      { emoji: "🎬", label: "Commercial / Popular", description: "Mainstream blockbusters everyone talks about" },
+      { emoji: "🎨", label: "Indie / Artistic", description: "Unique storytelling & visual artistry" },
+      { emoji: "🧠", label: "Thought-Provoking", description: "Films that challenge your mind" },
+      { emoji: "🔥", label: "Fast-Paced", description: "Non-stop action & entertainment" },
+      { emoji: "🧸", label: "Comfort Movies", description: "Familiar, feel-good favorites" },
+      { emoji: "🧪", label: "Experimental", description: "Unconventional & boundary-pushing" }
+    ],
+    dimension_weights: { style: { commercial: 2, indie: 2, intellectual: 2, action: 2, comfort: 2, experimental: 2 } },
+    visual_content: null,
+    order_index: 3
+  },
+  {
+    id: "4",
+    question_text: "How are you feeling right now?",
+    question_type: "single",
+    options: [
+      { emoji: "😂", label: "Light & Funny", description: "I want to laugh!" },
+      { emoji: "😢", label: "Deep & Emotional", description: "Ready for a moving story" },
+      { emoji: "😱", label: "Thrilling", description: "Give me chills and suspense" },
+      { emoji: "💖", label: "Romantic", description: "In the mood for love" },
+      { emoji: "🤯", label: "Mind-Bending", description: "Blow my mind with twists" },
+      { emoji: "😌", label: "Relaxed", description: "Something easy and chill" }
+    ],
+    dimension_weights: { emotional_style: { funny: 2, emotional: 2, thrilling: 2, romantic: 2, mindbending: 2, relaxed: 2 } },
+    visual_content: null,
+    order_index: 4
+  },
+  {
+    id: "5", 
     question_text: "Pick your perfect movie snack:",
     question_type: "single",
     options: [
@@ -52,24 +102,27 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { style: { classic: 2, fun: 2, casual: 2, refined: 2 } },
     visual_content: null,
-    order_index: 2
+    order_index: 5
   },
   {
-    id: "3",
+    id: "6",
     question_text: "What genre speaks to your soul?",
-    question_type: "single", 
+    question_type: "multi",
+    multiSelect: true,
     options: [
       { emoji: "💥", label: "Action/Adventure", description: "Explosions and epic quests" },
       { emoji: "😂", label: "Comedy", description: "Belly laughs guaranteed" },
       { emoji: "🎭", label: "Drama", description: "Award-worthy performances" },
-      { emoji: "🚀", label: "Sci-Fi/Fantasy", description: "Escape to other worlds" }
+      { emoji: "🚀", label: "Sci-Fi/Fantasy", description: "Escape to other worlds" },
+      { emoji: "👻", label: "Horror/Thriller", description: "Heart-pounding suspense" },
+      { emoji: "💕", label: "Romance", description: "Love stories that warm the heart" }
     ],
-    dimension_weights: { genre: { action: 2, comedy: 2, drama: 2, scifi: 2 } },
+    dimension_weights: { genre: { action: 2, comedy: 2, drama: 2, scifi: 2, horror: 2, romance: 2 } },
     visual_content: null,
-    order_index: 3
+    order_index: 6
   },
   {
-    id: "4",
+    id: "7",
     question_text: "How do you prefer your endings?",
     question_type: "single",
     options: [
@@ -80,10 +133,10 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { ending: { happy: 2, twist: 2, open: 2, sad: 2 } },
     visual_content: null,
-    order_index: 4
+    order_index: 7
   },
   {
-    id: "5",
+    id: "8",
     question_text: "What era of movies do you love most?",
     question_type: "single",
     options: [
@@ -94,10 +147,10 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { era: { classic: 2, retro: 2, modern: 2, new: 2 } },
     visual_content: null,
-    order_index: 5
+    order_index: 8
   },
   {
-    id: "6",
+    id: "9",
     question_text: "What draws you to a movie first?",
     question_type: "single",
     options: [
@@ -108,10 +161,10 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { priority: { cast: 2, story: 2, visual: 2, reviews: 2 } },
     visual_content: null,
-    order_index: 6
+    order_index: 9
   },
   {
-    id: "7",
+    id: "10",
     question_text: "How long do you like your movies?",
     question_type: "single",
     options: [
@@ -122,10 +175,10 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { duration: { short: 2, medium: 2, long: 2, series: 2 } },
     visual_content: null,
-    order_index: 7
+    order_index: 10
   },
   {
-    id: "8",
+    id: "11",
     question_text: "What's your movie-watching mood today?",
     question_type: "single",
     options: [
@@ -136,7 +189,21 @@ const mockQuestions: Question[] = [
     ],
     dimension_weights: { current_mood: { relaxed: 2, adventurous: 2, intellectual: 2, romantic: 2 } },
     visual_content: null,
-    order_index: 8
+    order_index: 11
+  },
+  {
+    id: "12",
+    question_text: "Pick your cinema vibe:",
+    question_type: "single",
+    options: [
+      { emoji: "🌃", label: "Late Night Thriller", description: "Dark, mysterious, suspenseful" },
+      { emoji: "☀️", label: "Sunday Afternoon", description: "Light, fun, family-friendly" },
+      { emoji: "🌧️", label: "Rainy Day Drama", description: "Deep, emotional, introspective" },
+      { emoji: "🎊", label: "Party Mood", description: "Upbeat, energetic, fun" }
+    ],
+    dimension_weights: { vibe: { thriller: 2, family: 2, drama: 2, party: 2 } },
+    visual_content: null,
+    order_index: 12
   }
 ];
 
@@ -166,7 +233,7 @@ export const AssessmentFlow = () => {
     }
   };
 
-  const handleAnswer = (option: string) => {
+  const handleAnswer = (option: string | string[]) => {
     const responseTime = Date.now() - startTime;
 
     const newAnswers = [
@@ -183,7 +250,7 @@ export const AssessmentFlow = () => {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setStartTime(Date.now());
     } else {
-      // Generate mock results
+      // Generate mock results with answers for recommendations
       const mockId = crypto.randomUUID();
       setAssessmentId(mockId);
       setShowResults(true);
@@ -204,7 +271,7 @@ export const AssessmentFlow = () => {
   }
 
   if (showResults && assessmentId) {
-    return <MoodBoardResults assessmentId={assessmentId} />;
+    return <MoodBoardResults assessmentId={assessmentId} answers={answers} />;
   }
 
   if (questions.length === 0) {
@@ -254,6 +321,7 @@ export const AssessmentFlow = () => {
               key={currentQuestion.id}
               question={currentQuestion}
               onAnswer={handleAnswer}
+              multiSelect={currentQuestion.multiSelect}
             />
           </AnimatePresence>
         </motion.div>
