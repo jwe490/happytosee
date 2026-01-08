@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import MovieCard from "./MovieCard";
 import ExpandedMovieView from "./ExpandedMovieView";
@@ -12,6 +12,7 @@ interface MovieGridProps {
   isLoadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  enableInfiniteScroll?: boolean;
 }
 
 const MovieGrid = ({
@@ -19,19 +20,43 @@ const MovieGrid = ({
   isLoading,
   isLoadingMore = false,
   hasMore = true,
-  onLoadMore
+  onLoadMore,
+  enableInfiniteScroll = true
 }: MovieGridProps) => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Infinite scroll with Intersection Observer
+  const lastMovieRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoadingMore || !enableInfiniteScroll) return;
+    
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && onLoadMore) {
+        onLoadMore();
+      }
+    }, { threshold: 0.1, rootMargin: '100px' });
+    
+    if (node) observerRef.current.observe(node);
+  }, [isLoadingMore, hasMore, onLoadMore, enableInfiniteScroll]);
 
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 1000);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Cleanup observer on unmount
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
   }, []);
 
   const handleMovieClick = (movie: Movie) => {
@@ -79,6 +104,14 @@ const MovieGrid = ({
     return null;
   }
 
+  // Track unique movies to prevent duplicates
+  const seenIds = new Set<number>();
+  const uniqueMovies = movies.filter(movie => {
+    if (seenIds.has(movie.id)) return false;
+    seenIds.add(movie.id);
+    return true;
+  });
+
   return (
     <>
       <motion.div
@@ -101,7 +134,7 @@ const MovieGrid = ({
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <p className="text-muted-foreground">
-            {movies.length} movies curated just for you
+            {uniqueMovies.length} movies curated just for you
           </p>
         </motion.div>
 
@@ -119,39 +152,44 @@ const MovieGrid = ({
             }
           }}
         >
-          {movies.map((movie, index) => (
-            <motion.div
-              key={`${movie.id}-${index}`}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-            >
-              <MovieCard
-                movie={movie}
-                index={index}
-                onClick={() => handleMovieClick(movie)}
-              />
-            </motion.div>
-          ))}
+          {uniqueMovies.map((movie, index) => {
+            const isLastMovie = index === uniqueMovies.length - 1;
+            
+            return (
+              <motion.div
+                key={`${movie.id}-${index}`}
+                ref={isLastMovie ? lastMovieRef : null}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 }
+                }}
+              >
+                <MovieCard
+                  movie={movie}
+                  index={index}
+                  onClick={() => handleMovieClick(movie)}
+                />
+              </motion.div>
+            );
+          })}
         </motion.div>
 
+        {/* Loading indicator for infinite scroll */}
         {isLoadingMore && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0.5, 0.8, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
-                className="aspect-[2/3] rounded-2xl bg-muted/50"
-              />
-            ))}
+          <div className="flex flex-col items-center gap-4 py-8">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            >
+              <Loader2 className="w-8 h-8 text-primary" />
+            </motion.div>
+            <p className="text-sm text-muted-foreground">Loading more movies...</p>
           </div>
         )}
 
-        <div ref={loadMoreRef} className="flex justify-center pt-8 pb-4">
-          {hasMore && onLoadMore ? (
+        {/* Manual load more button (fallback) */}
+        <div ref={loadMoreRef} className="flex justify-center pt-4 pb-4">
+          {hasMore && onLoadMore && !enableInfiniteScroll ? (
             <Button
               onClick={onLoadMore}
               disabled={isLoadingMore}
@@ -175,7 +213,7 @@ const MovieGrid = ({
                 </>
               )}
             </Button>
-          ) : movies.length > 0 && !hasMore ? (
+          ) : uniqueMovies.length > 0 && !hasMore ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -184,7 +222,7 @@ const MovieGrid = ({
               <div className="flex items-center gap-2 px-6 py-3 rounded-full bg-muted">
                 <Sparkles className="w-5 h-5 text-primary" />
                 <p className="text-sm font-medium text-muted-foreground">
-                  You've seen all {movies.length} movies!
+                  You've seen all {uniqueMovies.length} movies!
                 </p>
               </div>
             </motion.div>

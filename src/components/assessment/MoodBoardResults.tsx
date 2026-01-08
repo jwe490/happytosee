@@ -1,14 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Share2, RotateCw, Trophy, Sparkles, Film } from "lucide-react";
+import { Share2, RotateCw, Trophy, Sparkles, Film, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
+import { ShareButton } from "@/components/ShareButton";
+
+interface Answer {
+  question_id: string;
+  selected_option: string | string[];
+  response_time: number;
+}
 
 interface MoodBoardResultsProps {
   assessmentId: string;
-  answers?: { question_id: string; selected_option: string }[];
+  answers?: Answer[];
 }
 
 interface RecommendedMovie {
@@ -18,6 +25,7 @@ interface RecommendedMovie {
   rating: number;
   posterUrl: string;
   genre: string;
+  moodMatch?: string;
 }
 
 // Archetypes with associated genres for recommendations
@@ -28,7 +36,8 @@ const mockArchetypes = [
     description: "You love discovering new films and hidden gems. Your watchlist is always growing!",
     traits: ["Curious", "Open-minded", "Adventurous", "Eclectic"],
     color_scheme: ["#667eea", "#764ba2", "#f093fb"],
-    genres: ["Adventure", "Sci-Fi", "Fantasy"]
+    genres: ["Adventure", "Sci-Fi", "Fantasy"],
+    mood: "excited"
   },
   {
     name: "The Comfort Seeker",
@@ -36,7 +45,8 @@ const mockArchetypes = [
     description: "You have your favorites and love rewatching them. Familiar stories bring you joy.",
     traits: ["Nostalgic", "Cozy", "Loyal", "Sentimental"],
     color_scheme: ["#f093fb", "#f5576c", "#feca57"],
-    genres: ["Comedy", "Romance", "Family"]
+    genres: ["Comedy", "Romance", "Family"],
+    mood: "relaxed"
   },
   {
     name: "The Cinephile",
@@ -44,7 +54,8 @@ const mockArchetypes = [
     description: "You appreciate cinema as an art form and seek out critically acclaimed films.",
     traits: ["Analytical", "Cultured", "Discerning", "Thoughtful"],
     color_scheme: ["#4facfe", "#00f2fe", "#43e97b"],
-    genres: ["Drama", "Thriller", "Mystery"]
+    genres: ["Drama", "Thriller", "Mystery"],
+    mood: "sad"
   },
   {
     name: "The Thrill Seeker",
@@ -52,7 +63,8 @@ const mockArchetypes = [
     description: "You crave excitement and adrenaline. Action-packed blockbusters are your jam!",
     traits: ["Bold", "Energetic", "Intense", "Fearless"],
     color_scheme: ["#fa709a", "#fee140", "#f5576c"],
-    genres: ["Action", "Horror", "Thriller"]
+    genres: ["Action", "Horror", "Thriller"],
+    mood: "excited"
   },
   {
     name: "The Dreamer",
@@ -60,11 +72,96 @@ const mockArchetypes = [
     description: "You love magical worlds and imaginative storytelling. Fantasy fuels your soul.",
     traits: ["Creative", "Imaginative", "Romantic", "Hopeful"],
     color_scheme: ["#a8edea", "#fed6e3", "#d299c2"],
-    genres: ["Fantasy", "Animation", "Romance"]
+    genres: ["Fantasy", "Animation", "Romance"],
+    mood: "romantic"
+  },
+  {
+    name: "The Night Owl",
+    icon: "🦉",
+    description: "Late night movie sessions are your thing. You thrive in mystery and suspense.",
+    traits: ["Mysterious", "Intense", "Patient", "Observant"],
+    color_scheme: ["#2c3e50", "#4a69bd", "#6a89cc"],
+    genres: ["Thriller", "Mystery", "Horror"],
+    mood: "bored"
   }
 ];
 
-export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProps) => {
+// Map answer choices to preferences
+const extractPreferences = (answers: Answer[]) => {
+  const preferences: {
+    languages: string[];
+    genres: string[];
+    mood: string;
+    movieType: string;
+  } = {
+    languages: [],
+    genres: [],
+    mood: "happy",
+    movieType: "commercial"
+  };
+
+  answers.forEach(answer => {
+    const options = Array.isArray(answer.selected_option) 
+      ? answer.selected_option 
+      : [answer.selected_option];
+
+    // Question 2: Languages
+    if (answer.question_id === "2") {
+      const langMap: Record<string, string> = {
+        "English": "english",
+        "Hindi": "hindi",
+        "Korean": "korean",
+        "Japanese": "japanese",
+        "Spanish": "spanish",
+        "Mixed / Any": "english"
+      };
+      options.forEach(opt => {
+        if (langMap[opt]) preferences.languages.push(langMap[opt]);
+      });
+    }
+
+    // Question 3: Movie Type
+    if (answer.question_id === "3") {
+      preferences.movieType = options[0]?.toLowerCase() || "commercial";
+    }
+
+    // Question 4: Emotional Style (maps to mood)
+    if (answer.question_id === "4") {
+      const moodMap: Record<string, string> = {
+        "Light & Funny": "happy",
+        "Deep & Emotional": "sad",
+        "Thrilling": "excited",
+        "Romantic": "romantic",
+        "Mind-Bending": "bored",
+        "Relaxed": "relaxed"
+      };
+      preferences.mood = moodMap[options[0]] || "happy";
+    }
+
+    // Question 6: Genres
+    if (answer.question_id === "6") {
+      const genreMap: Record<string, string> = {
+        "Action/Adventure": "Action",
+        "Comedy": "Comedy",
+        "Drama": "Drama",
+        "Sci-Fi/Fantasy": "Sci-Fi",
+        "Horror/Thriller": "Thriller",
+        "Romance": "Romance"
+      };
+      options.forEach(opt => {
+        if (genreMap[opt]) preferences.genres.push(genreMap[opt]);
+      });
+    }
+  });
+
+  // Set defaults if empty
+  if (preferences.languages.length === 0) preferences.languages = ["english"];
+  if (preferences.genres.length === 0) preferences.genres = ["Drama", "Comedy"];
+
+  return preferences;
+};
+
+export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResultsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const [recommendedMovies, setRecommendedMovies] = useState<RecommendedMovie[]>([]);
@@ -72,11 +169,23 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
   const resultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Determine archetype based on assessment ID (deterministic)
-  const archetypeIndex = assessmentId ? 
-    assessmentId.charCodeAt(0) % mockArchetypes.length : 
-    Math.floor(Math.random() * mockArchetypes.length);
-  const archetype = mockArchetypes[archetypeIndex];
+  // Extract preferences from answers
+  const preferences = extractPreferences(answers);
+
+  // Determine archetype based on answers and assessment ID
+  const determineArchetype = () => {
+    // Find archetype based on mood preference
+    const moodArchetype = mockArchetypes.find(a => a.mood === preferences.mood);
+    if (moodArchetype) return moodArchetype;
+    
+    // Fallback to assessment ID based selection
+    const archetypeIndex = assessmentId ? 
+      assessmentId.charCodeAt(0) % mockArchetypes.length : 
+      Math.floor(Math.random() * mockArchetypes.length);
+    return mockArchetypes[archetypeIndex];
+  };
+
+  const archetype = determineArchetype();
 
   const stats = [
     { label: "Escapism", value: 6 + (assessmentId.charCodeAt(1) || 0) % 4, max: 10 },
@@ -99,14 +208,20 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
       setIsLoadingMovies(true);
       
       // Simulate loading
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       setIsLoading(false);
 
-      // Fetch movie recommendations based on archetype genres
+      // Fetch movie recommendations based on assessment answers
       try {
+        const genresToUse = preferences.genres.length > 0 
+          ? preferences.genres 
+          : archetype.genres;
+
         const { data, error } = await supabase.functions.invoke('recommend-movies', {
           body: { 
-            genres: archetype.genres,
+            mood: preferences.mood,
+            genres: genresToUse,
+            languages: preferences.languages,
             limit: 5
           }
         });
@@ -135,7 +250,7 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
     };
 
     loadData();
-  }, [archetype.genres]);
+  }, [archetype.genres, preferences]);
 
   const handleShare = async () => {
     if (!resultRef.current) return;
@@ -156,7 +271,7 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
         if (navigator.share) {
           await navigator.share({
             title: "My Movie Mood Board",
-            text: `I'm ${archetype.name}! Discover your movie personality.`,
+            text: `I'm ${archetype.name}! Discover your movie personality on MoodFlix.`,
             files: [file],
           });
           toast({ title: "Shared!", description: "Your mood board has been shared" });
@@ -186,8 +301,12 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground">Calculating your results...</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
+          />
+          <p className="text-muted-foreground">Analyzing your movie personality...</p>
         </div>
       </div>
     );
@@ -336,13 +455,16 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.0 }}
+          transition={{ delay: 1.8 }}
           className="space-y-4"
         >
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Film className="w-6 h-6" />
             Movies We Think You'll Love
           </h2>
+          <p className="text-muted-foreground text-sm">
+            Based on your {preferences.mood} mood and love for {preferences.genres.slice(0, 2).join(" & ")}
+          </p>
           
           {isLoadingMovies ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -357,7 +479,7 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
                   key={movie.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 2.1 + index * 0.1 }}
+                  transition={{ delay: 1.9 + index * 0.1 }}
                   className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <div className="aspect-[2/3] overflow-hidden">
@@ -370,6 +492,24 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
                       }}
                     />
                   </div>
+                  
+                  {/* Mood tag */}
+                  {movie.moodMatch && (
+                    <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-primary/90 text-primary-foreground text-xs font-medium">
+                      ✨ {preferences.mood}
+                    </div>
+                  )}
+
+                  {/* Share button */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ShareButton
+                      title={movie.title}
+                      text={`This movie matches my ${preferences.mood} mood 🎭 – via MoodFlix`}
+                      size="icon"
+                      variant="secondary"
+                    />
+                  </div>
+
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                     <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
@@ -396,7 +536,7 @@ export const MoodBoardResults = ({ assessmentId, answers }: MoodBoardResultsProp
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.5 }}
+          transition={{ delay: 2.3 }}
           className="flex gap-3 justify-center"
         >
           <Button size="lg" onClick={handleShare} disabled={isSharing} className="gap-2 rounded-full">
