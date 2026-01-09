@@ -88,6 +88,11 @@ const Person = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<RecommendationMovie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+
+  const handleImageError = (movieId: number) => {
+    setImageErrors(prev => new Set([...prev, movieId]));
+  };
 
   useEffect(() => {
     if (id) {
@@ -190,19 +195,13 @@ const Person = () => {
       className="group cursor-pointer"
     >
       <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md group-hover:shadow-xl transition-all ring-1 ring-border/50 group-hover:ring-2 group-hover:ring-primary/50">
-        {movie.posterUrl ? (
+        {!imageErrors.has(movie.id) && movie.posterUrl ? (
           <img
             src={movie.posterUrl}
             alt={movie.title}
             className="w-full h-full object-cover"
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-muted"><svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg></div>';
-              }
-            }}
+            onError={() => handleImageError(movie.id)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted">

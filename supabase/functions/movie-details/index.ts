@@ -1,3 +1,5 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -31,22 +33,38 @@ const getProviderUrl = (providerId: number): string | null => {
   return PROVIDER_URLS[providerId] || null;
 };
 
+// Input validation schema
+const movieDetailsSchema = z.object({
+  movieId: z.union([
+    z.number().int().positive("Movie ID must be a positive integer"),
+    z.string().regex(/^\d+$/, "Movie ID must be numeric").transform(val => parseInt(val, 10))
+  ])
+});
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { movieId } = await req.json();
+    const body = await req.json();
+    
+    // Validate input with zod
+    const validationResult = movieDetailsSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid movie ID";
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { movieId } = validationResult.data;
     
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     
     if (!TMDB_API_KEY) {
       throw new Error("TMDB_API_KEY is not configured");
-    }
-
-    if (!movieId) {
-      throw new Error("Movie ID is required");
     }
 
     console.log("Fetching details for movie:", movieId);

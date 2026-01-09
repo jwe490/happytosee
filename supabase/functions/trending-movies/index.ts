@@ -1,3 +1,5 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -29,26 +31,42 @@ const genreMap: Record<number, string> = {
   37: "Western",
 };
 
+// Input validation schema
+const trendingSchema = z.object({
+  category: z.enum(['trending', 'top_rated', 'upcoming']).default('trending')
+});
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { category } = await req.json();
+    const body = await req.json();
+
+    // Validate input with zod
+    const validationResult = trendingSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid category";
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { category } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     if (!TMDB_API_KEY) throw new Error("TMDB_API_KEY is not configured");
 
-    const cat = (category || "trending") as "trending" | "top_rated" | "upcoming";
-    const endpointByCat: Record<typeof cat, string> = {
+    const endpointByCat: Record<typeof category, string> = {
       trending: `${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`,
       top_rated: `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}`,
       upcoming: `${TMDB_BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}`,
     };
 
-    const url = endpointByCat[cat] ?? endpointByCat.trending;
-    console.log("Trending movies:", { category: cat, url: url.replace(TMDB_API_KEY, "***") });
+    const url = endpointByCat[category];
+    console.log("Trending movies:", { category, url: url.replace(TMDB_API_KEY, "***") });
 
     const response = await fetch(url);
     if (!response.ok) {

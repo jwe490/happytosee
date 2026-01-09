@@ -1,3 +1,5 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -41,33 +43,44 @@ const langToIndustry: Record<string, string> = {
   "es": "Spanish Cinema",
 };
 
+// Input validation schema
+const searchSchema = z.object({
+  query: z.string()
+    .min(2, "Search query must be at least 2 characters")
+    .max(100, "Search query must be less than 100 characters")
+    .transform(val => val.trim())
+});
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query } = await req.json();
+    const body = await req.json();
     
-    if (!query || typeof query !== 'string' || query.trim().length < 2) {
-      return new Response(JSON.stringify({ movies: [], message: "Search query must be at least 2 characters" }), {
+    // Validate input with zod
+    const validationResult = searchSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
+      return new Response(JSON.stringify({ movies: [], message: errorMessage }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const sanitizedQuery = query.trim().slice(0, 100);
-    
+    const { query } = validationResult.data;
+
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     
     if (!TMDB_API_KEY) {
       throw new Error("TMDB_API_KEY is not configured");
     }
 
-    console.log("Searching for:", sanitizedQuery);
+    console.log("Searching for:", query);
 
     const queryParams = new URLSearchParams({
       api_key: TMDB_API_KEY,
-      query: sanitizedQuery,
+      query: query,
       language: "en-US",
       page: "1",
       include_adult: "false",
@@ -87,7 +100,7 @@ Deno.serve(async (req) => {
     const tmdbData = await tmdbResponse.json();
     const movies = (tmdbData.results || []).slice(0, 12);
     
-    console.log(`Found ${movies.length} movies for query: ${sanitizedQuery}`);
+    console.log(`Found ${movies.length} movies for query: ${query}`);
 
     // Format movies
     const formattedMovies = movies.map((movie: any) => {
