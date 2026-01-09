@@ -1,3 +1,5 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -102,13 +104,35 @@ const moodTemplates: Record<string, string[]> = {
   ],
 };
 
+// Input validation schema
+const recommendSchema = z.object({
+  mood: z.string().max(50).optional(),
+  languages: z.array(z.string().max(30)).max(5).optional(),
+  genres: z.array(z.string().max(50)).max(5).optional(),
+  industries: z.array(z.string().max(50)).max(3).optional(),
+  duration: z.string().max(20).optional(),
+  previouslyRecommended: z.array(z.string().max(200)).max(100).optional()
+});
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { mood, languages, genres, industries, duration, previouslyRecommended } = await req.json();
+    const body = await req.json();
+
+    // Validate input with zod
+    const validationResult = recommendSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
+      return new Response(JSON.stringify({ error: errorMessage, movies: [] }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { mood, languages, genres, industries, duration, previouslyRecommended } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
 
@@ -199,7 +223,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (previouslyRecommended?.length > 0) {
+    if (previouslyRecommended && previouslyRecommended.length > 0) {
       movies = movies.filter(m => !previouslyRecommended.includes(m.title));
     }
 
@@ -214,7 +238,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const templates = moodTemplates[mood?.toLowerCase()] || [
+    const templates = moodTemplates[mood?.toLowerCase() || ""] || [
       "A great movie matching your current mood",
       "Perfect entertainment for right now",
       "This film fits your vibe perfectly",

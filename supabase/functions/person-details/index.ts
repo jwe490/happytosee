@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,14 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 const TMDB_PROFILE_BASE = "https://image.tmdb.org/t/p/h632";
 
+// Input validation schema
+const personDetailsSchema = z.object({
+  personId: z.union([
+    z.number().int().positive("Person ID must be a positive integer"),
+    z.string().regex(/^\d+$/, "Person ID must be numeric").transform(val => parseInt(val, 10))
+  ])
+});
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -19,16 +28,24 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { personId } = await req.json();
+    const body = await req.json();
+
+    // Validate input with zod
+    const validationResult = personDetailsSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid person ID";
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { personId } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
 
     if (!TMDB_API_KEY) {
       throw new Error("TMDB_API_KEY is not configured");
-    }
-
-    if (!personId) {
-      throw new Error("Person ID is required");
     }
 
     console.log("Fetching details for person:", personId);

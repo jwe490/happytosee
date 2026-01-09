@@ -1,3 +1,5 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -7,6 +9,16 @@ const corsHeaders = {
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
+// Input validation schemas
+const aiSearchSchema = z.object({
+  description: z.string().min(2).max(500).optional(),
+  type: z.enum(['describe', 'summary', 'surprise']),
+  movieTitle: z.string().max(200).optional(),
+  movieOverview: z.string().max(1000).optional(),
+  mood: z.string().max(50).optional(),
+  excludeIds: z.array(z.number().int().positive()).max(100).optional()
+});
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,7 +26,18 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { description, type, movieTitle, movieOverview, mood, excludeIds } = body;
+
+    // Validate input with zod
+    const validationResult = aiSearchSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
+      return new Response(JSON.stringify({ error: errorMessage, movies: [], movie: null }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { description, type, movieTitle, movieOverview, mood, excludeIds } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -150,7 +173,10 @@ Rules:
     // Handle "summary" type
     if (type === "summary") {
       if (!movieTitle) {
-        throw new Error("Movie title is required for summary");
+        return new Response(JSON.stringify({ error: "Movie title is required for summary" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       return new Response(JSON.stringify({
