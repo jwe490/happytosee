@@ -58,6 +58,18 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Validate CSS color to prevent CSS injection attacks
+function isValidCSSColor(color: string): boolean {
+  // Allow hex colors, rgb/rgba, hsl/hsla, oklch, named colors, and CSS variables
+  const validColorRegex = /^(#[0-9A-Fa-f]{3,8}|rgb\([^)]+\)|rgba\([^)]+\)|hsl\([^)]+\)|hsla\([^)]+\)|oklch\([^)]+\)|var\(--[a-zA-Z0-9-]+\)|[a-zA-Z]+)$/;
+  return validColorRegex.test(color.trim());
+}
+
+// Sanitize CSS key name to prevent injection
+function sanitizeCSSKey(key: string): string {
+  return key.replace(/[^a-zA-Z0-9-_]/g, '');
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -65,25 +77,41 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Build CSS variables safely using React's style object approach
+  const cssVariables: React.CSSProperties = {};
+  
+  colorConfig.forEach(([key, itemConfig]) => {
+    const sanitizedKey = sanitizeCSSKey(key);
+    const color = itemConfig.theme?.light || itemConfig.color;
+    if (color && isValidCSSColor(color)) {
+      (cssVariables as Record<string, string>)[`--color-${sanitizedKey}`] = color;
+    }
+  });
+
+  // For dark theme, we still need a style tag but with validated content
+  const darkThemeCSS = colorConfig
+    .map(([key, itemConfig]) => {
+      const sanitizedKey = sanitizeCSSKey(key);
+      const color = itemConfig.theme?.dark;
+      if (color && isValidCSSColor(color)) {
+        return `  --color-${sanitizedKey}: ${color};`;
+      }
+      return null;
+    })
+    .filter(Boolean)
+    .join("\n");
+
   return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
-    />
+    <>
+      <div style={cssVariables} className="hidden" aria-hidden="true" />
+      {darkThemeCSS && (
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `.dark [data-chart=${id.replace(/[^a-zA-Z0-9-]/g, '')}] {\n${darkThemeCSS}\n}`,
+          }}
+        />
+      )}
+    </>
   );
 };
 
