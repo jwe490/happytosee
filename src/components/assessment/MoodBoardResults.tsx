@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
-import { RotateCw, Film, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
-import { ShareableCard, MinimalShareButton } from "@/components/sharing";
+import { ShareDrawer, ShareableCard } from "@/components/sharing";
+import {
+  MoodIntroSlide,
+  MoodArchetypeSlide,
+  MoodTraitsSlide,
+  MoodRecommendationsSlide,
+} from "./results";
 
 interface Answer {
   question_id: string;
@@ -24,8 +28,7 @@ interface RecommendedMovie {
   year: number;
   rating: number;
   posterUrl: string;
-  genre: string;
-  moodMatch?: string;
+  genre?: string;
 }
 
 // Archetypes with associated genres for recommendations
@@ -161,23 +164,24 @@ const extractPreferences = (answers: Answer[]) => {
   return preferences;
 };
 
+type SlideType = "intro" | "archetype" | "traits" | "recommendations";
+
 export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResultsProps) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState<SlideType>("intro");
   const [recommendedMovies, setRecommendedMovies] = useState<RecommendedMovie[]>([]);
-  const [isLoadingMovies, setIsLoadingMovies] = useState(false);
+  const [isLoadingMovies, setIsLoadingMovies] = useState(true);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Extract preferences from answers
   const preferences = extractPreferences(answers);
 
-  // Determine archetype based on answers and assessment ID
+  // Determine archetype based on answers
   const determineArchetype = () => {
-    // Find archetype based on mood preference
     const moodArchetype = mockArchetypes.find(a => a.mood === preferences.mood);
     if (moodArchetype) return moodArchetype;
     
-    // Fallback to assessment ID based selection
     const archetypeIndex = assessmentId ? 
       assessmentId.charCodeAt(0) % mockArchetypes.length : 
       Math.floor(Math.random() * mockArchetypes.length);
@@ -187,15 +191,9 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   const archetype = determineArchetype();
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
+    const fetchMovies = async () => {
       setIsLoadingMovies(true);
       
-      // Simulate loading
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setIsLoading(false);
-
-      // Fetch movie recommendations based on assessment answers
       try {
         const genresToUse = preferences.genres.length > 0 
           ? preferences.genres 
@@ -217,7 +215,6 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
         }
       } catch (error) {
         console.error("Error fetching recommendations:", error);
-        // Fallback to trending movies
         try {
           const { data: trendingData } = await supabase.functions.invoke('trending-movies', {
             body: { category: 'trending' }
@@ -233,8 +230,8 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
       }
     };
 
-    loadData();
-  }, [archetype.genres, preferences]);
+    fetchMovies();
+  }, [archetype.genres, preferences.genres, preferences.languages, preferences.mood]);
 
   // Generate shareable image
   const generateShareImage = useCallback(async (): Promise<Blob | null> => {
@@ -261,168 +258,67 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
     window.location.reload();
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          {/* Animated loading illustration */}
-          <div className="relative">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16"
-            >
-              <svg viewBox="0 0 64 64" className="w-full h-full text-accent">
-                <motion.circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeDasharray="120"
-                  strokeDashoffset="40"
-                />
-              </svg>
-            </motion.div>
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="absolute inset-0 flex items-center justify-center text-2xl"
-            >
-              🎬
-            </motion.div>
-          </div>
-          <p className="text-muted-foreground font-medium">Analyzing your movie personality...</p>
-        </div>
-      </div>
-    );
-  }
+  const navigateToSlide = (slide: SlideType) => {
+    setCurrentSlide(slide);
+  };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-lg mx-auto space-y-8">
-        {/* Shareable Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <ShareableCard
-            ref={shareCardRef}
+    <>
+      <AnimatePresence mode="wait">
+        {currentSlide === "intro" && (
+          <MoodIntroSlide
+            key="intro"
+            onContinue={() => navigateToSlide("archetype")}
+          />
+        )}
+        
+        {currentSlide === "archetype" && (
+          <MoodArchetypeSlide
+            key="archetype"
             archetype={archetype}
+            onContinue={() => navigateToSlide("traits")}
+          />
+        )}
+        
+        {currentSlide === "traits" && (
+          <MoodTraitsSlide
+            key="traits"
+            traits={archetype.traits}
             mood={preferences.mood}
+            onContinue={() => navigateToSlide("recommendations")}
           />
-        </motion.div>
-
-        {/* Action buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex gap-3 justify-center"
-        >
-          <MinimalShareButton
-            title={`I'm ${archetype.name}!`}
-            text={`I'm ${archetype.name}! Discover your movie personality on MoodFlix 🎬`}
-            onImageShare={generateShareImage}
-            variant="default"
+        )}
+        
+        {currentSlide === "recommendations" && (
+          <MoodRecommendationsSlide
+            key="recommendations"
+            movies={recommendedMovies}
+            isLoading={isLoadingMovies}
+            mood={preferences.mood}
+            onShare={() => setIsShareOpen(true)}
+            onRetake={handleRetake}
           />
-          
-          <Button 
-            variant="outline" 
-            onClick={handleRetake} 
-            className="gap-2 rounded-full px-5"
-          >
-            <RotateCw className="w-4 h-4" />
-            Retake
-          </Button>
-        </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* Movie Recommendations */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="space-y-4 pt-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Film className="w-5 h-5 text-accent" />
-              <h2 className="font-display text-lg font-semibold">For You</h2>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Based on your {preferences.mood} mood
-            </span>
-          </div>
-          
-          {isLoadingMovies ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {[...Array(5)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className="flex-shrink-0 w-28 aspect-[2/3] bg-muted animate-pulse rounded-xl" 
-                />
-              ))}
-            </div>
-          ) : recommendedMovies.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-              {recommendedMovies.map((movie, index) => (
-                <motion.div
-                  key={movie.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + index * 0.08 }}
-                  className="flex-shrink-0 w-28 group"
-                >
-                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-card hover:shadow-card-hover transition-shadow duration-300">
-                    <img
-                      src={movie.posterUrl || '/placeholder.svg'}
-                      alt={movie.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
-                    
-                    {/* Rating badge */}
-                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
-                      <span className="text-yellow-400 text-[10px] font-medium">
-                        ★ {movie.rating?.toFixed(1) || 'N/A'}
-                      </span>
-                    </div>
-
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="absolute bottom-0 left-0 right-0 p-2">
-                        <a 
-                          href={`https://www.themoviedb.org/movie/${movie.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1 text-white text-xs font-medium py-1.5 px-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          View
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <p className="text-xs font-medium line-clamp-1">{movie.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{movie.year}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-6 text-sm">
-              No recommendations available.
-            </p>
-          )}
-        </motion.div>
+      {/* Hidden shareable card for image generation */}
+      <div className="fixed -left-[9999px] -top-[9999px]">
+        <ShareableCard
+          ref={shareCardRef}
+          archetype={archetype}
+          mood={preferences.mood}
+        />
       </div>
-    </div>
+
+      {/* Share drawer */}
+      <ShareDrawer
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        title={`I'm ${archetype.name}!`}
+        subtitle={archetype.description}
+        shareText={`I'm ${archetype.name}! Discover your movie personality on MoodFlix 🎬`}
+        onImageShare={generateShareImage}
+      />
+    </>
   );
 };
