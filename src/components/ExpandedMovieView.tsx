@@ -13,7 +13,7 @@ import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { ReviewSection } from "@/components/ReviewSection";
-import { ShareButton } from "@/components/ShareButton";
+import { MinimalShareButton } from "@/components/sharing";
 import { AddToCollectionButton } from "@/components/AddToCollectionButton";
 import {
   Collapsible,
@@ -391,10 +391,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                         )}
 
                         {details && (
-                          <ShareButton
+                          <MinimalShareButton
                             title={details.title}
                             text={`Check out ${details.title} on MoodFlix!`}
-                            size="lg"
                             variant="outline"
                           />
                         )}

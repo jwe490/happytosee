@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Share2, RotateCw, Trophy, Sparkles, Film, ExternalLink } from "lucide-react";
+import { RotateCw, Film, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
-import { ShareButton } from "@/components/ShareButton";
+import { ShareableCard, MinimalShareButton } from "@/components/sharing";
 
 interface Answer {
   question_id: string;
@@ -163,10 +163,9 @@ const extractPreferences = (answers: Answer[]) => {
 
 export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResultsProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isSharing, setIsSharing] = useState(false);
   const [recommendedMovies, setRecommendedMovies] = useState<RecommendedMovie[]>([]);
   const [isLoadingMovies, setIsLoadingMovies] = useState(false);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Extract preferences from answers
@@ -186,21 +185,6 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   };
 
   const archetype = determineArchetype();
-
-  const stats = [
-    { label: "Escapism", value: 6 + (assessmentId.charCodeAt(1) || 0) % 4, max: 10 },
-    { label: "Emotion", value: 6 + (assessmentId.charCodeAt(2) || 0) % 4, max: 10 },
-    { label: "Adventure", value: 6 + (assessmentId.charCodeAt(3) || 0) % 4, max: 10 },
-    { label: "Comfort", value: 6 + (assessmentId.charCodeAt(4) || 0) % 4, max: 10 },
-    { label: "Variety", value: 6 + (assessmentId.charCodeAt(5) || 0) % 4, max: 10 },
-  ];
-
-  const badges = [
-    { name: "Movie Buff", icon: "🎬" },
-    { name: "Night Owl", icon: "🦉" },
-  ];
-
-  const randomThought = "Every movie is a chance to live another life for a few hours.";
 
   useEffect(() => {
     const loadData = async () => {
@@ -252,46 +236,26 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
     loadData();
   }, [archetype.genres, preferences]);
 
-  const handleShare = async () => {
-    if (!resultRef.current) return;
-    setIsSharing(true);
-
+  // Generate shareable image
+  const generateShareImage = useCallback(async (): Promise<Blob | null> => {
+    if (!shareCardRef.current) return null;
+    
     try {
-      const canvas = await html2canvas(resultRef.current, {
+      const canvas = await html2canvas(shareCardRef.current, {
         backgroundColor: null,
         scale: 2,
         logging: false,
+        useCORS: true,
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        const file = new File([blob], "my-movie-mood.png", { type: "image/png" });
-
-        if (navigator.share) {
-          await navigator.share({
-            title: "My Movie Mood Board",
-            text: `I'm ${archetype.name}! Discover your movie personality on MoodFlix.`,
-            files: [file],
-          });
-          toast({ title: "Shared!", description: "Your mood board has been shared" });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "my-movie-mood.png";
-          a.click();
-          URL.revokeObjectURL(url);
-          toast({ title: "Downloaded!", description: "Your mood board image has been saved" });
-        }
-      }, "image/png");
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
+      });
     } catch (error) {
-      console.error("Error sharing:", error);
-      toast({ title: "Error", description: "Failed to share mood board", variant: "destructive" });
-    } finally {
-      setIsSharing(false);
+      console.error("Error generating image:", error);
+      return null;
     }
-  };
+  }, []);
 
   const handleRetake = () => {
     window.location.reload();
@@ -300,189 +264,119 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
-          />
-          <p className="text-muted-foreground">Analyzing your movie personality...</p>
+        <div className="flex flex-col items-center gap-6">
+          {/* Animated loading illustration */}
+          <div className="relative">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16"
+            >
+              <svg viewBox="0 0 64 64" className="w-full h-full text-accent">
+                <motion.circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="120"
+                  strokeDashoffset="40"
+                />
+              </svg>
+            </motion.div>
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="absolute inset-0 flex items-center justify-center text-2xl"
+            >
+              🎬
+            </motion.div>
+          </div>
+          <p className="text-muted-foreground font-medium">Analyzing your movie personality...</p>
         </div>
       </div>
     );
   }
 
-  const colorScheme = archetype.color_scheme;
-  const traits = archetype.traits;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background py-12 px-4">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <div
-            ref={resultRef}
-            className="relative overflow-hidden rounded-3xl"
-            style={{
-              background: `linear-gradient(135deg, ${colorScheme[0]} 0%, ${colorScheme[1]} 50%, ${colorScheme[2]} 100%)`,
-            }}
-          >
-            <div className="absolute inset-0 bg-black/20" />
-
-            <div className="relative z-10 p-8 md:p-12 space-y-8 text-white">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center space-y-4"
-              >
-                <div className="text-6xl">{archetype.icon}</div>
-                <h1 className="font-display text-4xl md:text-5xl font-bold">{archetype.name}</h1>
-                <p className="text-lg md:text-xl text-white/90 max-w-xl mx-auto">{archetype.description}</p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-4"
-              >
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  Your Movie Traits
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {traits.map((trait: string, index: number) => (
-                    <motion.span
-                      key={trait}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                      className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-sm font-medium"
-                    >
-                      {trait}
-                    </motion.span>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="space-y-4"
-              >
-                <h3 className="font-semibold text-lg">Your Stats</h3>
-                <div className="space-y-3">
-                  {stats.map((stat, index) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 + index * 0.1 }}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{stat.label}</span>
-                        <span className="text-white/80">{stat.value}/{stat.max}</span>
-                      </div>
-                      <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(stat.value / stat.max) * 100}%` }}
-                          transition={{ delay: 0.8 + index * 0.1, duration: 0.8 }}
-                          className="h-full bg-white rounded-full"
-                        />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {badges.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 }}
-                  className="space-y-3"
-                >
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Achievements Unlocked
-                  </h3>
-                  <div className="flex gap-4">
-                    {badges.map((badge, index) => (
-                      <motion.div
-                        key={badge.name}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1.3 + index * 0.1, type: "spring" as const, stiffness: 200 }}
-                        className="flex flex-col items-center gap-2 px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm"
-                      >
-                        <span className="text-3xl">{badge.icon}</span>
-                        <span className="text-xs font-medium text-center">{badge.name}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.5 }}
-                className="pt-6 border-t border-white/20"
-              >
-                <p className="text-center italic text-white/90">"{randomThought}"</p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.7 }}
-                className="text-center text-sm text-white/60"
-              >
-                MoodFlix • Discover Your Movie Mood
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Movie Recommendations Section */}
+    <div className="min-h-screen bg-background py-8 px-4">
+      <div className="max-w-lg mx-auto space-y-8">
+        {/* Shareable Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8 }}
-          className="space-y-4"
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Film className="w-6 h-6" />
-            Movies We Think You'll Love
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Based on your {preferences.mood} mood and love for {preferences.genres.slice(0, 2).join(" & ")}
-          </p>
+          <ShareableCard
+            ref={shareCardRef}
+            archetype={archetype}
+            mood={preferences.mood}
+          />
+        </motion.div>
+
+        {/* Action buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex gap-3 justify-center"
+        >
+          <MinimalShareButton
+            title={`I'm ${archetype.name}!`}
+            text={`I'm ${archetype.name}! Discover your movie personality on MoodFlix 🎬`}
+            onImageShare={generateShareImage}
+            variant="default"
+          />
+          
+          <Button 
+            variant="outline" 
+            onClick={handleRetake} 
+            className="gap-2 rounded-full px-5"
+          >
+            <RotateCw className="w-4 h-4" />
+            Retake
+          </Button>
+        </motion.div>
+
+        {/* Movie Recommendations */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="space-y-4 pt-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Film className="w-5 h-5 text-accent" />
+              <h2 className="font-display text-lg font-semibold">For You</h2>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Based on your {preferences.mood} mood
+            </span>
+          </div>
           
           {isLoadingMovies ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-muted animate-pulse rounded-xl" />
+                <div 
+                  key={i} 
+                  className="flex-shrink-0 w-28 aspect-[2/3] bg-muted animate-pulse rounded-xl" 
+                />
               ))}
             </div>
           ) : recommendedMovies.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
               {recommendedMovies.map((movie, index) => (
                 <motion.div
                   key={movie.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.9 + index * 0.1 }}
-                  className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-lg hover:shadow-xl transition-all duration-300"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + index * 0.08 }}
+                  className="flex-shrink-0 w-28 group"
                 >
-                  <div className="aspect-[2/3] overflow-hidden">
+                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-card hover:shadow-card-hover transition-shadow duration-300">
                     <img
                       src={movie.posterUrl || '/placeholder.svg'}
                       alt={movie.title}
@@ -491,63 +385,42 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
                         (e.target as HTMLImageElement).src = '/placeholder.svg';
                       }}
                     />
+                    
+                    {/* Rating badge */}
+                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+                      <span className="text-yellow-400 text-[10px] font-medium">
+                        ★ {movie.rating?.toFixed(1) || 'N/A'}
+                      </span>
+                    </div>
+
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <a 
+                          href={`https://www.themoviedb.org/movie/${movie.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1 text-white text-xs font-medium py-1.5 px-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          View
+                        </a>
+                      </div>
+                    </div>
                   </div>
                   
-                  {/* Mood tag */}
-                  {movie.moodMatch && (
-                    <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-primary/90 text-primary-foreground text-xs font-medium">
-                      ✨ {preferences.mood}
-                    </div>
-                  )}
-
-                  {/* Share button */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ShareButton
-                      title={movie.title}
-                      text={`This movie matches my ${preferences.mood} mood 🎭 – via MoodFlix`}
-                      size="icon"
-                      variant="secondary"
-                    />
-                  </div>
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <h4 className="text-white text-sm font-semibold line-clamp-2">{movie.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-yellow-400 text-xs">★ {movie.rating?.toFixed(1) || 'N/A'}</span>
-                      <span className="text-white/60 text-xs">{movie.year}</span>
-                    </div>
-                  </div>
-                  {/* Always visible title below */}
-                  <div className="p-2 bg-card">
+                  <div className="mt-2">
                     <p className="text-xs font-medium line-clamp-1">{movie.title}</p>
-                    <p className="text-xs text-muted-foreground">{movie.year}</p>
+                    <p className="text-[10px] text-muted-foreground">{movie.year}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No recommendations available at the moment.
+            <p className="text-muted-foreground text-center py-6 text-sm">
+              No recommendations available.
             </p>
           )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.3 }}
-          className="flex gap-3 justify-center"
-        >
-          <Button size="lg" onClick={handleShare} disabled={isSharing} className="gap-2 rounded-full">
-            <Share2 className="w-4 h-4" />
-            {isSharing ? "Preparing..." : "Share Results"}
-          </Button>
-
-          <Button size="lg" variant="outline" onClick={handleRetake} className="gap-2 rounded-full">
-            <RotateCw className="w-4 h-4" />
-            Retake
-          </Button>
         </motion.div>
       </div>
     </div>
