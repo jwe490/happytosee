@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WatchHistoryItem {
   id: string;
@@ -13,117 +11,80 @@ export interface WatchHistoryItem {
   rating: number | null;
 }
 
+const WATCH_HISTORY_STORAGE_KEY = "moodflix_watch_history";
+
 export function useWatchHistory() {
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
+  // Load history from localStorage on mount
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const loadHistory = () => {
+      try {
+        const stored = localStorage.getItem(WATCH_HISTORY_STORAGE_KEY);
+        if (stored) {
+          setHistory(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Error loading watch history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    loadHistory();
   }, []);
 
-  const fetchHistory = useCallback(async () => {
-    if (!user) {
-      setHistory([]);
-      setIsLoading(false);
-      return;
-    }
-
+  // Save history to localStorage whenever it changes
+  const saveHistory = useCallback((items: WatchHistoryItem[]) => {
     try {
-      const { data, error } = await supabase
-        .from('watch_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('watched_at', { ascending: false });
-
-      if (error) throw error;
-
-      setHistory(data || []);
+      localStorage.setItem(WATCH_HISTORY_STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
-      console.error('Error fetching watch history:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error saving watch history:', error);
     }
-  }, [user]);
+  }, []);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  const markAsWatched = async (movie: { id: number; title: string; poster_path?: string; rating?: number }) => {
-    if (!user) {
-      toast({ title: 'Please sign in to track watch history', variant: 'destructive' });
+  const markAsWatched = useCallback((movie: { id: number; title: string; poster_path?: string; rating?: number }) => {
+    // Check if already watched
+    if (history.some(h => h.movie_id === movie.id)) {
+      toast.info('Already marked as watched');
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('watch_history')
-        .upsert({
-          user_id: user.id,
-          movie_id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path || null,
-          rating: movie.rating || null,
-          watched_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,movie_id'
-        })
-        .select()
-        .single();
+    const newItem: WatchHistoryItem = {
+      id: `local_${movie.id}_${Date.now()}`,
+      user_id: 'local',
+      movie_id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path || null,
+      watched_at: new Date().toISOString(),
+      rating: movie.rating || null,
+    };
 
-      if (error) throw error;
+    const updatedHistory = [newItem, ...history];
+    setHistory(updatedHistory);
+    saveHistory(updatedHistory);
+    toast.success('Marked as watched');
+  }, [history, saveHistory]);
 
-      setHistory(prev => {
-        const filtered = prev.filter(h => h.movie_id !== movie.id);
-        return [data, ...filtered];
-      });
+  const removeFromHistory = useCallback((movieId: number) => {
+    const updatedHistory = history.filter(h => h.movie_id !== movieId);
+    setHistory(updatedHistory);
+    saveHistory(updatedHistory);
+    toast.success('Removed from watch history');
+  }, [history, saveHistory]);
 
-      toast({ title: 'Marked as watched' });
-    } catch (error: any) {
-      toast({ title: 'Error updating watch history', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const removeFromHistory = async (movieId: number) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('watch_history')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('movie_id', movieId);
-
-      if (error) throw error;
-
-      setHistory(prev => prev.filter(h => h.movie_id !== movieId));
-      toast({ title: 'Removed from watch history' });
-    } catch (error: any) {
-      toast({ title: 'Error removing from history', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const isWatched = (movieId: number) => {
+  const isWatched = useCallback((movieId: number) => {
     return history.some(h => h.movie_id === movieId);
-  };
+  }, [history]);
 
   return {
     history,
-    user,
+    user: true, // Always return true for guest mode
     isLoading,
     markAsWatched,
     removeFromHistory,
     isWatched,
-    refetch: fetchHistory,
+    refetch: () => {},
   };
 }

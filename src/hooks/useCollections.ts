@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface Collection {
   id: string;
@@ -23,197 +21,134 @@ export interface CollectionMovie {
   added_at: string;
 }
 
+const COLLECTIONS_STORAGE_KEY = "moodflix_collections";
+
 export function useCollections() {
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
+  // Load collections from localStorage on mount
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const loadCollections = () => {
+      try {
+        const stored = localStorage.getItem(COLLECTIONS_STORAGE_KEY);
+        if (stored) {
+          setCollections(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Error loading collections:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    loadCollections();
   }, []);
 
-  const fetchCollections = useCallback(async () => {
-    if (!user) {
-      setCollections([]);
-      setIsLoading(false);
-      return;
-    }
-
+  // Save collections to localStorage whenever they change
+  const saveCollections = useCallback((items: Collection[]) => {
     try {
-      const { data, error } = await supabase
-        .from('collections')
-        .select(`
-          *,
-          movies:collection_movies (*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setCollections(data || []);
+      localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
-      console.error('Error fetching collections:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error saving collections:', error);
     }
-  }, [user]);
+  }, []);
 
-  useEffect(() => {
-    fetchCollections();
-  }, [fetchCollections]);
+  const createCollection = useCallback((name: string, description?: string, isPublic = false) => {
+    const newCollection: Collection = {
+      id: `local_${Date.now()}`,
+      user_id: 'local',
+      name,
+      description: description || null,
+      is_public: isPublic,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      movies: [],
+    };
 
-  const createCollection = async (name: string, description?: string, isPublic = false) => {
-    if (!user) {
-      toast({ title: 'Please sign in to create collections', variant: 'destructive' });
-      return null;
-    }
+    const updatedCollections = [newCollection, ...collections];
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    toast.success('Collection created');
+    return newCollection;
+  }, [collections, saveCollections]);
 
-    try {
-      const { data, error } = await supabase
-        .from('collections')
-        .insert({
-          user_id: user.id,
-          name,
-          description: description || null,
-          is_public: isPublic,
-        })
-        .select()
-        .single();
+  const deleteCollection = useCallback((collectionId: string) => {
+    const updatedCollections = collections.filter(c => c.id !== collectionId);
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    toast.success('Collection deleted');
+  }, [collections, saveCollections]);
 
-      if (error) throw error;
-
-      setCollections(prev => [{ ...data, movies: [] }, ...prev]);
-      toast({ title: 'Collection created' });
-      return data;
-    } catch (error: any) {
-      toast({ title: 'Error creating collection', description: error.message, variant: 'destructive' });
-      return null;
-    }
-  };
-
-  const deleteCollection = async (collectionId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('collections')
-        .delete()
-        .eq('id', collectionId);
-
-      if (error) throw error;
-
-      setCollections(prev => prev.filter(c => c.id !== collectionId));
-      toast({ title: 'Collection deleted' });
-    } catch (error: any) {
-      toast({ title: 'Error deleting collection', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const addMovieToCollection = async (collectionId: string, movie: { id: number; title: string; poster_path?: string }) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('collection_movies')
-        .insert({
-          collection_id: collectionId,
-          movie_id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path || null,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') {
-          toast({ title: 'Movie already in collection' });
-          return;
-        }
-        throw error;
-      }
-
-      setCollections(prev => prev.map(c => {
-        if (c.id === collectionId) {
-          return { ...c, movies: [...(c.movies || []), data] };
-        }
-        return c;
-      }));
-
-      toast({ title: 'Added to collection' });
-    } catch (error: any) {
-      toast({ title: 'Error adding to collection', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const removeMovieFromCollection = async (collectionId: string, movieId: number) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('collection_movies')
-        .delete()
-        .eq('collection_id', collectionId)
-        .eq('movie_id', movieId);
-
-      if (error) throw error;
-
-      setCollections(prev => prev.map(c => {
-        if (c.id === collectionId) {
-          return { ...c, movies: (c.movies || []).filter(m => m.movie_id !== movieId) };
-        }
-        return c;
-      }));
-
-      toast({ title: 'Removed from collection' });
-    } catch (error: any) {
-      toast({ title: 'Error removing from collection', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const toggleCollectionVisibility = async (collectionId: string) => {
+  const addMovieToCollection = useCallback((collectionId: string, movie: { id: number; title: string; poster_path?: string }) => {
     const collection = collections.find(c => c.id === collectionId);
     if (!collection) return;
 
-    try {
-      const { error } = await supabase
-        .from('collections')
-        .update({ is_public: !collection.is_public })
-        .eq('id', collectionId);
-
-      if (error) throw error;
-
-      setCollections(prev => prev.map(c => {
-        if (c.id === collectionId) {
-          return { ...c, is_public: !c.is_public };
-        }
-        return c;
-      }));
-
-      toast({ title: collection.is_public ? 'Collection is now private' : 'Collection is now public' });
-    } catch (error: any) {
-      toast({ title: 'Error updating collection', description: error.message, variant: 'destructive' });
+    // Check if movie already in collection
+    if (collection.movies?.some(m => m.movie_id === movie.id)) {
+      toast.info('Movie already in collection');
+      return;
     }
-  };
+
+    const newMovie: CollectionMovie = {
+      id: `local_${movie.id}_${Date.now()}`,
+      collection_id: collectionId,
+      movie_id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path || null,
+      added_at: new Date().toISOString(),
+    };
+
+    const updatedCollections = collections.map(c => {
+      if (c.id === collectionId) {
+        return { ...c, movies: [...(c.movies || []), newMovie] };
+      }
+      return c;
+    });
+
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    toast.success('Added to collection');
+  }, [collections, saveCollections]);
+
+  const removeMovieFromCollection = useCallback((collectionId: string, movieId: number) => {
+    const updatedCollections = collections.map(c => {
+      if (c.id === collectionId) {
+        return { ...c, movies: (c.movies || []).filter(m => m.movie_id !== movieId) };
+      }
+      return c;
+    });
+
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    toast.success('Removed from collection');
+  }, [collections, saveCollections]);
+
+  const toggleCollectionVisibility = useCallback((collectionId: string) => {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    const updatedCollections = collections.map(c => {
+      if (c.id === collectionId) {
+        return { ...c, is_public: !c.is_public };
+      }
+      return c;
+    });
+
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    toast.success(collection.is_public ? 'Collection is now private' : 'Collection is now public');
+  }, [collections, saveCollections]);
 
   return {
     collections,
-    user,
+    user: true, // Always return true for guest mode
     isLoading,
     createCollection,
     deleteCollection,
     addMovieToCollection,
     removeMovieFromCollection,
     toggleCollectionVisibility,
-    refetch: fetchCollections,
+    refetch: () => {},
   };
 }

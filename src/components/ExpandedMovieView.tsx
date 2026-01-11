@@ -83,7 +83,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [showTrailer, setShowTrailer] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
-  const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
   const handleBack = useCallback(() => {
@@ -320,7 +320,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                           </Button>
                         )}
 
-                        {user && details && (
+                        {details && (
                           <>
                             <Button
                               variant={isInWatchlist(details.id) ? "secondary" : "outline"}
