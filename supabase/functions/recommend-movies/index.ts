@@ -1,9 +1,9 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for movie recommendations
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -104,15 +104,34 @@ const moodTemplates: Record<string, string[]> = {
   ],
 };
 
-// Input validation schema
-const recommendSchema = z.object({
-  mood: z.string().max(50).optional(),
-  languages: z.array(z.string().max(30)).max(5).optional(),
-  genres: z.array(z.string().max(50)).max(5).optional(),
-  industries: z.array(z.string().max(50)).max(3).optional(),
-  duration: z.string().max(20).optional(),
-  previouslyRecommended: z.array(z.string().max(200)).max(100).optional()
-});
+// Simple validation function (no external dependencies)
+function validateInput(body: unknown): { 
+  valid: boolean; 
+  error?: string; 
+  data?: { 
+    mood?: string; 
+    languages?: string[]; 
+    genres?: string[]; 
+    industries?: string[]; 
+    duration?: string; 
+    previouslyRecommended?: string[];
+  } 
+} {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+  
+  const b = body as Record<string, unknown>;
+  
+  const mood = typeof b.mood === 'string' ? b.mood.slice(0, 50) : undefined;
+  const languages = Array.isArray(b.languages) ? b.languages.filter(l => typeof l === 'string').slice(0, 5).map(l => String(l).slice(0, 30)) : [];
+  const genres = Array.isArray(b.genres) ? b.genres.filter(g => typeof g === 'string').slice(0, 5).map(g => String(g).slice(0, 50)) : [];
+  const industries = Array.isArray(b.industries) ? b.industries.filter(i => typeof i === 'string').slice(0, 3).map(i => String(i).slice(0, 50)) : [];
+  const duration = typeof b.duration === 'string' ? b.duration.slice(0, 20) : undefined;
+  const previouslyRecommended = Array.isArray(b.previouslyRecommended) ? b.previouslyRecommended.filter(p => typeof p === 'string').slice(0, 100).map(p => String(p).slice(0, 200)) : [];
+  
+  return { valid: true, data: { mood, languages, genres, industries, duration, previouslyRecommended } };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -122,11 +141,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Validate input with zod
-    const validationResult = recommendSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
-      return new Response(JSON.stringify({ error: errorMessage, movies: [] }), {
+    // Validate input
+    const validationResult = validateInput(body);
+    if (!validationResult.valid || !validationResult.data) {
+      return new Response(JSON.stringify({ error: validationResult.error || "Invalid input", movies: [] }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

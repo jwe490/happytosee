@@ -1,23 +1,48 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for AI-powered movie search
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
-// Input validation schemas
-const aiSearchSchema = z.object({
-  description: z.string().min(2).max(500).optional(),
-  type: z.enum(['describe', 'summary', 'surprise']),
-  movieTitle: z.string().max(200).optional(),
-  movieOverview: z.string().max(1000).optional(),
-  mood: z.string().max(50).optional(),
-  excludeIds: z.array(z.number().int().positive()).max(100).optional()
-});
+// Simple validation function
+function validateAISearchInput(body: unknown): {
+  valid: boolean;
+  error?: string;
+  data?: {
+    description?: string;
+    type: 'describe' | 'summary' | 'surprise';
+    movieTitle?: string;
+    movieOverview?: string;
+    mood?: string;
+    excludeIds?: number[];
+  }
+} {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+
+  const b = body as Record<string, unknown>;
+
+  const type = b.type;
+  if (type !== 'describe' && type !== 'summary' && type !== 'surprise') {
+    return { valid: false, error: "Type must be 'describe', 'summary', or 'surprise'" };
+  }
+
+  const description = typeof b.description === 'string' ? b.description.slice(0, 500) : undefined;
+  const movieTitle = typeof b.movieTitle === 'string' ? b.movieTitle.slice(0, 200) : undefined;
+  const movieOverview = typeof b.movieOverview === 'string' ? b.movieOverview.slice(0, 1000) : undefined;
+  const mood = typeof b.mood === 'string' ? b.mood.slice(0, 50) : undefined;
+  const excludeIds = Array.isArray(b.excludeIds)
+    ? b.excludeIds.filter(id => typeof id === 'number' && Number.isInteger(id) && id > 0).slice(0, 100)
+    : [];
+
+  return { valid: true, data: { description, type, movieTitle, movieOverview, mood, excludeIds } };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,11 +52,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Validate input with zod
-    const validationResult = aiSearchSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
-      return new Response(JSON.stringify({ error: errorMessage, movies: [], movie: null }), {
+    // Validate input
+    const validationResult = validateAISearchInput(body);
+    if (!validationResult.valid || !validationResult.data) {
+      return new Response(JSON.stringify({ error: validationResult.error || "Invalid input", movies: [], movie: null }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

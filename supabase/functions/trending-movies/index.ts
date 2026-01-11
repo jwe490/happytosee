@@ -1,9 +1,9 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for trending movies
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -31,10 +31,27 @@ const genreMap: Record<number, string> = {
   37: "Western",
 };
 
-// Input validation schema
-const trendingSchema = z.object({
-  category: z.enum(['trending', 'top_rated', 'upcoming']).default('trending')
-});
+type TrendingCategory = 'trending' | 'top_rated' | 'upcoming';
+
+// Simple validation function
+function validateCategory(body: unknown): { valid: boolean; error?: string; category?: TrendingCategory } {
+  if (!body || typeof body !== 'object') {
+    return { valid: true, category: 'trending' }; // default
+  }
+  
+  const b = body as Record<string, unknown>;
+  const category = b.category;
+  
+  if (category === undefined) {
+    return { valid: true, category: 'trending' };
+  }
+  
+  if (category !== 'trending' && category !== 'top_rated' && category !== 'upcoming') {
+    return { valid: false, error: "Category must be 'trending', 'top_rated', or 'upcoming'" };
+  }
+  
+  return { valid: true, category };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -44,17 +61,16 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Validate input with zod
-    const validationResult = trendingSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid category";
-      return new Response(JSON.stringify({ error: errorMessage }), {
+    // Validate input
+    const validationResult = validateCategory(body);
+    if (!validationResult.valid || !validationResult.category) {
+      return new Response(JSON.stringify({ error: validationResult.error || "Invalid category" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { category } = validationResult.data;
+    const category = validationResult.category;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     if (!TMDB_API_KEY) throw new Error("TMDB_API_KEY is not configured");

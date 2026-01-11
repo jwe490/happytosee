@@ -1,9 +1,9 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for movie search
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -43,13 +43,26 @@ const langToIndustry: Record<string, string> = {
   "es": "Spanish Cinema",
 };
 
-// Input validation schema
-const searchSchema = z.object({
-  query: z.string()
-    .min(2, "Search query must be at least 2 characters")
-    .max(100, "Search query must be less than 100 characters")
-    .transform(val => val.trim())
-});
+// Simple validation function
+function validateSearchQuery(body: unknown): { valid: boolean; error?: string; query?: string } {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+  
+  const b = body as Record<string, unknown>;
+  
+  if (typeof b.query !== 'string') {
+    return { valid: false, error: "Search query is required" };
+  }
+  
+  const query = b.query.trim().slice(0, 100);
+  
+  if (query.length < 2) {
+    return { valid: false, error: "Search query must be at least 2 characters" };
+  }
+  
+  return { valid: true, query };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -59,16 +72,15 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     
-    // Validate input with zod
-    const validationResult = searchSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid input";
-      return new Response(JSON.stringify({ movies: [], message: errorMessage }), {
+    // Validate input
+    const validationResult = validateSearchQuery(body);
+    if (!validationResult.valid || !validationResult.query) {
+      return new Response(JSON.stringify({ movies: [], message: validationResult.error || "Invalid input" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { query } = validationResult.data;
+    const query = validationResult.query;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     
