@@ -171,6 +171,7 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   const [recommendedMovies, setRecommendedMovies] = useState<RecommendedMovie[]>([]);
   const [isLoadingMovies, setIsLoadingMovies] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -193,34 +194,69 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   useEffect(() => {
     const fetchMovies = async () => {
       setIsLoadingMovies(true);
+      setFetchError(null);
       
       try {
         const genresToUse = preferences.genres.length > 0 
           ? preferences.genres 
           : archetype.genres;
 
+        console.log("Fetching movies with params:", {
+          mood: preferences.mood,
+          genres: genresToUse,
+          languages: preferences.languages,
+          limit: 12
+        });
+
         const { data, error } = await supabase.functions.invoke('recommend-movies', {
           body: { 
             mood: preferences.mood,
             genres: genresToUse,
             languages: preferences.languages,
-            limit: 5
+            limit: 12
           }
         });
 
-        if (error) throw error;
-
-        if (data?.movies && Array.isArray(data.movies)) {
-          setRecommendedMovies(data.movies.slice(0, 5));
+        if (error) {
+          console.error("Edge function error:", error);
+          throw error;
         }
-      } catch (error) {
+
+        console.log("Received movie data:", data);
+
+        if (data?.movies && Array.isArray(data.movies) && data.movies.length > 0) {
+          // Shuffle movies for variety
+          const shuffledMovies = [...data.movies].sort(() => Math.random() - 0.5);
+          setRecommendedMovies(shuffledMovies);
+        } else {
+          // Fallback to trending movies
+          console.log("No movies in response, falling back to trending...");
+          const { data: trendingData, error: trendingError } = await supabase.functions.invoke('trending-movies', {
+            body: { category: 'trending' }
+          });
+          
+          if (trendingError) {
+            throw trendingError;
+          }
+          
+          if (trendingData?.movies && trendingData.movies.length > 0) {
+            setRecommendedMovies(trendingData.movies.slice(0, 12));
+          } else {
+            setFetchError("No movies found. Please try again.");
+          }
+        }
+      } catch (error: any) {
         console.error("Error fetching recommendations:", error);
+        setFetchError(error.message || "Failed to load recommendations");
+        
+        // Try trending as final fallback
         try {
           const { data: trendingData } = await supabase.functions.invoke('trending-movies', {
             body: { category: 'trending' }
           });
-          if (trendingData?.movies) {
-            setRecommendedMovies(trendingData.movies.slice(0, 5));
+          if (trendingData?.movies && trendingData.movies.length > 0) {
+            setRecommendedMovies(trendingData.movies.slice(0, 12));
+            setFetchError(null);
           }
         } catch {
           // Silent fail

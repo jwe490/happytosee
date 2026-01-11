@@ -1,35 +1,18 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { useState } from "react";
+import { motion, LayoutGroup } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { Bookmark, Trash2, Calendar, Star, ArrowLeft } from "lucide-react";
+import { Bookmark, Trash2, Star, ArrowLeft } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
 
 const Watchlist = () => {
-  const { watchlist, isLoading, user, removeFromWatchlist } = useWatchlist();
+  const { watchlist, isLoading, removeFromWatchlist } = useWatchlist();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session?.user) {
-        navigate("/auth");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
 
   const handleMovieClick = (watchlistItem: typeof watchlist[0]) => {
     const movie: Movie = {
@@ -49,10 +32,6 @@ const Watchlist = () => {
     setIsExpanded(false);
     setTimeout(() => setSelectedMovie(null), 400);
   };
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <LayoutGroup>

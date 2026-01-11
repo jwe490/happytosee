@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface WatchlistItem {
@@ -13,51 +12,44 @@ export interface WatchlistItem {
   created_at: string;
 }
 
+const WATCHLIST_STORAGE_KEY = "moodflix_watchlist";
+
 export const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Load watchlist from localStorage on mount
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const loadWatchlist = () => {
+      try {
+        const stored = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+        if (stored) {
+          setWatchlist(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error("Error loading watchlist:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    loadWatchlist();
   }, []);
 
-  const fetchWatchlist = useCallback(async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
+  // Save watchlist to localStorage whenever it changes
+  const saveWatchlist = useCallback((items: WatchlistItem[]) => {
     try {
-      const { data, error } = await supabase
-        .from("watchlist")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setWatchlist(data || []);
-    } catch (error: any) {
-      console.error("Error fetching watchlist:", error);
-    } finally {
-      setIsLoading(false);
+      localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.error("Error saving watchlist:", error);
     }
-  }, [user]);
+  }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchWatchlist();
-    } else {
-      setWatchlist([]);
-    }
-  }, [user, fetchWatchlist]);
+  const fetchWatchlist = useCallback(() => {
+    // No-op for local storage version
+  }, []);
 
-  const addToWatchlist = async (movie: {
+  const addToWatchlist = useCallback((movie: {
     id: number;
     title: string;
     poster_path?: string;
@@ -65,70 +57,46 @@ export const useWatchlist = () => {
     vote_average?: number;
     overview?: string;
   }) => {
-    if (!user) {
-      toast.error("Please sign in to add movies to your watchlist");
+    // Check if already in watchlist
+    if (watchlist.some((item) => item.movie_id === movie.id)) {
+      toast.info("This movie is already in your watchlist");
       return false;
     }
 
-    try {
-      const { error } = await supabase.from("watchlist").insert({
-        user_id: user.id,
-        movie_id: movie.id,
-        title: movie.title,
-        poster_path: movie.poster_path || null,
-        release_year: movie.release_date?.split("-")[0] || null,
-        rating: movie.vote_average || null,
-        overview: movie.overview || null,
-      });
+    const newItem: WatchlistItem = {
+      id: `local_${movie.id}_${Date.now()}`,
+      movie_id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path || null,
+      release_year: movie.release_date?.split("-")[0] || null,
+      rating: movie.vote_average || null,
+      overview: movie.overview || null,
+      created_at: new Date().toISOString(),
+    };
 
-      if (error) {
-        if (error.code === "23505") {
-          toast.info("This movie is already in your watchlist");
-          return false;
-        }
-        throw error;
-      }
+    const updatedWatchlist = [newItem, ...watchlist];
+    setWatchlist(updatedWatchlist);
+    saveWatchlist(updatedWatchlist);
+    toast.success(`Added "${movie.title}" to watchlist`);
+    return true;
+  }, [watchlist, saveWatchlist]);
 
-      await fetchWatchlist();
-      toast.success(`Added "${movie.title}" to watchlist`);
-      return true;
-    } catch (error: any) {
-      console.error("Error adding to watchlist:", error);
-      toast.error("Failed to add movie to watchlist");
-      return false;
-    }
-  };
+  const removeFromWatchlist = useCallback((movieId: number) => {
+    const updatedWatchlist = watchlist.filter((item) => item.movie_id !== movieId);
+    setWatchlist(updatedWatchlist);
+    saveWatchlist(updatedWatchlist);
+    toast.success("Removed from watchlist");
+    return true;
+  }, [watchlist, saveWatchlist]);
 
-  const removeFromWatchlist = async (movieId: number) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from("watchlist")
-        .delete()
-        .eq("movie_id", movieId)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setWatchlist((prev) => prev.filter((item) => item.movie_id !== movieId));
-      toast.success("Removed from watchlist");
-      return true;
-    } catch (error: any) {
-      console.error("Error removing from watchlist:", error);
-      toast.error("Failed to remove movie");
-      return false;
-    }
-  };
-
-  const isInWatchlist = (movieId: number) => {
+  const isInWatchlist = useCallback((movieId: number) => {
     return watchlist.some((item) => item.movie_id === movieId);
-  };
+  }, [watchlist]);
 
   return {
     watchlist,
     isLoading,
-    user,
+    user: true, // Always return true for guest mode
     addToWatchlist,
     removeFromWatchlist,
     isInWatchlist,
