@@ -1,30 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, LogOut, User, Home, UserCircle, Sparkles } from "lucide-react";
+import { Menu, X, Bookmark, Home, UserCircle, Sparkles } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 
 const Header = () => {
-  const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,12 +28,6 @@ const Header = () => {
       document.body.style.overflow = 'unset';
     }
   }, [isMobileMenuOpen]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-    setIsMobileMenuOpen(false);
-  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -84,27 +64,23 @@ const Header = () => {
               Home
             </Button>
 
-            {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleNavigation("/watchlist")}
-                className={location.pathname === "/watchlist" ? "text-primary" : ""}
-              >
-                Watchlist
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/watchlist")}
+              className={location.pathname === "/watchlist" ? "text-primary" : ""}
+            >
+              Watchlist
+            </Button>
 
-            {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleNavigation("/profile")}
-                className={location.pathname === "/profile" ? "text-primary" : ""}
-              >
-                Profile
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/profile")}
+              className={location.pathname === "/profile" ? "text-primary" : ""}
+            >
+              Profile
+            </Button>
 
             <Button
               variant="ghost"
@@ -120,25 +96,6 @@ const Header = () => {
             <div className="hidden md:flex items-center gap-2">
               <AccentColorPicker />
               <ThemeToggle />
-
-              {user ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignOut}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Sign Out
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() => handleNavigation("/auth")}
-                  className="font-medium"
-                >
-                  Sign In
-                </Button>
-              )}
             </div>
 
             <Button
@@ -178,13 +135,6 @@ const Header = () => {
               className="fixed top-16 right-0 bottom-0 w-72 bg-background border-l border-border shadow-2xl z-50 md:hidden overflow-y-auto"
             >
               <div className="p-6 space-y-6">
-                {user && (
-                  <div className="pb-4 border-b border-border">
-                    <p className="text-sm font-medium truncate">{user.email}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Signed in</p>
-                  </div>
-                )}
-
                 <nav className="space-y-1">
                   <Button
                     variant="ghost"
@@ -208,31 +158,27 @@ const Header = () => {
                     ✨ Movie Mood
                   </Button>
 
-                  {user && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleNavigation("/watchlist")}
-                        className={`w-full justify-start gap-3 ${
-                          location.pathname === "/watchlist" ? "text-primary bg-primary/10" : ""
-                        }`}
-                      >
-                        <Bookmark className="w-5 h-5" />
-                        Watchlist
-                      </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/watchlist")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/watchlist" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Bookmark className="w-5 h-5" />
+                    Watchlist
+                  </Button>
 
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleNavigation("/profile")}
-                        className={`w-full justify-start gap-3 ${
-                          location.pathname === "/profile" ? "text-primary bg-primary/10" : ""
-                        }`}
-                      >
-                        <UserCircle className="w-5 h-5" />
-                        Profile
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/profile")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/profile" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <UserCircle className="w-5 h-5" />
+                    Profile
+                  </Button>
                 </nav>
 
                 <div className="pt-4 border-t border-border space-y-3">
@@ -244,24 +190,6 @@ const Header = () => {
                     </div>
                   </div>
                 </div>
-
-                {user ? (
-                  <Button
-                    variant="outline"
-                    onClick={handleSignOut}
-                    className="w-full justify-start gap-3 text-destructive border-destructive/50 hover:bg-destructive/10"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Sign Out
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleNavigation("/auth")}
-                    className="w-full font-medium"
-                  >
-                    Sign In
-                  </Button>
-                )}
               </div>
             </motion.div>
           </>
