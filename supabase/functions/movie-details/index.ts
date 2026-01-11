@@ -1,9 +1,9 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for movie details
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -33,13 +33,25 @@ const getProviderUrl = (providerId: number): string | null => {
   return PROVIDER_URLS[providerId] || null;
 };
 
-// Input validation schema
-const movieDetailsSchema = z.object({
-  movieId: z.union([
-    z.number().int().positive("Movie ID must be a positive integer"),
-    z.string().regex(/^\d+$/, "Movie ID must be numeric").transform(val => parseInt(val, 10))
-  ])
-});
+// Simple validation function
+function validateMovieId(body: unknown): { valid: boolean; error?: string; movieId?: number } {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+  
+  const b = body as Record<string, unknown>;
+  let movieId: number;
+  
+  if (typeof b.movieId === 'number' && Number.isInteger(b.movieId) && b.movieId > 0) {
+    movieId = b.movieId;
+  } else if (typeof b.movieId === 'string' && /^\d+$/.test(b.movieId)) {
+    movieId = parseInt(b.movieId, 10);
+  } else {
+    return { valid: false, error: "Movie ID must be a positive integer" };
+  }
+  
+  return { valid: true, movieId };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -49,17 +61,16 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     
-    // Validate input with zod
-    const validationResult = movieDetailsSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid movie ID";
-      return new Response(JSON.stringify({ error: errorMessage }), {
+    // Validate input
+    const validationResult = validateMovieId(body);
+    if (!validationResult.valid || !validationResult.movieId) {
+      return new Response(JSON.stringify({ error: validationResult.error || "Invalid movie ID" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { movieId } = validationResult.data;
+    const movieId = validationResult.movieId;
     
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     

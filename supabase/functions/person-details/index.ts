@@ -1,22 +1,34 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// Supabase Edge Function for person details
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, authorization, x-client-info, apikey, content-type",
 };
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 const TMDB_PROFILE_BASE = "https://image.tmdb.org/t/p/h632";
 
-// Input validation schema
-const personDetailsSchema = z.object({
-  personId: z.union([
-    z.number().int().positive("Person ID must be a positive integer"),
-    z.string().regex(/^\d+$/, "Person ID must be numeric").transform(val => parseInt(val, 10))
-  ])
-});
+// Simple validation function
+function validatePersonId(body: unknown): { valid: boolean; error?: string; personId?: number } {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+  
+  const b = body as Record<string, unknown>;
+  let personId: number;
+  
+  if (typeof b.personId === 'number' && Number.isInteger(b.personId) && b.personId > 0) {
+    personId = b.personId;
+  } else if (typeof b.personId === 'string' && /^\d+$/.test(b.personId)) {
+    personId = parseInt(b.personId, 10);
+  } else {
+    return { valid: false, error: "Person ID must be a positive integer" };
+  }
+  
+  return { valid: true, personId };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -29,17 +41,16 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json();
 
-    // Validate input with zod
-    const validationResult = personDetailsSchema.safeParse(body);
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Invalid person ID";
-      return new Response(JSON.stringify({ error: errorMessage }), {
+    // Validate input
+    const validationResult = validatePersonId(body);
+    if (!validationResult.valid || !validationResult.personId) {
+      return new Response(JSON.stringify({ error: validationResult.error || "Invalid person ID" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { personId } = validationResult.data;
+    const personId = validationResult.personId;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
 
