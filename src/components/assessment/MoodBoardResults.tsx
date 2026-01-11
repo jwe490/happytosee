@@ -31,6 +31,18 @@ interface RecommendedMovie {
   genre?: string;
 }
 
+// Mood genre mapping for instant recommendations
+const moodGenreMap: Record<string, string[]> = {
+  happy: ["Comedy", "Family", "Animation"],
+  sad: ["Drama", "Romance"],
+  excited: ["Action", "Thriller", "Sci-Fi"],
+  relaxed: ["Drama", "Comedy", "Animation"],
+  romantic: ["Romance", "Comedy", "Drama"],
+  bored: ["Action", "Thriller", "Mystery"],
+  dark: ["Crime", "Mystery", "Thriller"],
+  nostalgic: ["Drama", "Family", "Romance"],
+};
+
 // Archetypes with associated genres for recommendations
 const mockArchetypes = [
   {
@@ -159,10 +171,15 @@ const extractPreferences = (answers: Answer[]) => {
 
   // Set defaults if empty
   if (preferences.languages.length === 0) preferences.languages = ["english"];
-  if (preferences.genres.length === 0) preferences.genres = ["Drama", "Comedy"];
+  if (preferences.genres.length === 0) {
+    preferences.genres = moodGenreMap[preferences.mood] || ["Drama", "Comedy"];
+  }
 
   return preferences;
 };
+
+// Movie cache to prevent repeated API calls
+const movieCache = new Map<string, RecommendedMovie[]>();
 
 type SlideType = "intro" | "archetype" | "traits" | "recommendations";
 
@@ -173,6 +190,7 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const fetchedRef = useRef(false);
   const { toast } = useToast();
 
   // Extract preferences from answers
@@ -191,10 +209,25 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
 
   const archetype = determineArchetype();
 
+  // Start fetching movies IMMEDIATELY on mount (not waiting for slides)
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     const fetchMovies = async () => {
       setIsLoadingMovies(true);
       setFetchError(null);
+      
+      const cacheKey = `${preferences.mood}-${preferences.genres.join(",")}-${preferences.languages.join(",")}`;
+      
+      // Check cache first for instant display
+      if (movieCache.has(cacheKey)) {
+        const cachedMovies = movieCache.get(cacheKey)!;
+        setRecommendedMovies(cachedMovies);
+        setIsLoadingMovies(false);
+        console.log("Using cached movies:", cachedMovies.length);
+        return;
+      }
       
       try {
         const genresToUse = preferences.genres.length > 0 
@@ -225,44 +258,55 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
         console.log("Received movie data:", data);
 
         if (data?.movies && Array.isArray(data.movies) && data.movies.length > 0) {
-          // Shuffle movies for variety
-          const shuffledMovies = [...data.movies].sort(() => Math.random() - 0.5);
+          // Shuffle movies for variety and deduplicate
+          const uniqueMovies = data.movies.filter((movie: RecommendedMovie, index: number, self: RecommendedMovie[]) =>
+            index === self.findIndex(m => m.id === movie.id)
+          );
+          const shuffledMovies = [...uniqueMovies].sort(() => Math.random() - 0.5);
+          
+          // Cache the results
+          movieCache.set(cacheKey, shuffledMovies);
           setRecommendedMovies(shuffledMovies);
         } else {
           // Fallback to trending movies
           console.log("No movies in response, falling back to trending...");
-          const { data: trendingData, error: trendingError } = await supabase.functions.invoke('trending-movies', {
-            body: { category: 'trending' }
-          });
-          
-          if (trendingError) {
-            throw trendingError;
-          }
-          
-          if (trendingData?.movies && trendingData.movies.length > 0) {
-            setRecommendedMovies(trendingData.movies.slice(0, 12));
-          } else {
-            setFetchError("No movies found. Please try again.");
-          }
+          await fetchTrendingFallback(cacheKey);
         }
       } catch (error: any) {
         console.error("Error fetching recommendations:", error);
         setFetchError(error.message || "Failed to load recommendations");
-        
-        // Try trending as final fallback
-        try {
-          const { data: trendingData } = await supabase.functions.invoke('trending-movies', {
-            body: { category: 'trending' }
-          });
-          if (trendingData?.movies && trendingData.movies.length > 0) {
-            setRecommendedMovies(trendingData.movies.slice(0, 12));
-            setFetchError(null);
-          }
-        } catch {
-          // Silent fail
-        }
+        await fetchTrendingFallback(cacheKey);
       } finally {
         setIsLoadingMovies(false);
+      }
+    };
+
+    const fetchTrendingFallback = async (cacheKey: string) => {
+      try {
+        const { data: trendingData, error: trendingError } = await supabase.functions.invoke('trending-movies', {
+          body: { category: 'trending' }
+        });
+        
+        if (trendingError) throw trendingError;
+        
+        if (trendingData?.movies && trendingData.movies.length > 0) {
+          const movies = trendingData.movies.slice(0, 12);
+          movieCache.set(cacheKey, movies);
+          setRecommendedMovies(movies);
+          setFetchError(null);
+        }
+      } catch (fallbackError) {
+        console.error("Fallback fetch failed:", fallbackError);
+        // Use hardcoded fallback movies to prevent blank screen
+        const fallbackMovies: RecommendedMovie[] = [
+          { id: 299534, title: "Avengers: Endgame", year: 2019, rating: 8.4, posterUrl: "https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg", genre: "Action" },
+          { id: 299536, title: "Avengers: Infinity War", year: 2018, rating: 8.3, posterUrl: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg", genre: "Action" },
+          { id: 284054, title: "Black Panther", year: 2018, rating: 7.4, posterUrl: "https://image.tmdb.org/t/p/w500/uxzzxijgPIY7slzFvMotPv8wjKA.jpg", genre: "Action" },
+          { id: 324857, title: "Spider-Man: Into the Spider-Verse", year: 2018, rating: 8.4, posterUrl: "https://image.tmdb.org/t/p/w500/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg", genre: "Animation" },
+          { id: 447365, title: "Guardians of the Galaxy Vol. 3", year: 2023, rating: 8.0, posterUrl: "https://image.tmdb.org/t/p/w500/r2J02Z2OpNTctfOSN1Ydgii51I3.jpg", genre: "Action" },
+          { id: 502356, title: "The Super Mario Bros. Movie", year: 2023, rating: 7.7, posterUrl: "https://image.tmdb.org/t/p/w500/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg", genre: "Animation" },
+        ];
+        setRecommendedMovies(fallbackMovies);
       }
     };
 
@@ -291,6 +335,8 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   }, []);
 
   const handleRetake = () => {
+    // Clear cache for fresh recommendations
+    movieCache.clear();
     window.location.reload();
   };
 
