@@ -1,17 +1,15 @@
 import { motion } from "framer-motion";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, Loader2 } from "lucide-react";
 
 // Popcorn illustration
 const PopcornIllustration = () => (
   <svg
     viewBox="0 0 120 140"
-    className="w-20 h-24"
+    className="w-16 h-20"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    {/* Bucket */}
     <motion.path
       d="M25 60 L35 130 L85 130 L95 60"
       stroke="currentColor"
@@ -23,52 +21,10 @@ const PopcornIllustration = () => (
       animate={{ pathLength: 1 }}
       transition={{ duration: 0.8 }}
     />
-    
-    {/* Bucket stripes */}
-    <motion.line
-      x1="30"
-      y1="80"
-      x2="90"
-      y2="80"
-      stroke="currentColor"
-      strokeWidth="1"
-      initial={{ pathLength: 0 }}
-      animate={{ pathLength: 1 }}
-      transition={{ delay: 0.4 }}
-    />
-    <motion.line
-      x1="32"
-      y1="100"
-      x2="88"
-      y2="100"
-      stroke="currentColor"
-      strokeWidth="1"
-      initial={{ pathLength: 0 }}
-      animate={{ pathLength: 1 }}
-      transition={{ delay: 0.5 }}
-    />
-    
-    {/* Popcorn kernels */}
-    {[
-      { cx: 45, cy: 45, r: 12 },
-      { cx: 65, cy: 40, r: 14 },
-      { cx: 85, cy: 50, r: 10 },
-      { cx: 55, cy: 25, r: 11 },
-      { cx: 75, cy: 28, r: 9 },
-      { cx: 35, cy: 52, r: 8 },
-    ].map((kernel, i) => (
-      <motion.circle
-        key={i}
-        cx={kernel.cx}
-        cy={kernel.cy}
-        r={kernel.r}
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill="none"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.6 + i * 0.08, type: "spring" }}
-      />
+    <motion.line x1="30" y1="80" x2="90" y2="80" stroke="currentColor" strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.4 }} />
+    <motion.line x1="32" y1="100" x2="88" y2="100" stroke="currentColor" strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.5 }} />
+    {[{ cx: 45, cy: 45, r: 12 }, { cx: 65, cy: 40, r: 14 }, { cx: 85, cy: 50, r: 10 }, { cx: 55, cy: 25, r: 11 }, { cx: 75, cy: 28, r: 9 }, { cx: 35, cy: 52, r: 8 }].map((kernel, i) => (
+      <motion.circle key={i} cx={kernel.cx} cy={kernel.cy} r={kernel.r} stroke="currentColor" strokeWidth="1.5" fill="none" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.6 + i * 0.08, type: "spring" }} />
     ))}
   </svg>
 );
@@ -90,15 +46,17 @@ interface MoodRecommendationsSlideProps {
   onRetake: () => void;
 }
 
-// Loading skeleton component
+// Skeleton card for loading state
 const MovieCardSkeleton = ({ index }: { index: number }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.1 }}
+    transition={{ delay: index * 0.05 }}
     className="space-y-2"
   >
-    <div className="aspect-[2/3] bg-muted rounded-xl animate-pulse" />
+    <div className="aspect-[2/3] bg-muted rounded-xl animate-pulse relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+    </div>
     <div className="h-4 bg-muted rounded-lg animate-pulse w-3/4" />
     <div className="h-3 bg-muted rounded-lg animate-pulse w-1/2" />
   </motion.div>
@@ -128,9 +86,9 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 + index * 0.1 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.1 + index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
       className="group relative"
     >
       <a
@@ -139,11 +97,12 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
         rel="noopener noreferrer"
         className="block"
       >
-        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02]">
+        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-[1.03]">
           <img
             src={movie.posterUrl || '/placeholder.svg'}
             alt={movie.title}
             className="w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder.svg';
             }}
@@ -160,7 +119,7 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
           </div>
 
           {/* Rating badge */}
-          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/50 backdrop-blur-sm flex items-center gap-1">
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
             <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
             <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || 'N/A'}</span>
           </div>
@@ -211,7 +170,7 @@ export const MoodRecommendationsSlide = ({
     >
       <div className="max-w-4xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -223,7 +182,7 @@ export const MoodRecommendationsSlide = ({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
             className="text-right"
           >
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Recommended for your</p>
@@ -235,11 +194,13 @@ export const MoodRecommendationsSlide = ({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
           className="mb-6"
         >
           <h3 className="text-lg font-semibold text-foreground">Movies For You</h3>
-          <p className="text-sm text-muted-foreground">Handpicked based on your mood preferences</p>
+          <p className="text-sm text-muted-foreground">
+            {isLoading ? "Finding movies for your mood…" : "Handpicked based on your preferences"}
+          </p>
         </motion.div>
 
         {/* Movies grid */}
@@ -260,10 +221,10 @@ export const MoodRecommendationsSlide = ({
                 <RefreshCw className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                No movies found for this mood
+                No matches found
               </h3>
               <p className="text-muted-foreground mb-6">
-                Try another mood or retake the assessment
+                Try another mood for different recommendations
               </p>
               <button
                 onClick={onRetake}
@@ -286,7 +247,7 @@ export const MoodRecommendationsSlide = ({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.6 }}
             className="flex gap-3 mt-8 justify-center"
           >
             <button
