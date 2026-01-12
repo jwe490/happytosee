@@ -1,18 +1,28 @@
 import { motion } from "framer-motion";
+import { Smile, Frown, Heart, Zap, Clock, Coffee, Moon, Check, LucideIcon } from "lucide-react";
 
 interface MoodSelectorProps {
   selectedMood: string | null;
   onSelectMood: (mood: string) => void;
 }
 
-const moods = [
-  { id: "happy", emoji: "😀", label: "Happy", description: "Feeling great!", color: "from-yellow-400/20 to-orange-400/20" },
-  { id: "sad", emoji: "😢", label: "Sad", description: "Need comfort", color: "from-blue-400/20 to-indigo-400/20" },
-  { id: "romantic", emoji: "❤️", label: "Romantic", description: "In the mood for love", color: "from-pink-400/20 to-rose-400/20" },
-  { id: "excited", emoji: "⚡", label: "Excited", description: "Ready for action!", color: "from-amber-400/20 to-red-400/20" },
-  { id: "nostalgic", emoji: "🥹", label: "Nostalgic", description: "Feeling sentimental", color: "from-purple-400/20 to-violet-400/20" },
-  { id: "relaxed", emoji: "😌", label: "Relaxed", description: "Need to unwind", color: "from-green-400/20 to-teal-400/20" },
-  { id: "bored", emoji: "😴", label: "Bored", description: "Surprise me!", color: "from-gray-400/20 to-slate-400/20" },
+interface MoodOption {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
+
+const moods: MoodOption[] = [
+  { id: "happy", icon: Smile, label: "Happy", description: "Feeling great!", gradientFrom: "from-amber-400/20", gradientTo: "to-orange-400/20" },
+  { id: "sad", icon: Frown, label: "Sad", description: "Need comfort", gradientFrom: "from-blue-400/20", gradientTo: "to-indigo-400/20" },
+  { id: "romantic", icon: Heart, label: "Romantic", description: "In the mood for love", gradientFrom: "from-pink-400/20", gradientTo: "to-rose-400/20" },
+  { id: "excited", icon: Zap, label: "Excited", description: "Ready for action!", gradientFrom: "from-amber-400/20", gradientTo: "to-red-400/20" },
+  { id: "nostalgic", icon: Clock, label: "Nostalgic", description: "Feeling sentimental", gradientFrom: "from-purple-400/20", gradientTo: "to-violet-400/20" },
+  { id: "relaxed", icon: Coffee, label: "Relaxed", description: "Need to unwind", gradientFrom: "from-green-400/20", gradientTo: "to-teal-400/20" },
+  { id: "bored", icon: Moon, label: "Bored", description: "Surprise me!", gradientFrom: "from-gray-400/20", gradientTo: "to-slate-400/20" },
 ];
 
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
@@ -20,6 +30,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
       {moods.map((mood, index) => {
         const isSelected = selectedMood === mood.id;
+        const Icon = mood.icon;
         
         return (
           <motion.button
@@ -43,7 +54,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             `}
           >
             {/* Gradient Background */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${mood.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSelected ? 'opacity-100' : ''}`} />
+            <div className={`absolute inset-0 bg-gradient-to-br ${mood.gradientFrom} ${mood.gradientTo} opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSelected ? 'opacity-100' : ''}`} />
             
             {/* Selection Glow */}
             {isSelected && (
@@ -55,23 +66,25 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             )}
             
             <div className="relative flex flex-col items-center gap-3 md:gap-4">
-              {/* Emoji with bounce animation */}
-              <motion.span
-                className="text-4xl md:text-5xl"
+              {/* Icon with consistent sizing */}
+              <motion.div
+                className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14"
                 animate={isSelected ? { 
-                  scale: [1, 1.3, 1],
-                  rotate: [0, -10, 10, 0]
+                  scale: [1, 1.1, 1],
                 } : {}}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.4 }}
               >
-                {mood.emoji}
-              </motion.span>
+                <Icon 
+                  className="w-8 h-8 md:w-10 md:h-10 text-foreground" 
+                  strokeWidth={1.5}
+                />
+              </motion.div>
               
-              <div className="text-center">
+              <div className="text-center space-y-1">
                 <h3 className="font-display font-semibold text-sm md:text-base text-foreground">
                   {mood.label}
                 </h3>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-1 hidden sm:block">
+                <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
                   {mood.description}
                 </p>
               </div>
@@ -79,11 +92,11 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
               {/* Selected Indicator */}
               {isSelected && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-accent flex items-center justify-center shadow-lg"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-foreground flex items-center justify-center shadow-md"
                 >
-                  <span className="text-xs">✓</span>
+                  <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-background" strokeWidth={2.5} />
                 </motion.div>
               )}
             </div>
