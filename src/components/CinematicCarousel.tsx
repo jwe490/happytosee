@@ -117,6 +117,7 @@ export const CinematicCarousel = ({
                 alt={currentMovie.title}
                 className="w-full h-full object-cover"
                 loading="eager"
+                fetchPriority="high"
               />
 
               {/* Gradient Overlay */}
