@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Smile, Frown, Heart, Zap, Clock, Coffee, Moon, Check, LucideIcon } from "lucide-react";
+import { Check } from "lucide-react";
 
 interface MoodSelectorProps {
   selectedMood: string | null;
@@ -8,7 +8,7 @@ interface MoodSelectorProps {
 
 interface MoodOption {
   id: string;
-  icon: LucideIcon;
+  emoji: string;
   label: string;
   description: string;
   gradientFrom: string;
@@ -16,13 +16,13 @@ interface MoodOption {
 }
 
 const moods: MoodOption[] = [
-  { id: "happy", icon: Smile, label: "Happy", description: "Feeling great!", gradientFrom: "from-amber-400/20", gradientTo: "to-orange-400/20" },
-  { id: "sad", icon: Frown, label: "Sad", description: "Need comfort", gradientFrom: "from-blue-400/20", gradientTo: "to-indigo-400/20" },
-  { id: "romantic", icon: Heart, label: "Romantic", description: "In the mood for love", gradientFrom: "from-pink-400/20", gradientTo: "to-rose-400/20" },
-  { id: "excited", icon: Zap, label: "Excited", description: "Ready for action!", gradientFrom: "from-amber-400/20", gradientTo: "to-red-400/20" },
-  { id: "nostalgic", icon: Clock, label: "Nostalgic", description: "Feeling sentimental", gradientFrom: "from-purple-400/20", gradientTo: "to-violet-400/20" },
-  { id: "relaxed", icon: Coffee, label: "Relaxed", description: "Need to unwind", gradientFrom: "from-green-400/20", gradientTo: "to-teal-400/20" },
-  { id: "bored", icon: Moon, label: "Bored", description: "Surprise me!", gradientFrom: "from-gray-400/20", gradientTo: "to-slate-400/20" },
+  { id: "happy", emoji: "😊", label: "Happy", description: "Feeling great!", gradientFrom: "from-amber-400/20", gradientTo: "to-orange-400/20" },
+  { id: "sad", emoji: "😢", label: "Sad", description: "Need comfort", gradientFrom: "from-blue-400/20", gradientTo: "to-indigo-400/20" },
+  { id: "romantic", emoji: "❤️", label: "Romantic", description: "In the mood for love", gradientFrom: "from-pink-400/20", gradientTo: "to-rose-400/20" },
+  { id: "excited", emoji: "⚡", label: "Excited", description: "Ready for action!", gradientFrom: "from-amber-400/20", gradientTo: "to-red-400/20" },
+  { id: "nostalgic", emoji: "🥺", label: "Nostalgic", description: "Feeling sentimental", gradientFrom: "from-purple-400/20", gradientTo: "to-violet-400/20" },
+  { id: "relaxed", emoji: "😌", label: "Relaxed", description: "Need to unwind", gradientFrom: "from-green-400/20", gradientTo: "to-teal-400/20" },
+  { id: "bored", emoji: "😴", label: "Bored", description: "Surprise me!", gradientFrom: "from-gray-400/20", gradientTo: "to-slate-400/20" },
 ];
 
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
@@ -30,7 +30,6 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
       {moods.map((mood, index) => {
         const isSelected = selectedMood === mood.id;
-        const Icon = mood.icon;
         
         return (
           <motion.button
@@ -66,7 +65,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             )}
             
             <div className="relative flex flex-col items-center gap-3 md:gap-4">
-              {/* Icon with consistent sizing */}
+              {/* Emoji with consistent sizing */}
               <motion.div
                 className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14"
                 animate={isSelected ? { 
@@ -74,10 +73,9 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
                 } : {}}
                 transition={{ duration: 0.4 }}
               >
-                <Icon 
-                  className="w-8 h-8 md:w-10 md:h-10 text-foreground" 
-                  strokeWidth={1.5}
-                />
+                <span className="text-4xl md:text-5xl leading-none select-none">
+                  {mood.emoji}
+                </span>
               </motion.div>
               
               <div className="text-center space-y-1">
