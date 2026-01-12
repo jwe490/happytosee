@@ -61,6 +61,7 @@ export function TrendingSection({ onMovieSelect }: TrendingSectionProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              aria-label={`Show ${tab.label} movies`}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? "bg-background shadow-sm text-foreground"

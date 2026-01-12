@@ -103,6 +103,7 @@ const Header = () => {
               size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden relative z-50 bg-background/80 backdrop-blur-sm border-border"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
               <motion.div
                 animate={{ rotate: isMobileMenuOpen ? 90 : 0 }}
