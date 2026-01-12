@@ -85,16 +85,18 @@ export const CinematicCarousel = ({
         {/* Featured Label */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg md:text-xl font-semibold text-foreground">Featured</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {movies.map((_, index) => (
               <button
                 key={index}
                 onClick={() => { goToSlide(index); handleInteraction(); }}
-                className={`h-1.5 rounded-full transition-all ${
-                  index === currentIndex ? "w-6 bg-foreground" : "w-1.5 bg-muted-foreground/40 hover:bg-muted-foreground"
-                }`}
+                className="p-2 -m-1 flex items-center justify-center"
                 aria-label={`Go to slide ${index + 1}`}
-              />
+              >
+                <span className={`block h-1.5 rounded-full transition-all ${
+                  index === currentIndex ? "w-6 bg-foreground" : "w-1.5 bg-muted-foreground/40 hover:bg-muted-foreground"
+                }`} />
+              </button>
             ))}
           </div>
         </div>
