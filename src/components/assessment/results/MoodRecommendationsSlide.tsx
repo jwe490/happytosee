@@ -1,7 +1,33 @@
 import { motion } from "framer-motion";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2 } from "lucide-react";
-import { FloatingShapes, recommendationsShapes } from "./FloatingShapes";
+import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, Loader2 } from "lucide-react";
+
+// Popcorn illustration
+const PopcornIllustration = () => (
+  <svg
+    viewBox="0 0 120 140"
+    className="w-16 h-20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <motion.path
+      d="M25 60 L35 130 L85 130 L95 60"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ duration: 0.8 }}
+    />
+    <motion.line x1="30" y1="80" x2="90" y2="80" stroke="currentColor" strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.4 }} />
+    <motion.line x1="32" y1="100" x2="88" y2="100" stroke="currentColor" strokeWidth="1" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.5 }} />
+    {[{ cx: 45, cy: 45, r: 12 }, { cx: 65, cy: 40, r: 14 }, { cx: 85, cy: 50, r: 10 }, { cx: 55, cy: 25, r: 11 }, { cx: 75, cy: 28, r: 9 }, { cx: 35, cy: 52, r: 8 }].map((kernel, i) => (
+      <motion.circle key={i} cx={kernel.cx} cy={kernel.cy} r={kernel.r} stroke="currentColor" strokeWidth="1.5" fill="none" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.6 + i * 0.08, type: "spring" }} />
+    ))}
+  </svg>
+);
 
 interface RecommendedMovie {
   id: number;
@@ -20,38 +46,23 @@ interface MoodRecommendationsSlideProps {
   onRetake: () => void;
 }
 
-// Skeleton for loading state
+// Skeleton card for loading state
 const MovieCardSkeleton = ({ index }: { index: number }) => (
   <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay: index * 0.08 }}
-    className="flex items-center gap-4"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.05 }}
+    className="space-y-2"
   >
-    <span 
-      className="text-3xl sm:text-4xl font-black w-10 text-right"
-      style={{ color: "rgba(245, 245, 240, 0.15)" }}
-    >
-      {index + 1}
-    </span>
-    <div 
-      className="w-16 h-24 sm:w-20 sm:h-28 rounded-xl animate-pulse"
-      style={{ backgroundColor: "rgba(245, 245, 240, 0.1)" }}
-    />
-    <div className="flex-1 space-y-3">
-      <div 
-        className="h-5 rounded-lg animate-pulse w-3/4"
-        style={{ backgroundColor: "rgba(245, 245, 240, 0.1)" }}
-      />
-      <div 
-        className="h-4 rounded-lg animate-pulse w-1/2"
-        style={{ backgroundColor: "rgba(245, 245, 240, 0.08)" }}
-      />
+    <div className="aspect-[2/3] bg-muted rounded-xl animate-pulse relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
     </div>
+    <div className="h-4 bg-muted rounded-lg animate-pulse w-3/4" />
+    <div className="h-3 bg-muted rounded-lg animate-pulse w-1/2" />
   </motion.div>
 );
 
-// Movie card - horizontal list style
+// Movie card component
 const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number }) => {
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const inWatchlist = isInWatchlist(movie.id);
@@ -75,44 +86,18 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -30 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ 
-        delay: 0.4 + index * 0.1, 
-        duration: 0.5, 
-        ease: [0.22, 1, 0.36, 1] 
-      }}
-      className="flex items-center gap-4 group"
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.1 + index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+      className="group relative"
     >
-      {/* Rank number */}
-      <motion.span
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ 
-          delay: 0.5 + index * 0.1, 
-          type: "spring",
-          stiffness: 300,
-          damping: 15
-        }}
-        className="text-3xl sm:text-4xl font-black w-10 text-right shrink-0"
-        style={{ color: "rgba(245, 245, 240, 0.2)" }}
-      >
-        {index + 1}
-      </motion.span>
-
-      {/* Poster with hover effect */}
       <a
         href={`https://www.themoviedb.org/movie/${movie.id}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative shrink-0"
+        className="block"
       >
-        <motion.div
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-16 h-24 sm:w-20 sm:h-28 rounded-xl overflow-hidden shadow-lg"
-          style={{ backgroundColor: "rgba(245, 245, 240, 0.1)" }}
-        >
+        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-[1.03]">
           <img
             src={movie.posterUrl || '/placeholder.svg'}
             alt={movie.title}
@@ -122,56 +107,46 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
               (e.target as HTMLImageElement).src = '/placeholder.svg';
             }}
           />
-        </motion.div>
-        
-        {/* Coral accent on hover */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileHover={{ opacity: 1 }}
-          className="absolute -inset-1 rounded-xl border-2 pointer-events-none"
-          style={{ borderColor: "#FF6B4A" }}
-        />
-      </a>
+          
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <p className="text-white text-sm font-medium line-clamp-2">{movie.title}</p>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-white/70 text-xs">{movie.year}</span>
+              </div>
+            </div>
+          </div>
 
-      {/* Movie info */}
-      <div className="flex-1 min-w-0">
-        <h3 
-          className="font-bold text-base sm:text-lg truncate"
-          style={{ color: "#F5F5F0" }}
-        >
-          {movie.title}
-        </h3>
-        <div 
-          className="flex items-center gap-2 text-sm mt-1"
-          style={{ color: "rgba(245, 245, 240, 0.6)" }}
-        >
-          <span>{movie.year}</span>
-          <span>•</span>
-          <div className="flex items-center gap-1">
-            <Star className="w-3.5 h-3.5 fill-current" style={{ color: "#FF6B4A" }} />
-            <span>{movie.rating?.toFixed(1) || 'N/A'}</span>
+          {/* Rating badge */}
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
+            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+            <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || 'N/A'}</span>
           </div>
         </div>
-      </div>
+      </a>
 
       {/* Watchlist button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+      <button
         onClick={handleWatchlistClick}
-        aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-        className="p-3 rounded-full transition-all duration-200 shrink-0"
-        style={{ 
-          backgroundColor: inWatchlist ? "#FF6B4A" : "rgba(245, 245, 240, 0.1)",
-          color: inWatchlist ? "#F5F5F0" : "rgba(245, 245, 240, 0.8)",
-        }}
+        className={`absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200 ${
+          inWatchlist 
+            ? 'bg-primary text-primary-foreground' 
+            : 'bg-black/50 text-white hover:bg-black/70'
+        }`}
       >
         {inWatchlist ? (
-          <BookmarkCheck className="w-5 h-5" />
+          <BookmarkCheck className="w-4 h-4" />
         ) : (
-          <Bookmark className="w-5 h-5" />
+          <Bookmark className="w-4 h-4" />
         )}
-      </motion.button>
+      </button>
+
+      {/* Title below card */}
+      <div className="mt-2 px-1">
+        <p className="text-sm font-medium text-foreground line-clamp-1">{movie.title}</p>
+        <p className="text-xs text-muted-foreground">{movie.year} • {movie.genre || 'Movie'}</p>
+      </div>
     </motion.div>
   );
 };
@@ -184,69 +159,55 @@ export const MoodRecommendationsSlide = ({
   onRetake 
 }: MoodRecommendationsSlideProps) => {
   const hasMovies = movies && movies.length > 0;
-  const topMovies = movies.slice(0, 5);
+  const displayMood = mood.charAt(0).toUpperCase() + mood.slice(1);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.4 } }}
-      className="min-h-screen relative flex flex-col overflow-hidden"
-      style={{ backgroundColor: "#2B2B2B" }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background flex flex-col py-20 px-4 sm:px-6"
     >
-      {/* Subtle background shapes */}
-      <FloatingShapes shapes={recommendationsShapes} variant="dark" />
-
-      {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 sm:px-8 lg:px-12 py-16 sm:py-20 max-w-xl mx-auto w-full">
-        
-        {/* Header section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="mb-10"
-        >
-          {/* Decorative curved line */}
-          <svg
-            viewBox="0 0 200 50"
-            className="w-28 h-10 mb-4"
-            fill="none"
+      <div className="max-w-4xl mx-auto w-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-foreground"
           >
-            <motion.path
-              d="M0 40 Q50 10 100 25 T200 15"
-              stroke="rgba(245, 245, 240, 0.3)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ delay: 0.3, duration: 1 }}
-            />
-          </svg>
+            <PopcornIllustration />
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-right"
+          >
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">Recommended for your</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{displayMood} Mood</h2>
+          </motion.div>
+        </div>
 
-          {/* Title with highlight */}
-          <div className="relative inline-flex items-center">
-            <motion.span
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 0.4, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 origin-left"
-              style={{ backgroundColor: "#F5F5F0" }}
-            />
-            <span 
-              className="relative z-10 px-4 py-2 font-display text-xl sm:text-2xl font-bold"
-              style={{ color: "#2B2B2B" }}
-            >
-              Your top movies
-            </span>
-          </div>
+        {/* Section heading */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
+          <h3 className="text-lg font-semibold text-foreground">Movies For You</h3>
+          <p className="text-sm text-muted-foreground">
+            {isLoading ? "Finding movies for your mood…" : "Handpicked based on your preferences"}
+          </p>
         </motion.div>
 
-        {/* Movies list */}
+        {/* Movies grid */}
         <div className="flex-1">
           {isLoading ? (
-            <div className="space-y-5">
-              {[...Array(5)].map((_, i) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
                 <MovieCardSkeleton key={i} index={i} />
               ))}
             </div>
@@ -256,40 +217,25 @@ export const MoodRecommendationsSlide = ({
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-16"
             >
-              <div 
-                className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "rgba(245, 245, 240, 0.1)" }}
-              >
-                <RefreshCw className="w-10 h-10" style={{ color: "rgba(245, 245, 240, 0.5)" }} />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 
-                className="text-xl font-bold mb-3"
-                style={{ color: "#F5F5F0" }}
-              >
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 No matches found
               </h3>
-              <p 
-                className="mb-8"
-                style={{ color: "rgba(245, 245, 240, 0.6)" }}
-              >
+              <p className="text-muted-foreground mb-6">
                 Try another mood for different recommendations
               </p>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+              <button
                 onClick={onRetake}
-                className="px-8 py-3 rounded-full font-bold transition-all"
-                style={{ 
-                  backgroundColor: "#F5F5F0",
-                  color: "#2B2B2B",
-                }}
+                className="px-6 py-2.5 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
               >
                 Try Another Mood
-              </motion.button>
+              </button>
             </motion.div>
           ) : (
-            <div className="space-y-5">
-              {topMovies.map((movie, index) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {movies.map((movie, index) => (
                 <MovieCard key={movie.id} movie={movie} index={index} />
               ))}
             </div>
@@ -299,68 +245,29 @@ export const MoodRecommendationsSlide = ({
         {/* Action buttons */}
         {hasMovies && !isLoading && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.6 }}
-            className="flex flex-col gap-3 mt-10"
+            transition={{ delay: 0.6 }}
+            className="flex gap-3 mt-8 justify-center"
           >
-            {/* Primary share button */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={onShare}
-              className="flex items-center justify-center gap-3 px-8 py-4 rounded-full font-bold text-base shadow-xl transition-all"
-              style={{ 
-                backgroundColor: "#FF6B4A",
-                color: "#F5F5F0",
-              }}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
             >
-              <Share2 className="w-5 h-5" />
-              Share Your Story
-            </motion.button>
+              <Share2 className="w-4 h-4" />
+              Share Results
+            </button>
             
-            {/* Secondary retake button */}
-            <motion.button
-              whileHover={{ scale: 1.02, backgroundColor: "rgba(245, 245, 240, 0.1)" }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={onRetake}
-              className="flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-semibold text-sm border transition-all"
-              style={{ 
-                backgroundColor: "transparent",
-                borderColor: "rgba(245, 245, 240, 0.3)",
-                color: "rgba(245, 245, 240, 0.8)",
-              }}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-muted font-medium text-foreground transition-colors hover:bg-muted/80"
             >
               <RefreshCw className="w-4 h-4" />
-              Retake Assessment
-            </motion.button>
+              Retake
+            </button>
           </motion.div>
         )}
       </div>
-
-      {/* Bottom decorative bars */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 0.6 }}
-        className="absolute bottom-0 left-0 right-0 h-20 overflow-hidden pointer-events-none"
-      >
-        <div className="flex justify-center gap-3 h-full items-end pb-4">
-          {[0.3, 0.5, 0.7, 0.9, 0.6, 0.4, 0.8].map((height, i) => (
-            <motion.div
-              key={i}
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ delay: 1.3 + i * 0.05, duration: 0.4 }}
-              className="w-3 rounded-t-full origin-bottom"
-              style={{ 
-                height: `${height * 100}%`,
-                backgroundColor: i % 2 === 0 ? "rgba(255, 107, 74, 0.3)" : "rgba(184, 164, 232, 0.3)",
-              }}
-            />
-          ))}
-        </div>
-      </motion.div>
     </motion.div>
   );
 };

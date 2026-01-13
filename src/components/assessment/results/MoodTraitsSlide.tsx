@@ -1,5 +1,85 @@
 import { motion } from "framer-motion";
-import { FloatingShapes, statsShapes } from "./FloatingShapes";
+
+// Brain/Mind illustration
+const MindIllustration = () => (
+  <svg
+    viewBox="0 0 140 140"
+    className="w-28 h-28"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Brain outline - left hemisphere */}
+    <motion.path
+      d="M70 20 C45 20 30 35 30 55 C30 65 35 75 35 85 C35 100 45 115 60 118 C65 119 70 120 70 120"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ duration: 1 }}
+    />
+    
+    {/* Brain outline - right hemisphere */}
+    <motion.path
+      d="M70 20 C95 20 110 35 110 55 C110 65 105 75 105 85 C105 100 95 115 80 118 C75 119 70 120 70 120"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ duration: 1, delay: 0.2 }}
+    />
+    
+    {/* Inner curves */}
+    <motion.path
+      d="M50 50 Q60 60 50 75"
+      stroke="currentColor"
+      strokeWidth="1"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ delay: 0.6 }}
+    />
+    <motion.path
+      d="M90 50 Q80 60 90 75"
+      stroke="currentColor"
+      strokeWidth="1"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ delay: 0.7 }}
+    />
+    <motion.path
+      d="M55 85 Q70 95 85 85"
+      stroke="currentColor"
+      strokeWidth="1"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ delay: 0.8 }}
+    />
+    
+    {/* Sparkle dots */}
+    {[
+      { x: 45, y: 40 },
+      { x: 95, y: 45 },
+      { x: 65, y: 65 },
+    ].map((dot, i) => (
+      <motion.circle
+        key={i}
+        cx={dot.x}
+        cy={dot.y}
+        r="2"
+        fill="currentColor"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1 + i * 0.1, type: "spring" }}
+      />
+    ))}
+  </svg>
+);
 
 interface MoodTraitsSlideProps {
   traits: string[];
@@ -8,138 +88,63 @@ interface MoodTraitsSlideProps {
 }
 
 export const MoodTraitsSlide = ({ traits, mood, onContinue }: MoodTraitsSlideProps) => {
-  // Spotify-style mood labels with vibrant colors
-  const moodConfig: Record<string, { label: string; color: string }> = {
-    happy: { label: "Joyful", color: "#FF6B4A" },      // Coral
-    sad: { label: "Reflective", color: "#B8A4E8" },    // Lavender
-    excited: { label: "Energetic", color: "#FF6B4A" }, // Coral
-    relaxed: { label: "Calm", color: "#7DD3C0" },      // Teal-ish
-    romantic: { label: "Dreamy", color: "#E8A4C8" },   // Pink
-    bored: { label: "Curious", color: "#B8A4E8" },     // Lavender
-    dark: { label: "Intense", color: "#2B2B2B" },      // Dark
-    nostalgic: { label: "Nostalgic", color: "#D4A574" }, // Warm brown
+  const moodLabels: Record<string, string> = {
+    happy: "Joyful",
+    sad: "Reflective",
+    excited: "Energetic",
+    relaxed: "Calm",
+    romantic: "Dreamy",
+    bored: "Curious"
   };
-
-  const moodInfo = moodConfig[mood] || { label: "Unique", color: "#FF6B4A" };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.4 } }}
-      className="min-h-screen relative flex flex-col overflow-hidden"
-      style={{ backgroundColor: "#F5F5F0" }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background flex flex-col items-center justify-between py-16 px-6"
     >
-      {/* Background shapes */}
-      <FloatingShapes shapes={statsShapes} variant="light" />
+      {/* Illustration */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="text-foreground"
+      >
+        <MindIllustration />
+      </motion.div>
 
-      {/* Main content - left aligned like Spotify */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-16 max-w-2xl">
-        
-        {/* Section label */}
-        <motion.p
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-xs font-semibold uppercase tracking-[0.25em] mb-4"
-          style={{ color: "rgba(43, 43, 43, 0.5)" }}
-        >
-          Your Mood Vibe
-        </motion.p>
-
-        {/* HUGE mood label - the hero */}
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 -mt-8">
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ 
-            delay: 0.3, 
-            duration: 0.8, 
-            ease: [0.22, 1, 0.36, 1] 
-          }}
-          className="mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-center space-y-2"
         >
-          <h1
-            className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tight"
-            style={{ color: moodInfo.color }}
-          >
-            {moodInfo.label}
-          </h1>
+          <p className="text-sm text-muted-foreground uppercase tracking-widest">Your Vibe</p>
+          <h2 className="font-display text-3xl font-bold text-foreground">
+            {moodLabels[mood] || "Unique"}
+          </h2>
         </motion.div>
 
-        {/* Traits heading with animated highlight */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="relative inline-flex items-center mb-6"
-        >
-          <motion.span
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 0.7, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 origin-left"
-            style={{ backgroundColor: "#2B2B2B" }}
-          />
-          <span 
-            className="relative z-10 px-4 py-2 font-display text-lg sm:text-xl font-bold"
-            style={{ color: "#F5F5F0" }}
-          >
-            Your top traits
-          </span>
-        </motion.div>
-
-        {/* Traits list - numbered like Spotify rankings */}
-        <div className="space-y-3">
+        {/* Traits list */}
+        <div className="space-y-3 w-full max-w-xs">
           {traits.map((trait, index) => (
             <motion.div
               key={trait}
-              initial={{ opacity: 0, x: -30 }}
+              initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ 
-                delay: 0.8 + index * 0.12, 
-                duration: 0.5,
-                ease: [0.22, 1, 0.36, 1]
-              }}
-              className="flex items-center gap-5"
+              transition={{ delay: 0.6 + index * 0.12 }}
+              className="flex items-center gap-3"
             >
-              {/* Rank number */}
-              <motion.span
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ 
-                  delay: 0.9 + index * 0.12, 
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 15
-                }}
-                className="text-3xl sm:text-4xl font-black w-10 text-right"
-                style={{ color: "rgba(43, 43, 43, 0.2)" }}
-              >
-                {index + 1}
-              </motion.span>
-              
-              {/* Trait with background highlight */}
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ 
-                  delay: 0.95 + index * 0.12, 
-                  duration: 0.4, 
-                  ease: [0.22, 1, 0.36, 1] 
-                }}
-                className="relative origin-left"
-              >
-                <span
-                  className="absolute inset-0"
-                  style={{ backgroundColor: "#2B2B2B" }}
-                />
-                <span 
-                  className="relative z-10 px-4 py-2 font-display text-xl sm:text-2xl font-bold inline-block"
-                  style={{ color: "#F5F5F0" }}
-                >
-                  {trait}
-                </span>
-              </motion.div>
+                transition={{ delay: 0.7 + index * 0.12, type: "spring" }}
+                className="w-2 h-2 rounded-full bg-foreground/40"
+              />
+              <span className="text-foreground font-medium">{trait}</span>
             </motion.div>
           ))}
         </div>
@@ -147,19 +152,26 @@ export const MoodTraitsSlide = ({ traits, mood, onContinue }: MoodTraitsSlidePro
 
       {/* Continue button */}
       <motion.button
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={{ scale: 1.03 }}
+        transition={{ delay: 1.3 }}
         whileTap={{ scale: 0.97 }}
         onClick={onContinue}
-        className="fixed bottom-12 sm:bottom-16 left-1/2 -translate-x-1/2 z-20 px-10 py-4 rounded-full font-bold text-base shadow-xl transition-all duration-300"
-        style={{ 
-          backgroundColor: "#2B2B2B",
-          color: "#F5F5F0",
-        }}
+        className="flex items-center gap-3 px-8 py-3.5 rounded-full bg-muted/80 hover:bg-muted transition-colors"
       >
-        View Your Movies
+        <span className="font-medium text-foreground">View Movies</span>
+        <svg 
+          width="18" 
+          height="18" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </motion.button>
     </motion.div>
   );
