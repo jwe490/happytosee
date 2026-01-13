@@ -8,97 +8,137 @@ interface MoodTraitsSlideProps {
 }
 
 export const MoodTraitsSlide = ({ traits, mood, onContinue }: MoodTraitsSlideProps) => {
-  const moodLabels: Record<string, { label: string; color: string }> = {
-    happy: { label: "Joyful", color: "hsl(48 96% 53%)" },
-    sad: { label: "Reflective", color: "hsl(220 70% 60%)" },
-    excited: { label: "Energetic", color: "hsl(350 80% 60%)" },
-    relaxed: { label: "Calm", color: "hsl(160 60% 50%)" },
-    romantic: { label: "Dreamy", color: "hsl(330 70% 65%)" },
-    bored: { label: "Curious", color: "hsl(270 60% 60%)" },
-    dark: { label: "Intense", color: "hsl(0 0% 30%)" },
-    nostalgic: { label: "Nostalgic", color: "hsl(30 70% 55%)" },
+  // Spotify-style mood labels with vibrant colors
+  const moodConfig: Record<string, { label: string; color: string }> = {
+    happy: { label: "Joyful", color: "#FF6B4A" },      // Coral
+    sad: { label: "Reflective", color: "#B8A4E8" },    // Lavender
+    excited: { label: "Energetic", color: "#FF6B4A" }, // Coral
+    relaxed: { label: "Calm", color: "#7DD3C0" },      // Teal-ish
+    romantic: { label: "Dreamy", color: "#E8A4C8" },   // Pink
+    bored: { label: "Curious", color: "#B8A4E8" },     // Lavender
+    dark: { label: "Intense", color: "#2B2B2B" },      // Dark
+    nostalgic: { label: "Nostalgic", color: "#D4A574" }, // Warm brown
   };
 
-  const moodInfo = moodLabels[mood] || { label: "Unique", color: "hsl(var(--primary))" };
+  const moodInfo = moodConfig[mood] || { label: "Unique", color: "#FF6B4A" };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.3 } }}
-      className="min-h-screen bg-muted relative flex flex-col items-center justify-center overflow-hidden"
+      exit={{ opacity: 0, transition: { duration: 0.4 } }}
+      className="min-h-screen relative flex flex-col overflow-hidden"
+      style={{ backgroundColor: "#F5F5F0" }}
     >
-      {/* Floating shapes */}
-      <FloatingShapes shapes={statsShapes} />
+      {/* Background shapes */}
+      <FloatingShapes shapes={statsShapes} variant="light" />
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-start px-8 sm:px-12 max-w-lg w-full">
+      {/* Main content - left aligned like Spotify */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-16 max-w-2xl">
+        
         {/* Section label */}
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-sm text-muted-foreground uppercase tracking-[0.2em] mb-6"
+          className="text-xs font-semibold uppercase tracking-[0.25em] mb-4"
+          style={{ color: "rgba(43, 43, 43, 0.5)" }}
         >
           Your Mood Vibe
         </motion.p>
 
-        {/* Large mood label */}
+        {/* HUGE mood label - the hero */}
         <motion.div
-          initial={{ opacity: 0, x: -30 }}
+          initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-10"
+          transition={{ 
+            delay: 0.3, 
+            duration: 0.8, 
+            ease: [0.22, 1, 0.36, 1] 
+          }}
+          className="mb-12"
         >
-          <span
-            className="font-display text-6xl sm:text-7xl md:text-8xl font-black"
+          <h1
+            className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tight"
             style={{ color: moodInfo.color }}
           >
             {moodInfo.label}
-          </span>
+          </h1>
         </motion.div>
 
-        {/* Traits heading */}
+        {/* Traits heading with animated highlight */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="relative inline-block mb-6"
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="relative inline-flex items-center mb-6"
         >
-          <span className="relative z-10 font-display text-xl sm:text-2xl font-bold text-background px-3 py-1">
-            Your traits
-          </span>
-          <motion.div
+          <motion.span
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ delay: 0.7, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 bg-foreground origin-left"
+            className="absolute inset-0 origin-left"
+            style={{ backgroundColor: "#2B2B2B" }}
           />
+          <span 
+            className="relative z-10 px-4 py-2 font-display text-lg sm:text-xl font-bold"
+            style={{ color: "#F5F5F0" }}
+          >
+            Your top traits
+          </span>
         </motion.div>
 
-        {/* Traits list - stacked like Spotify */}
-        <div className="space-y-2 w-full">
+        {/* Traits list - numbered like Spotify rankings */}
+        <div className="space-y-3">
           {traits.map((trait, index) => (
             <motion.div
               key={trait}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 + index * 0.1, duration: 0.4 }}
-              className="flex items-center gap-4"
+              transition={{ 
+                delay: 0.8 + index * 0.12, 
+                duration: 0.5,
+                ease: [0.22, 1, 0.36, 1]
+              }}
+              className="flex items-center gap-5"
             >
-              <span className="text-2xl sm:text-3xl font-black text-foreground/30 w-8">
+              {/* Rank number */}
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  delay: 0.9 + index * 0.12, 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 15
+                }}
+                className="text-3xl sm:text-4xl font-black w-10 text-right"
+                style={{ color: "rgba(43, 43, 43, 0.2)" }}
+              >
                 {index + 1}
-              </span>
+              </motion.span>
+              
+              {/* Trait with background highlight */}
               <motion.div
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ delay: 0.9 + index * 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="relative inline-block origin-left"
+                transition={{ 
+                  delay: 0.95 + index * 0.12, 
+                  duration: 0.4, 
+                  ease: [0.22, 1, 0.36, 1] 
+                }}
+                className="relative origin-left"
               >
-                <span className="relative z-10 font-display text-xl sm:text-2xl font-bold text-background px-3 py-1">
+                <span
+                  className="absolute inset-0"
+                  style={{ backgroundColor: "#2B2B2B" }}
+                />
+                <span 
+                  className="relative z-10 px-4 py-2 font-display text-xl sm:text-2xl font-bold inline-block"
+                  style={{ color: "#F5F5F0" }}
+                >
                   {trait}
                 </span>
-                <div className="absolute inset-0 bg-foreground" />
               </motion.div>
             </motion.div>
           ))}
@@ -107,13 +147,17 @@ export const MoodTraitsSlide = ({ traits, mood, onContinue }: MoodTraitsSlidePro
 
       {/* Continue button */}
       <motion.button
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.4, duration: 0.5 }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        transition={{ delay: 1.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
         onClick={onContinue}
-        className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 px-8 py-3.5 rounded-full bg-foreground text-background font-semibold text-sm shadow-lg hover:shadow-xl transition-shadow"
+        className="fixed bottom-12 sm:bottom-16 left-1/2 -translate-x-1/2 z-20 px-10 py-4 rounded-full font-bold text-base shadow-xl transition-all duration-300"
+        style={{ 
+          backgroundColor: "#2B2B2B",
+          color: "#F5F5F0",
+        }}
       >
         View Your Movies
       </motion.button>
