@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface WatchlistItem {
   id: string;
@@ -12,42 +14,58 @@ export interface WatchlistItem {
   created_at: string;
 }
 
-const WATCHLIST_STORAGE_KEY = "moodflix_watchlist";
+const getStorageKey = (userId: string | null) => 
+  userId ? `moodflix_watchlist_${userId}` : "moodflix_watchlist_guest";
 
 export const useWatchlist = () => {
+  const { user } = useAuth();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load watchlist from localStorage on mount
+  const storageKey = getStorageKey(user?.id ?? null);
+
+  // Load watchlist from localStorage on mount or when user changes
   useEffect(() => {
     const loadWatchlist = () => {
+      setIsLoading(true);
       try {
-        const stored = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+        const stored = localStorage.getItem(storageKey);
         if (stored) {
           setWatchlist(JSON.parse(stored));
+        } else {
+          setWatchlist([]);
         }
       } catch (error) {
         console.error("Error loading watchlist:", error);
+        setWatchlist([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadWatchlist();
-  }, []);
+  }, [storageKey]);
 
   // Save watchlist to localStorage whenever it changes
   const saveWatchlist = useCallback((items: WatchlistItem[]) => {
     try {
-      localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(storageKey, JSON.stringify(items));
     } catch (error) {
       console.error("Error saving watchlist:", error);
     }
-  }, []);
+  }, [storageKey]);
 
   const fetchWatchlist = useCallback(() => {
-    // No-op for local storage version
-  }, []);
+    // Re-load from storage
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setWatchlist(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error("Error fetching watchlist:", error);
+    }
+  }, [storageKey]);
 
   const addToWatchlist = useCallback((movie: {
     id: number;
@@ -64,7 +82,7 @@ export const useWatchlist = () => {
     }
 
     const newItem: WatchlistItem = {
-      id: `local_${movie.id}_${Date.now()}`,
+      id: `${user?.id || 'guest'}_${movie.id}_${Date.now()}`,
       movie_id: movie.id,
       title: movie.title,
       poster_path: movie.poster_path || null,
@@ -79,7 +97,7 @@ export const useWatchlist = () => {
     saveWatchlist(updatedWatchlist);
     toast.success(`Added "${movie.title}" to watchlist`);
     return true;
-  }, [watchlist, saveWatchlist]);
+  }, [watchlist, saveWatchlist, user?.id]);
 
   const removeFromWatchlist = useCallback((movieId: number) => {
     const updatedWatchlist = watchlist.filter((item) => item.movie_id !== movieId);
@@ -96,7 +114,7 @@ export const useWatchlist = () => {
   return {
     watchlist,
     isLoading,
-    user: true, // Always return true for guest mode
+    user: !!user,
     addToWatchlist,
     removeFromWatchlist,
     isInWatchlist,

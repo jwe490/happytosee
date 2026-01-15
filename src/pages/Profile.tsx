@@ -5,41 +5,73 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { User, FolderHeart, Bookmark, Edit3, Sparkles, Film } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { User, FolderHeart, Bookmark, Edit3, Sparkles, Film, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const PROFILE_STORAGE_KEY = "moodflix_profile";
 
 interface LocalProfile {
   display_name: string;
   favorite_genres: string[];
+  selected_moods: string[];
 }
 
 const Profile = () => {
   const { watchlist } = useWatchlist();
-  const [profile, setProfile] = useState<LocalProfile>({ display_name: "", favorite_genres: [] });
+  const { user, username, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<LocalProfile>({ 
+    display_name: "", 
+    favorite_genres: [],
+    selected_moods: []
+  });
   const [displayName, setDisplayName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  const profileStorageKey = user?.id ? `${PROFILE_STORAGE_KEY}_${user.id}` : PROFILE_STORAGE_KEY;
 
   useEffect(() => {
     // Load profile from localStorage
     try {
-      const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+      const stored = localStorage.getItem(profileStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         setProfile(parsed);
-        setDisplayName(parsed.display_name || "");
+        setDisplayName(parsed.display_name || username || "");
+      } else if (username) {
+        setDisplayName(username);
+      }
+      
+      // Load selected moods from mood history
+      const moodHistory = localStorage.getItem("moodflix_mood");
+      if (moodHistory) {
+        const { mood } = JSON.parse(moodHistory);
+        if (mood) {
+          setProfile(prev => ({ 
+            ...prev, 
+            selected_moods: [...new Set([...prev.selected_moods, mood])]
+          }));
+        }
       }
     } catch (error) {
       console.error("Error loading profile:", error);
     }
-  }, []);
+  }, [profileStorageKey, username]);
 
   const handleSaveProfile = () => {
     const updatedProfile = { ...profile, display_name: displayName };
     setProfile(updatedProfile);
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+    localStorage.setItem(profileStorageKey, JSON.stringify(updatedProfile));
     setIsEditing(false);
+    toast.success("Profile updated");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/");
   };
 
   return (
@@ -53,9 +85,9 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-4"
         >
-          <Avatar className="w-14 h-14 ring-2 ring-border">
-            <AvatarFallback className="bg-muted">
-              <User className="w-5 h-5 text-muted-foreground" />
+          <Avatar className="w-14 h-14 ring-2 ring-primary/20">
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {(displayName || username || "U").charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
@@ -75,14 +107,14 @@ const Profile = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <h1 className="font-display text-lg font-semibold truncate">
-                  {profile.display_name || "Guest User"}
+                  {profile.display_name || username || "User"}
                 </h1>
                 <button onClick={() => setIsEditing(true)} className="p-1 hover:bg-muted rounded transition-colors">
                   <Edit3 className="w-3 h-3 text-muted-foreground" />
                 </button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Local Profile</p>
+            <p className="text-xs text-muted-foreground">@{username}</p>
           </div>
         </motion.div>
 
@@ -121,6 +153,31 @@ const Profile = () => {
             </div>
           </Link>
         </motion.section>
+
+        {/* Recently Selected Moods */}
+        {profile.selected_moods.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="space-y-3"
+          >
+            <h2 className="font-medium text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Recent Moods
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {profile.selected_moods.slice(0, 5).map((mood) => (
+                <span
+                  key={mood}
+                  className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium capitalize"
+                >
+                  {mood}
+                </span>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Watchlist Preview */}
         <motion.section
@@ -199,6 +256,14 @@ const Profile = () => {
                 Browse Movies
               </Button>
             </Link>
+            <Button 
+              variant="outline" 
+              onClick={handleSignOut}
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
           </div>
         </motion.section>
       </main>

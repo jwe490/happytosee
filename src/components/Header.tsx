@@ -3,14 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, UserCircle, Sparkles } from "lucide-react";
+import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, username, signOut, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +34,12 @@ const Header = () => {
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMobileMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsMobileMenuOpen(false);
+    navigate("/");
   };
 
   return (
@@ -96,6 +104,30 @@ const Header = () => {
             <div className="hidden md:flex items-center gap-2">
               <AccentColorPicker />
               <ThemeToggle />
+              
+              {!isLoading && (
+                user ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSignOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleNavigation("/auth")}
+                    className="gap-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Button>
+                )
+              )}
             </div>
 
             <Button
@@ -136,6 +168,21 @@ const Header = () => {
               className="fixed top-16 right-0 bottom-0 w-72 bg-background border-l border-border shadow-2xl z-50 md:hidden overflow-y-auto"
             >
               <div className="p-6 space-y-6">
+                {/* User info */}
+                {user && (
+                  <div className="flex items-center gap-3 pb-4 border-b border-border">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-primary font-semibold">
+                        {(username || "U").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{username}</p>
+                      <p className="text-xs text-muted-foreground">Signed in</p>
+                    </div>
+                  </div>
+                )}
+
                 <nav className="space-y-1">
                   <Button
                     variant="ghost"
@@ -190,6 +237,29 @@ const Header = () => {
                       <ThemeToggle />
                     </div>
                   </div>
+                  
+                  {/* Auth button in mobile menu */}
+                  {!isLoading && (
+                    user ? (
+                      <Button
+                        variant="outline"
+                        onClick={handleSignOut}
+                        className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        Sign Out
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="default"
+                        onClick={() => handleNavigation("/auth")}
+                        className="w-full justify-start gap-3"
+                      >
+                        <LogIn className="w-5 h-5" />
+                        Sign In
+                      </Button>
+                    )
+                  )}
                 </div>
               </div>
             </motion.div>
