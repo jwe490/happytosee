@@ -1,9 +1,15 @@
 import { motion } from "framer-motion";
+import { trackMoodSelection } from "@/lib/analytics";
 
 interface MoodSelectorProps {
   selectedMood: string | null;
   onSelectMood: (mood: string) => void;
 }
+
+const handleMoodClick = (moodId: string, onSelectMood: (mood: string) => void) => {
+  onSelectMood(moodId);
+  trackMoodSelection(moodId);
+};
 
 const moods = [
   { id: "happy", emoji: "😀", label: "Happy", description: "Feeling great!", color: "from-yellow-400/20 to-orange-400/20" },
@@ -33,7 +39,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             }}
             whileHover={{ scale: 1.03, y: -4 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => onSelectMood(mood.id)}
+            onClick={() => handleMoodClick(mood.id, onSelectMood)}
             className={`
               relative group p-5 md:p-6 rounded-2xl md:rounded-3xl transition-all duration-300 overflow-hidden
               ${isSelected 

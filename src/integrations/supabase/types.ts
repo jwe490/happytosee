@@ -82,6 +82,27 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_selections: {
+        Row: {
+          id: string
+          mood: string
+          selected_at: string
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          mood: string
+          selected_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          mood?: string
+          selected_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null
@@ -124,6 +145,33 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_logs: {
+        Row: {
+          id: string
+          mood: string | null
+          movie_id: number
+          movie_title: string
+          recommended_at: string
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          mood?: string | null
+          movie_id: number
+          movie_title: string
+          recommended_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          mood?: string | null
+          movie_id?: number
+          movie_title?: string
+          recommended_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           created_at: string
@@ -156,6 +204,27 @@ export type Database = {
           rating?: number
           review_text?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -234,10 +303,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_admin_stats: { Args: never; Returns: Json }
+      get_most_watchlisted_movies: { Args: never; Returns: Json }
+      get_top_recommended_movies: { Args: never; Returns: Json }
+      get_trending_moods: { Args: { time_range?: string }; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,6 +443,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

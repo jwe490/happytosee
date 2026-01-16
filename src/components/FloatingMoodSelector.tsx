@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
+import { trackMoodSelection } from "@/lib/analytics";
 
 interface FloatingMoodSelectorProps {
   selectedMood: string | null;
@@ -33,6 +34,9 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
   const handleMoodSelect = (moodId: string) => {
     onSelectMood(moodId);
     setIsExpanded(false);
+    
+    // Track mood selection for analytics
+    trackMoodSelection(moodId);
     
     // Track recent moods (last 3)
     const updated = [moodId, ...recentMoods.filter(m => m !== moodId)].slice(0, 3);
