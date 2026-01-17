@@ -82,6 +82,83 @@ export type Database = {
         }
         Relationships: []
       }
+      key_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          is_remembered: boolean | null
+          token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          is_remembered?: boolean | null
+          token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          is_remembered?: boolean | null
+          token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      key_users: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          display_name: string
+          gender: string | null
+          id: string
+          key_hash: string
+          last_login_at: string | null
+          purpose: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          display_name: string
+          gender?: string | null
+          id?: string
+          key_hash: string
+          last_login_at?: string | null
+          purpose?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          display_name?: string
+          gender?: string | null
+          id?: string
+          key_hash?: string
+          last_login_at?: string | null
+          purpose?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mood_selections: {
         Row: {
           id: string
@@ -303,6 +380,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_sessions: { Args: never; Returns: undefined }
       get_admin_stats: { Args: never; Returns: Json }
       get_most_watchlisted_movies: { Args: never; Returns: Json }
       get_top_recommended_movies: { Args: never; Returns: Json }
