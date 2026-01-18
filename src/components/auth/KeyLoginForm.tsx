@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { VaultIllustration } from "./VaultIllustration";
-import { validateKeyFormat } from "@/lib/keyAuth";
 
 interface KeyLoginFormProps {
   onSubmit: (key: string, rememberMe: boolean) => void;
@@ -32,11 +31,7 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
       return;
     }
 
-    if (!validateKeyFormat(cleanedKey)) {
-      setValidationError("Invalid key format. Keys should start with MF-");
-      return;
-    }
-
+    // No client-side format validation - let backend verify the key
     onSubmit(cleanedKey, rememberMe);
   };
 
@@ -87,11 +82,12 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
               id="secretKey"
               type={showKey ? "text" : "password"}
               value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value.toUpperCase())}
-              placeholder="MF-XXXX-XXXX-XXXX-XXXX"
+              onChange={(e) => setSecretKey(e.target.value)}
+              placeholder="Enter your secret key"
               className="h-12 font-mono tracking-wider pr-12"
               autoComplete="off"
               spellCheck={false}
+              disabled={isLoading}
             />
             <button
               type="button"

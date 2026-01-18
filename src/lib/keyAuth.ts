@@ -20,8 +20,8 @@ export async function generateSecretKey(): Promise<string> {
 
 // Create SHA-256 hash of the key
 export async function hashKey(key: string): Promise<string> {
-  // Normalize the key (remove formatting for consistent hashing)
-  const normalizedKey = key.replace(/[-\s]/g, '').toUpperCase();
+  // Normalize: trim whitespace, remove dashes/spaces, convert to uppercase for consistent hashing
+  const normalizedKey = key.trim().replace(/[-\s]/g, '').toUpperCase();
   
   const encoder = new TextEncoder();
   const data = encoder.encode(normalizedKey);
@@ -34,13 +34,11 @@ export async function hashKey(key: string): Promise<string> {
   return hashHex;
 }
 
-// Validate key format
+// Validate key format - now accepts any non-empty key (backend validates)
 export function validateKeyFormat(key: string): boolean {
-  // Remove spaces and check format
   const cleaned = key.replace(/\s/g, '');
-  // Should be MF-XXXX-XXXX-XXXX-XXXX format (22-26 chars with dashes)
-  const pattern = /^MF-[A-Za-z0-9_-]{4}-[A-Za-z0-9_-]{4}-[A-Za-z0-9_-]{4}-[A-Za-z0-9_-]{4,8}$/i;
-  return pattern.test(cleaned);
+  // Accept any key that has reasonable length (at least 8 characters)
+  return cleaned.length >= 8;
 }
 
 // Format key for display
