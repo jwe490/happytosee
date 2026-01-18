@@ -91,7 +91,16 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (key: string, rememberMe = false) => {
     try {
-      const keyHash = await hashKey(key);
+      // Normalize the key - trim whitespace but preserve original format for hashing
+      const normalizedKey = key.trim();
+      
+      if (!normalizedKey) {
+        return { error: new Error('Please enter your secret key') };
+      }
+      
+      const keyHash = await hashKey(normalizedKey);
+      
+      console.log('[KeyAuth] Attempting login with key hash:', keyHash.substring(0, 8) + '...');
       
       const { data, error } = await supabase.functions.invoke('key-auth', {
         body: {
@@ -101,24 +110,30 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
         }
       });
 
+      console.log('[KeyAuth] Login response:', { hasData: !!data, hasError: !!error, dataError: data?.error });
+
       if (error) {
-        console.error('Login error:', error);
-        return { error: new Error('Invalid access key') };
+        console.error('[KeyAuth] Function invoke error:', error);
+        return { error: new Error('Unable to verify key. Please try again.') };
       }
 
       if (data?.error) {
+        console.log('[KeyAuth] Backend returned error:', data.error);
         return { error: new Error(data.error) };
       }
 
       if (data?.token && data?.user) {
+        console.log('[KeyAuth] Login successful for user:', data.user.display_name);
         storeSession(data.token, data.user);
         setUser(data.user);
         return { error: null };
       }
 
-      return { error: new Error('Invalid access key') };
+      console.log('[KeyAuth] No token/user in response');
+      return { error: new Error('Invalid or expired key') };
     } catch (err: any) {
-      return { error: new Error(err.message || 'Network error during login') };
+      console.error('[KeyAuth] Exception during login:', err);
+      return { error: new Error('Network error. Please check your connection.') };
     }
   }, []);
 
