@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useKeyAuth } from "./useKeyAuth";
 
 export function useAdminAuth() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useKeyAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
