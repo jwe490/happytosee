@@ -91,6 +91,7 @@ export function downloadKeyFile(key: string, displayName: string): void {
 // Session token storage (NOT the raw key - just the JWT)
 const SESSION_TOKEN_KEY = 'mf_session_token';
 const SESSION_USER_KEY = 'mf_session_user';
+const SESSION_STORAGE_KIND_KEY = 'mf_session_storage_kind'; // 'local' | 'session'
 
 export interface KeyUser {
   id: string;
@@ -102,22 +103,34 @@ export interface KeyUser {
   last_login_at?: string;
 }
 
-export function storeSession(token: string, user: KeyUser): void {
-  localStorage.setItem(SESSION_TOKEN_KEY, token);
-  localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+function getSessionStorage() {
+  const kind = localStorage.getItem(SESSION_STORAGE_KIND_KEY) || 'local';
+  return kind === 'session' ? sessionStorage : localStorage;
+}
+
+export function storeSession(token: string, user: KeyUser, rememberMe = false): void {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  localStorage.setItem(SESSION_STORAGE_KIND_KEY, rememberMe ? 'local' : 'session');
+  storage.setItem(SESSION_TOKEN_KEY, token);
+  storage.setItem(SESSION_USER_KEY, JSON.stringify(user));
 }
 
 export function getStoredSession(): { token: string; user: KeyUser } | null {
-  const token = localStorage.getItem(SESSION_TOKEN_KEY);
-  const userStr = localStorage.getItem(SESSION_USER_KEY);
-  
-  if (!token || !userStr) {
+  const storage = getSessionStorage();
+  const token = storage.getItem(SESSION_TOKEN_KEY);
+  const userStr = storage.getItem(SESSION_USER_KEY);
+
+  // Back-compat fallback if older sessions were stored in localStorage
+  const fallbackToken = token || localStorage.getItem(SESSION_TOKEN_KEY);
+  const fallbackUserStr = userStr || localStorage.getItem(SESSION_USER_KEY);
+
+  if (!fallbackToken || !fallbackUserStr) {
     return null;
   }
-  
+
   try {
-    const user = JSON.parse(userStr) as KeyUser;
-    return { token, user };
+    const user = JSON.parse(fallbackUserStr) as KeyUser;
+    return { token: fallbackToken, user };
   } catch {
     clearSession();
     return null;
@@ -127,7 +140,11 @@ export function getStoredSession(): { token: string; user: KeyUser } | null {
 export function clearSession(): void {
   localStorage.removeItem(SESSION_TOKEN_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
+  localStorage.removeItem(SESSION_STORAGE_KIND_KEY);
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  sessionStorage.removeItem(SESSION_USER_KEY);
 }
+
 
 // Check if session token is expired (basic JWT decode)
 export function isTokenExpired(token: string): boolean {

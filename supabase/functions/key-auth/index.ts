@@ -185,25 +185,27 @@ Deno.serve(async (req) => {
 
       case 'verify': {
         const result = verifyJWT(token, jwtSecret);
-        
+
         if (!result.valid) {
           return new Response(
             JSON.stringify({ valid: false }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
-        
-        // Check if session exists in DB
+
+        // Check if session exists in DB AND is not expired
         const tokenHash = await hashToken(token);
         const { data: session } = await supabase
           .from('key_sessions')
-          .select('*')
+          .select('expires_at')
           .eq('token_hash', tokenHash)
-          .single();
-        
+          .maybeSingle();
+
+        const isActive = !!session && new Date(session.expires_at).getTime() > Date.now();
+
         return new Response(
-          JSON.stringify({ valid: !!session, payload: result.payload }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ valid: isActive, payload: result.payload }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
