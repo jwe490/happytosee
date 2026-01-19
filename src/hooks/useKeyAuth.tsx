@@ -36,28 +36,30 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkSession = async () => {
       const stored = getStoredSession();
-      
+
       if (stored && !isTokenExpired(stored.token)) {
-        // Verify session is still valid on server
+        // Verify session is still valid on server (authoritative)
         try {
-          const { data, error } = await supabase.functions.invoke('key-auth', {
-            body: { action: 'verify', token: stored.token }
+          const { data, error } = await supabase.functions.invoke("key-auth", {
+            body: { action: "verify", token: stored.token },
           });
-          
+
           if (!error && data?.valid) {
             setUser(stored.user);
           } else {
             clearSession();
+            setUser(null);
           }
         } catch {
-          // If verification fails, still use cached user (offline support)
-          setUser(stored.user);
+          // If verification fails (network/backend), do NOT trust cached auth
+          clearSession();
+          setUser(null);
         }
       } else if (stored) {
         // Token expired, clear it
         clearSession();
       }
-      
+
       setIsLoading(false);
     };
 
@@ -91,49 +93,57 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (key: string, rememberMe = false) => {
     try {
-      // Normalize the key - trim whitespace but preserve original format for hashing
       const normalizedKey = key.trim();
-      
+
       if (!normalizedKey) {
-        return { error: new Error('Please enter your secret key') };
+        return { error: new Error("Please enter your secret key") };
       }
-      
+
       const keyHash = await hashKey(normalizedKey);
-      
-      console.log('[KeyAuth] Attempting login with key hash:', keyHash.substring(0, 8) + '...');
-      
-      const { data, error } = await supabase.functions.invoke('key-auth', {
+
+      if (import.meta.env.DEV) {
+        console.log("[KeyAuth] Attempting login with key hash:", `${keyHash.substring(0, 8)}...`);
+      }
+
+      const { data, error } = await supabase.functions.invoke("key-auth", {
         body: {
-          action: 'login',
+          action: "login",
           keyHash,
-          rememberMe
-        }
+          rememberMe,
+        },
       });
 
-      console.log('[KeyAuth] Login response:', { hasData: !!data, hasError: !!error, dataError: data?.error });
+      if (import.meta.env.DEV) {
+        console.log("[KeyAuth] Login response:", {
+          hasData: !!data,
+          hasError: !!error,
+          dataError: data?.error,
+        });
+      }
 
       if (error) {
-        console.error('[KeyAuth] Function invoke error:', error);
-        return { error: new Error('Unable to verify key. Please try again.') };
+        if (import.meta.env.DEV) console.error("[KeyAuth] Function invoke error:", error);
+        return { error: new Error("Unable to verify key. Please try again.") };
       }
 
       if (data?.error) {
-        console.log('[KeyAuth] Backend returned error:', data.error);
-        return { error: new Error(data.error) };
+        const msg = String(data.error);
+        if (msg.toLowerCase().includes("invalid")) {
+          return { error: new Error("Invalid or expired key") };
+        }
+        return { error: new Error(msg) };
       }
 
       if (data?.token && data?.user) {
-        console.log('[KeyAuth] Login successful for user:', data.user.display_name);
-        storeSession(data.token, data.user);
+        storeSession(data.token, data.user, rememberMe);
         setUser(data.user);
         return { error: null };
       }
 
-      console.log('[KeyAuth] No token/user in response');
-      return { error: new Error('Invalid or expired key') };
+      return { error: new Error("Invalid or expired key") };
     } catch (err: any) {
-      console.error('[KeyAuth] Exception during login:', err);
-      return { error: new Error('Network error. Please check your connection.') };
+      if (import.meta.env.DEV) console.error("[KeyAuth] Exception during login:", err);
+      return { error: new Error("Network error. Please check your connection.") };
     }
   }, []);
 
