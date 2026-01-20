@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useAuth } from "@/hooks/useAuth";
-import { User, FolderHeart, Bookmark, Edit3, Sparkles, Film, LogOut } from "lucide-react";
+import { FolderHeart, Bookmark, Edit3, Sparkles, Film, LogOut, LogIn, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -20,14 +20,14 @@ interface LocalProfile {
 
 const Profile = () => {
   const { watchlist } = useWatchlist();
-  const { user, username, signOut } = useAuth();
+  const { user, displayName, username, isAuthenticated, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<LocalProfile>({ 
     display_name: "", 
     favorite_genres: [],
     selected_moods: []
   });
-  const [displayName, setDisplayName] = useState("");
+  const [editedDisplayName, setEditedDisplayName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
   const profileStorageKey = user?.id ? `${PROFILE_STORAGE_KEY}_${user.id}` : PROFILE_STORAGE_KEY;
@@ -39,9 +39,10 @@ const Profile = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         setProfile(parsed);
-        setDisplayName(parsed.display_name || username || "");
-      } else if (username) {
-        setDisplayName(username);
+        setEditedDisplayName(parsed.display_name || displayName || "");
+      } else if (displayName) {
+        setEditedDisplayName(displayName);
+        setProfile(prev => ({ ...prev, display_name: displayName }));
       }
       
       // Load selected moods from mood history
@@ -58,10 +59,10 @@ const Profile = () => {
     } catch (error) {
       console.error("Error loading profile:", error);
     }
-  }, [profileStorageKey, username]);
+  }, [profileStorageKey, displayName]);
 
   const handleSaveProfile = () => {
-    const updatedProfile = { ...profile, display_name: displayName };
+    const updatedProfile = { ...profile, display_name: editedDisplayName };
     setProfile(updatedProfile);
     localStorage.setItem(profileStorageKey, JSON.stringify(updatedProfile));
     setIsEditing(false);
@@ -74,6 +75,71 @@ const Profile = () => {
     navigate("/");
   };
 
+  // Get initials for avatar
+  const getInitials = () => {
+    const name = profile.display_name || displayName || "";
+    if (!name) return "?";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background pt-20">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-muted" />
+              <div className="space-y-2">
+                <div className="h-5 w-32 bg-muted rounded" />
+                <div className="h-3 w-20 bg-muted rounded" />
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Guest view - not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background pt-20">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16"
+          >
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="w-10 h-10 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Welcome to MoodFlix</h1>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              Sign in to save your watchlist, track your movie moods, and personalize your experience.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate("/auth")} className="gap-2">
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/")}>
+                Continue Browsing
+              </Button>
+            </div>
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
+
+  // Authenticated user view
   return (
     <div className="min-h-screen bg-background pt-20">
       <Header />
@@ -86,8 +152,8 @@ const Profile = () => {
           className="flex items-center gap-4"
         >
           <Avatar className="w-14 h-14 ring-2 ring-primary/20">
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {(displayName || username || "U").charAt(0).toUpperCase()}
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+              {getInitials()}
             </AvatarFallback>
           </Avatar>
           
@@ -95,8 +161,8 @@ const Profile = () => {
             {isEditing ? (
               <div className="flex items-center gap-2">
                 <Input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  value={editedDisplayName}
+                  onChange={(e) => setEditedDisplayName(e.target.value)}
                   className="h-8 max-w-[180px] text-sm"
                   placeholder="Your name"
                   autoFocus
@@ -107,14 +173,14 @@ const Profile = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <h1 className="font-display text-lg font-semibold truncate">
-                  {profile.display_name || username || "User"}
+                  {profile.display_name || displayName}
                 </h1>
                 <button onClick={() => setIsEditing(true)} className="p-1 hover:bg-muted rounded transition-colors">
                   <Edit3 className="w-3 h-3 text-muted-foreground" />
                 </button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">@{username}</p>
+            <p className="text-xs text-muted-foreground">@{username || "user"}</p>
           </div>
         </motion.div>
 
@@ -153,6 +219,40 @@ const Profile = () => {
             </div>
           </Link>
         </motion.section>
+
+        {/* User Info Card */}
+        {user && (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.07 }}
+            className="p-4 rounded-xl bg-card border border-border"
+          >
+            <h2 className="font-medium text-sm mb-3 flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
+              Account Details
+            </h2>
+            <div className="space-y-2 text-sm">
+              {user.purpose && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Watching for</span>
+                  <span className="font-medium capitalize">{user.purpose}</span>
+                </div>
+              )}
+              {user.created_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Member since</span>
+                  <span className="font-medium">
+                    {new Date(user.created_at).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      year: 'numeric' 
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.section>
+        )}
 
         {/* Recently Selected Moods */}
         {profile.selected_moods.length > 0 && (

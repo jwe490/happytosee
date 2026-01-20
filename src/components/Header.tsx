@@ -12,7 +12,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, username, signOut, isLoading } = useAuth();
+  const { displayName, isAuthenticated, signOut, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,6 +40,16 @@ const Header = () => {
     await signOut();
     setIsMobileMenuOpen(false);
     navigate("/");
+  };
+
+  // Get initials for avatar
+  const getInitials = () => {
+    if (!displayName) return "U";
+    const parts = displayName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return displayName.charAt(0).toUpperCase();
   };
 
   return (
@@ -106,7 +116,7 @@ const Header = () => {
               <ThemeToggle />
               
               {!isLoading && (
-                user ? (
+                isAuthenticated ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -169,15 +179,15 @@ const Header = () => {
             >
               <div className="p-6 space-y-6">
                 {/* User info */}
-                {user && (
+                {isAuthenticated && (
                   <div className="flex items-center gap-3 pb-4 border-b border-border">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-primary font-semibold">
-                        {(username || "U").charAt(0).toUpperCase()}
+                        {getInitials()}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{username}</p>
+                      <p className="font-medium text-sm">{displayName || "User"}</p>
                       <p className="text-xs text-muted-foreground">Signed in</p>
                     </div>
                   </div>
@@ -240,7 +250,7 @@ const Header = () => {
                   
                   {/* Auth button in mobile menu */}
                   {!isLoading && (
-                    user ? (
+                    isAuthenticated ? (
                       <Button
                         variant="outline"
                         onClick={handleSignOut}
