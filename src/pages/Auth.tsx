@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Film } from "lucide-react";
+import { Film, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
@@ -9,7 +9,6 @@ import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { generateSecretKey, hashKey } from "@/lib/keyAuth";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 type AuthStep = "choice" | "signup-persona" | "signup-key" | "login";
 
@@ -24,10 +23,20 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect authenticated users
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const from = (location.state as any)?.from?.pathname || "/profile";
-      navigate(from, { replace: true });
+      // Get the intended destination
+      const from = (location.state as any)?.from?.pathname;
+      
+      // If coming from admin, go to admin dashboard
+      if (from?.startsWith("/admin")) {
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
+      
+      // Otherwise go to dashboard
+      navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, location]);
 
@@ -69,8 +78,8 @@ const Auth = () => {
         toast.success("Account created! Please login with your key.");
         setStep("login");
       } else {
-        toast.success("Welcome to MoodFlix!");
-        navigate("/profile", { replace: true });
+        toast.success("Welcome to MoodFlix! 🎬");
+        // Navigation handled by useEffect
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to create account");
@@ -83,23 +92,39 @@ const Auth = () => {
     setLoginError("");
     setIsSubmitting(true);
     
-    const { error } = await signIn(key, rememberMe);
-    
-    if (error) {
-      setLoginError(error.message);
-    } else {
-      toast.success("Welcome back!");
-      const from = (location.state as any)?.from?.pathname || "/profile";
-      navigate(from, { replace: true });
+    try {
+      const { error } = await signIn(key, rememberMe);
+      
+      if (error) {
+        setLoginError(error.message);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Success - navigation handled by useEffect when isAuthenticated changes
+      toast.success("Welcome back! 🎬");
+    } catch (err: any) {
+      setLoginError(err.message || "Login failed. Please try again.");
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Don't render auth page if already authenticated (will redirect via useEffect)
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
       </div>
     );
   }

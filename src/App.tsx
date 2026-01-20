@@ -12,6 +12,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 const Index = lazy(() => import("./pages/Index"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Person = lazy(() => import("./pages/Person"));
 const Assessment = lazy(() => import("./pages/Assessment"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -48,6 +49,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/watchlist" element={<Watchlist />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/person/:id" element={<Person />} />
                   <Route path="/assessment" element={<Assessment />} />
                   {/* Admin Routes */}

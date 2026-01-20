@@ -44,11 +44,13 @@ function verifyJWT(token: string, secret: string): { valid: boolean; payload?: R
     
     // Check expiration
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      console.log("[key-auth] Token expired at", new Date(payload.exp * 1000).toISOString());
       return { valid: false };
     }
     
     return { valid: true, payload };
-  } catch {
+  } catch (err) {
+    console.error("[key-auth] JWT verification error:", err);
     return { valid: false };
   }
 }
@@ -74,10 +76,15 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const { action, keyHash, profile, token, rememberMe } = await req.json();
+    const body = await req.json();
+    const { action, keyHash, profile, token, rememberMe } = body;
+    
+    console.log(`[key-auth] Action: ${action}`);
 
     switch (action) {
       case 'signup': {
+        console.log("[key-auth] Processing signup...");
+        
         // Check if key hash already exists
         const { data: existing } = await supabase
           .from('key_users')
@@ -86,6 +93,7 @@ Deno.serve(async (req) => {
           .single();
         
         if (existing) {
+          console.log("[key-auth] Key already registered");
           return new Response(
             JSON.stringify({ error: 'This key is already registered' }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -106,12 +114,14 @@ Deno.serve(async (req) => {
           .single();
         
         if (insertError) {
-          console.error('Insert error:', insertError);
+          console.error('[key-auth] Insert error:', insertError);
           return new Response(
             JSON.stringify({ error: 'Failed to create account' }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        
+        console.log("[key-auth] User created:", newUser.id);
         
         return new Response(
           JSON.stringify({ 
@@ -130,6 +140,9 @@ Deno.serve(async (req) => {
       }
 
       case 'login': {
+        console.log("[key-auth] Processing login...");
+        console.log("[key-auth] Key hash (first 16 chars):", keyHash?.substring(0, 16) + "...");
+        
         // Find user by key hash
         const { data: user, error: findError } = await supabase
           .from('key_users')
@@ -137,12 +150,19 @@ Deno.serve(async (req) => {
           .eq('key_hash', keyHash)
           .single();
         
-        if (findError || !user) {
+        if (findError) {
+          console.log("[key-auth] Find error:", findError.message);
+        }
+        
+        if (!user) {
+          console.log("[key-auth] No user found for this key hash");
           return new Response(
             JSON.stringify({ error: 'Invalid access key' }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        
+        console.log("[key-auth] User found:", user.id, user.display_name);
         
         // Create JWT token
         const expiresIn = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
@@ -152,7 +172,7 @@ Deno.serve(async (req) => {
         const tokenHash = await hashToken(jwtToken);
         const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
         
-        await supabase.from('key_sessions').insert({
+        const { error: sessionError } = await supabase.from('key_sessions').insert({
           user_id: user.id,
           token_hash: tokenHash,
           expires_at: expiresAt,
@@ -160,11 +180,17 @@ Deno.serve(async (req) => {
           user_agent: req.headers.get('user-agent') || null,
         });
         
+        if (sessionError) {
+          console.error("[key-auth] Session insert error:", sessionError);
+        }
+        
         // Update last login
         await supabase
           .from('key_users')
           .update({ last_login_at: new Date().toISOString() })
           .eq('id', user.id);
+        
+        console.log("[key-auth] Login successful for user:", user.id);
         
         return new Response(
           JSON.stringify({
@@ -184,9 +210,12 @@ Deno.serve(async (req) => {
       }
 
       case 'verify': {
+        console.log("[key-auth] Processing verify...");
+        
         const result = verifyJWT(token, jwtSecret);
 
         if (!result.valid) {
+          console.log("[key-auth] JWT verification failed");
           return new Response(
             JSON.stringify({ valid: false }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -203,6 +232,8 @@ Deno.serve(async (req) => {
 
         const isActive = !!session && new Date(session.expires_at).getTime() > Date.now();
 
+        console.log("[key-auth] Session active:", isActive);
+        
         return new Response(
           JSON.stringify({ valid: isActive, payload: result.payload }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -210,11 +241,15 @@ Deno.serve(async (req) => {
       }
 
       case 'logout': {
+        console.log("[key-auth] Processing logout...");
+        
         const tokenHash = await hashToken(token);
         await supabase
           .from('key_sessions')
           .delete()
           .eq('token_hash', tokenHash);
+        
+        console.log("[key-auth] Logout complete");
         
         return new Response(
           JSON.stringify({ success: true }),
@@ -223,6 +258,8 @@ Deno.serve(async (req) => {
       }
 
       case 'refresh': {
+        console.log("[key-auth] Processing refresh...");
+        
         const result = verifyJWT(token, jwtSecret);
         if (!result.valid || !result.payload) {
           return new Response(
@@ -274,6 +311,8 @@ Deno.serve(async (req) => {
           is_remembered: isRemembered,
         });
         
+        console.log("[key-auth] Refresh complete for user:", user.id);
+        
         return new Response(
           JSON.stringify({
             token: newToken,
@@ -292,13 +331,14 @@ Deno.serve(async (req) => {
       }
 
       default:
+        console.log("[key-auth] Invalid action:", action);
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
     }
   } catch (error) {
-    console.error('Key auth error:', error);
+    console.error('[key-auth] Error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }

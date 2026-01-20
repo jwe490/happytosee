@@ -35,32 +35,46 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
-      const stored = getStoredSession();
+      try {
+        const stored = getStoredSession();
 
-      if (stored && !isTokenExpired(stored.token)) {
-        // Verify session is still valid on server (authoritative)
-        try {
-          const { data, error } = await supabase.functions.invoke("key-auth", {
-            body: { action: "verify", token: stored.token },
-          });
+        if (!stored) {
+          setIsLoading(false);
+          return;
+        }
 
-          if (!error && data?.valid) {
-            setUser(stored.user);
-          } else {
-            clearSession();
-            setUser(null);
-          }
-        } catch {
-          // If verification fails (network/backend), do NOT trust cached auth
+        // Check if token is expired locally first
+        if (isTokenExpired(stored.token)) {
+          console.log("[KeyAuth] Token expired locally, clearing session");
+          clearSession();
+          setIsLoading(false);
+          return;
+        }
+
+        // Verify session is still valid on server
+        const { data, error } = await supabase.functions.invoke("key-auth", {
+          body: { action: "verify", token: stored.token },
+        });
+
+        if (error) {
+          console.error("[KeyAuth] Session verification failed:", error);
+          clearSession();
+          setUser(null);
+        } else if (data?.valid) {
+          console.log("[KeyAuth] Session verified successfully");
+          setUser(stored.user);
+        } else {
+          console.log("[KeyAuth] Session invalid on server, clearing");
           clearSession();
           setUser(null);
         }
-      } else if (stored) {
-        // Token expired, clear it
+      } catch (err) {
+        console.error("[KeyAuth] Error checking session:", err);
         clearSession();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     checkSession();
@@ -68,6 +82,8 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (keyHash: string, profile: SignUpProfile) => {
     try {
+      console.log("[KeyAuth] Starting signup...");
+      
       const { data, error } = await supabase.functions.invoke('key-auth', {
         body: {
           action: 'signup',
@@ -77,16 +93,19 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        console.error('Signup error:', error);
+        console.error('[KeyAuth] Signup error:', error);
         return { error: new Error(error.message || 'Failed to create account') };
       }
 
       if (data?.error) {
+        console.error('[KeyAuth] Signup response error:', data.error);
         return { error: new Error(data.error) };
       }
 
+      console.log("[KeyAuth] Signup successful");
       return { error: null, user: data.user as KeyUser };
     } catch (err: any) {
+      console.error('[KeyAuth] Signup exception:', err);
       return { error: new Error(err.message || 'Network error during signup') };
     }
   }, []);
@@ -99,12 +118,13 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error("Please enter your secret key") };
       }
 
+      console.log("[KeyAuth] Starting login...");
+      
+      // Hash the key
       const keyHash = await hashKey(normalizedKey);
+      console.log("[KeyAuth] Key hashed, sending to backend...");
 
-      if (import.meta.env.DEV) {
-        console.log("[KeyAuth] Attempting login with key hash:", `${keyHash.substring(0, 8)}...`);
-      }
-
+      // Call the backend
       const { data, error } = await supabase.functions.invoke("key-auth", {
         body: {
           action: "login",
@@ -113,41 +133,50 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      if (import.meta.env.DEV) {
-        console.log("[KeyAuth] Login response:", {
-          hasData: !!data,
-          hasError: !!error,
-          dataError: data?.error,
-        });
-      }
+      console.log("[KeyAuth] Login response received:", { 
+        hasData: !!data, 
+        hasError: !!error,
+        dataError: data?.error,
+        hasToken: !!data?.token,
+        hasUser: !!data?.user 
+      });
 
+      // Handle function invoke error
       if (error) {
-        if (import.meta.env.DEV) console.error("[KeyAuth] Function invoke error:", error);
+        console.error("[KeyAuth] Function invoke error:", error);
         return { error: new Error("Unable to verify key. Please try again.") };
       }
 
+      // Handle application-level error
       if (data?.error) {
         const msg = String(data.error);
+        console.log("[KeyAuth] Application error:", msg);
         if (msg.toLowerCase().includes("invalid")) {
-          return { error: new Error("Invalid or expired key") };
+          return { error: new Error("Invalid or expired key. Please check and try again.") };
         }
         return { error: new Error(msg) };
       }
 
+      // Handle successful login
       if (data?.token && data?.user) {
+        console.log("[KeyAuth] Login successful, storing session...");
         storeSession(data.token, data.user, rememberMe);
         setUser(data.user);
+        console.log("[KeyAuth] User state updated, login complete");
         return { error: null };
       }
 
+      // Unexpected response
+      console.error("[KeyAuth] Unexpected response format:", data);
       return { error: new Error("Invalid or expired key") };
     } catch (err: any) {
-      if (import.meta.env.DEV) console.error("[KeyAuth] Exception during login:", err);
+      console.error("[KeyAuth] Login exception:", err);
       return { error: new Error("Network error. Please check your connection.") };
     }
   }, []);
 
   const signOut = useCallback(async () => {
+    console.log("[KeyAuth] Signing out...");
     const stored = getStoredSession();
     
     if (stored?.token) {
@@ -155,13 +184,15 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
         await supabase.functions.invoke('key-auth', {
           body: { action: 'logout', token: stored.token }
         });
-      } catch {
-        // Ignore logout errors
+      } catch (err) {
+        console.error("[KeyAuth] Logout backend call failed:", err);
+        // Continue with local logout anyway
       }
     }
     
     clearSession();
     setUser(null);
+    console.log("[KeyAuth] Sign out complete");
   }, []);
 
   const refreshSession = useCallback(async () => {
@@ -177,8 +208,8 @@ export function KeyAuthProvider({ children }: { children: ReactNode }) {
         storeSession(data.token, data.user);
         setUser(data.user);
       }
-    } catch {
-      // Ignore refresh errors
+    } catch (err) {
+      console.error("[KeyAuth] Refresh session failed:", err);
     }
   }, []);
 
