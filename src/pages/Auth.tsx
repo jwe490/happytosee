@@ -26,7 +26,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const from = (location.state as any)?.from?.pathname || "/";
+      const from = (location.state as any)?.from?.pathname || "/profile";
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, location]);
@@ -70,7 +70,7 @@ const Auth = () => {
         setStep("login");
       } else {
         toast.success("Welcome to MoodFlix!");
-        navigate("/", { replace: true });
+        navigate("/profile", { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to create account");
@@ -89,7 +89,7 @@ const Auth = () => {
       setLoginError(error.message);
     } else {
       toast.success("Welcome back!");
-      const from = (location.state as any)?.from?.pathname || "/";
+      const from = (location.state as any)?.from?.pathname || "/profile";
       navigate(from, { replace: true });
     }
     
