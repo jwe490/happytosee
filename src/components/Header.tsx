@@ -3,16 +3,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut } from "lucide-react";
+import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut, Gem, Filter, Shield, LayoutDashboard } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
-const Header = () => {
+interface HeaderProps {
+  onOpenDiscovery?: () => void;
+  discoveryActive?: boolean;
+}
+
+const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { displayName, isAuthenticated, signOut, isLoading } = useAuth();
+  const { isAdmin } = useAdminAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -108,6 +115,32 @@ const Header = () => {
             >
               ✨ Movie Mood
             </Button>
+
+            {/* Discovery Filter Button - only on home page */}
+            {location.pathname === "/" && onOpenDiscovery && (
+              <Button
+                variant={discoveryActive ? "default" : "outline"}
+                size="sm"
+                onClick={onOpenDiscovery}
+                className={`gap-1.5 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950 hover:bg-yellow-500" : ""}`}
+              >
+                <Gem className="w-4 h-4" />
+                <span className="hidden lg:inline">Discover</span>
+              </Button>
+            )}
+
+            {/* Admin link for admin users */}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavigation("/admin/dashboard")}
+                className={`gap-1.5 ${location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""}`}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="hidden lg:inline">Admin</span>
+              </Button>
+            )}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -237,6 +270,48 @@ const Header = () => {
                     <UserCircle className="w-5 h-5" />
                     Profile
                   </Button>
+
+                  {isAuthenticated && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation("/dashboard")}
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname === "/dashboard" ? "text-primary bg-primary/10" : ""
+                      }`}
+                    >
+                      <LayoutDashboard className="w-5 h-5" />
+                      Dashboard
+                    </Button>
+                  )}
+
+                  {/* Discovery filter in mobile menu */}
+                  {location.pathname === "/" && onOpenDiscovery && (
+                    <Button
+                      variant={discoveryActive ? "default" : "ghost"}
+                      onClick={() => {
+                        onOpenDiscovery();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full justify-start gap-3 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950" : ""}`}
+                    >
+                      <Gem className="w-5 h-5" />
+                      Discovery Filters
+                    </Button>
+                  )}
+
+                  {/* Admin link in mobile menu */}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation("/admin/dashboard")}
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""
+                      }`}
+                    >
+                      <Shield className="w-5 h-5" />
+                      Admin Panel
+                    </Button>
+                  )}
                 </nav>
 
                 <div className="pt-4 border-t border-border space-y-3">

@@ -337,7 +337,8 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
   const handleRetake = () => {
     // Clear cache for fresh recommendations
     movieCache.clear();
-    window.location.reload();
+    // Navigate back to assessment page instead of reloading
+    window.history.back();
   };
 
   const navigateToSlide = (slide: SlideType) => {

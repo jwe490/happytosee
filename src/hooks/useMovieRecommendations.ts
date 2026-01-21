@@ -22,6 +22,8 @@ export interface RecommendationParams {
   genres: string[];
   industries: string[];
   duration: string;
+  hiddenGems?: boolean;
+  maxRuntime?: number;
 }
 
 export function useMovieRecommendations() {
