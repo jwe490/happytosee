@@ -115,6 +115,8 @@ function validateInput(body: unknown): {
     industries?: string[]; 
     duration?: string; 
     previouslyRecommended?: string[];
+    hiddenGems?: boolean;
+    maxRuntime?: number;
   } 
 } {
   if (!body || typeof body !== 'object') {
@@ -129,8 +131,10 @@ function validateInput(body: unknown): {
   const industries = Array.isArray(b.industries) ? b.industries.filter(i => typeof i === 'string').slice(0, 3).map(i => String(i).slice(0, 50)) : [];
   const duration = typeof b.duration === 'string' ? b.duration.slice(0, 20) : undefined;
   const previouslyRecommended = Array.isArray(b.previouslyRecommended) ? b.previouslyRecommended.filter(p => typeof p === 'string').slice(0, 100).map(p => String(p).slice(0, 200)) : [];
+  const hiddenGems = typeof b.hiddenGems === 'boolean' ? b.hiddenGems : false;
+  const maxRuntime = typeof b.maxRuntime === 'number' ? Math.min(Math.max(b.maxRuntime, 60), 300) : 240;
   
-  return { valid: true, data: { mood, languages, genres, industries, duration, previouslyRecommended } };
+  return { valid: true, data: { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime } };
 }
 
 Deno.serve(async (req) => {
@@ -150,7 +154,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { mood, languages, genres, industries, duration, previouslyRecommended } = validationResult.data;
+    const { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
 
@@ -164,7 +168,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("Request params:", { mood, languages, genres, industries, duration });
+    console.log("Request params:", { mood, languages, genres, industries, duration, hiddenGems, maxRuntime });
 
     let targetLanguage: string | null = null;
     let targetRegion: string | null = null;
@@ -198,10 +202,23 @@ Deno.serve(async (req) => {
     const queryParams = new URLSearchParams({
       api_key: TMDB_API_KEY,
       sort_by: "vote_average.desc",
-      "vote_count.gte": "100",
       page: String(Math.floor(Math.random() * 5) + 1),
       language: "en-US",
     });
+
+    // Hidden Gems Mode - highly rated but not blockbusters
+    if (hiddenGems) {
+      queryParams.set("vote_average.gte", "7.0");
+      queryParams.set("vote_count.gte", "200");
+      queryParams.set("vote_count.lte", "5000");
+    } else {
+      queryParams.set("vote_count.gte", "100");
+    }
+
+    // Runtime filter
+    if (maxRuntime && maxRuntime < 240) {
+      queryParams.set("with_runtime.lte", String(maxRuntime));
+    }
 
     if (targetGenreIds.length > 0) {
       queryParams.set("with_genres", targetGenreIds.join(","));

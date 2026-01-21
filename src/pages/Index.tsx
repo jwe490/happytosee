@@ -12,9 +12,10 @@ import { TrendingSection } from "@/components/TrendingSection";
 import { CinematicCarousel } from "@/components/CinematicCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2 } from "lucide-react";
+import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -72,6 +73,14 @@ const Index = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
+
+  // Discovery drawer state
+  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
+  const [discoveryFilters, setDiscoveryFilters] = useState<DiscoveryFilters>({
+    hiddenGems: false,
+    maxRuntime: 240,
+    dateNightMoods: null,
+  });
 
   const ticking = useRef(false);
   const lastScrollY = useRef(0);
@@ -163,8 +172,10 @@ const Index = () => {
       genres: preferences.genres,
       industries: preferences.movieType === "any" ? [] : [preferences.movieType],
       duration: preferences.duration,
+      hiddenGems: discoveryFilters.hiddenGems,
+      maxRuntime: discoveryFilters.maxRuntime,
     });
-  }, [getRecommendations, preferences]);
+  }, [getRecommendations, preferences, discoveryFilters]);
 
   const updatePreferences = (key: string, value: string | string[]) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
@@ -179,6 +190,8 @@ const Index = () => {
       genres: preferences.genres,
       industries: preferences.movieType === "any" ? [] : [preferences.movieType],
       duration: preferences.duration,
+      hiddenGems: discoveryFilters.hiddenGems,
+      maxRuntime: discoveryFilters.maxRuntime,
     });
   };
 
@@ -189,9 +202,38 @@ const Index = () => {
     saveMood(null);
   };
 
+  const handleDiscoveryFiltersChange = (filters: DiscoveryFilters) => {
+    setDiscoveryFilters(filters);
+    // Auto-trigger recommendations if mood is selected
+    if (selectedMood) {
+      getRecommendations({
+        mood: selectedMood,
+        languages: preferences.language === "any" ? [] : [preferences.language],
+        genres: preferences.genres,
+        industries: preferences.movieType === "any" ? [] : [preferences.movieType],
+        duration: preferences.duration,
+        hiddenGems: filters.hiddenGems,
+        maxRuntime: filters.maxRuntime,
+      });
+    }
+  };
+
+  const discoveryActive = discoveryFilters.hiddenGems || discoveryFilters.maxRuntime < 240 || discoveryFilters.dateNightMoods !== null;
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden pt-16 md:pt-20">
-      <Header />
+      <Header 
+        onOpenDiscovery={() => setIsDiscoveryOpen(true)} 
+        discoveryActive={discoveryActive}
+      />
+
+      {/* Discovery Drawer */}
+      <DiscoveryDrawer
+        isOpen={isDiscoveryOpen}
+        onClose={() => setIsDiscoveryOpen(false)}
+        filters={discoveryFilters}
+        onFiltersChange={handleDiscoveryFiltersChange}
+      />
 
       {/* Floating Mood Selector */}
       <AnimatePresence>
@@ -228,6 +270,41 @@ const Index = () => {
             onMovieSelect={handleMovieSelect}
             autoPlayInterval={6000}
           />
+        )}
+
+        {/* Active filters indicator */}
+        {discoveryActive && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 mt-4"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Active filters:</span>
+              {discoveryFilters.hiddenGems && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-600 dark:text-yellow-400">
+                  <Gem className="w-3 h-3" />
+                  Hidden Gems
+                </span>
+              )}
+              {discoveryFilters.maxRuntime < 240 && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                  ⏱️ Max {Math.floor(discoveryFilters.maxRuntime / 60)}h {discoveryFilters.maxRuntime % 60}m
+                </span>
+              )}
+              {discoveryFilters.dateNightMoods && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-pink-500/20 text-pink-600 dark:text-pink-400">
+                  ❤️ Date Night
+                </span>
+              )}
+              <button
+                onClick={() => setIsDiscoveryOpen(true)}
+                className="text-xs text-primary hover:underline"
+              >
+                Edit
+              </button>
+            </div>
+          </motion.div>
         )}
 
         {/* Tabs */}
