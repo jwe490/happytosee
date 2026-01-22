@@ -3,11 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut, Gem, Shield, LayoutDashboard } from "lucide-react";
+import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut, Gem, Filter, Shield, LayoutDashboard } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   onOpenDiscovery?: () => void;
@@ -50,6 +49,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
     navigate("/");
   };
 
+  // Get initials for avatar
   const getInitials = () => {
     if (!displayName) return "U";
     const parts = displayName.trim().split(/\s+/);
@@ -59,73 +59,62 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
     return displayName.charAt(0).toUpperCase();
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
-  // NavLink with pill background for active state
-  const NavLink = ({
-    path,
-    children,
-    icon: Icon,
-  }: {
-    path: string;
-    children: React.ReactNode;
-    icon?: React.ComponentType<{ className?: string }>;
-  }) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => handleNavigation(path)}
-      className={cn(
-        "relative font-display font-medium text-sm transition-all duration-200",
-        "flex items-center gap-2",
-        isActive(path)
-          ? "text-primary-foreground"
-          : "text-foreground/70 hover:text-foreground"
-      )}
-    >
-      {/* Active pill background */}
-      {isActive(path) && (
-        <motion.div
-          layoutId="nav-pill"
-          className="absolute inset-0 rounded-md bg-primary"
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
-      )}
-      <span className="relative flex items-center gap-2">
-        {Icon && <Icon className="w-4 h-4" />}
-        {children}
-      </span>
-    </Button>
-  );
-
   return (
     <>
       <motion.header
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
             ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm"
             : "bg-transparent"
-        )}
+        }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          {/* Logo - vertically centered */}
           <motion.button
             onClick={() => handleNavigation("/")}
-            className="font-display text-xl font-bold tracking-tight hover:opacity-80 transition-opacity flex items-center"
+            className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
             whileTap={{ scale: 0.95 }}
           >
             MoodFlix
           </motion.button>
 
-          {/* Desktop Navigation - vertically centered */}
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink path="/">Home</NavLink>
-            <NavLink path="/watchlist">Watchlist</NavLink>
-            <NavLink path="/profile">Profile</NavLink>
-            <NavLink path="/assessment">Movie Mood</NavLink>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/")}
+              className={location.pathname === "/" ? "text-primary" : ""}
+            >
+              Home
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/watchlist")}
+              className={location.pathname === "/watchlist" ? "text-primary" : ""}
+            >
+              Watchlist
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/profile")}
+              className={location.pathname === "/profile" ? "text-primary" : ""}
+            >
+              Profile
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/assessment")}
+              className={location.pathname === "/assessment" ? "text-primary bg-accent/10" : ""}
+            >
+              ✨ Movie Mood
+            </Button>
 
             {/* Discovery Filter Button - only on home page */}
             {location.pathname === "/" && onOpenDiscovery && (
@@ -133,10 +122,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                 variant={discoveryActive ? "default" : "outline"}
                 size="sm"
                 onClick={onOpenDiscovery}
-                className={cn(
-                  "gap-1.5 font-display font-medium ml-2",
-                  discoveryActive && "bg-yellow-500/90 text-yellow-950 hover:bg-yellow-500"
-                )}
+                className={`gap-1.5 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950 hover:bg-yellow-500" : ""}`}
               >
                 <Gem className="w-4 h-4" />
                 <span className="hidden lg:inline">Discover</span>
@@ -145,25 +131,30 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
 
             {/* Admin link for admin users */}
             {isAdmin && (
-              <NavLink path="/admin/dashboard" icon={Shield}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavigation("/admin/dashboard")}
+                className={`gap-1.5 ${location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""}`}
+              >
+                <Shield className="w-4 h-4" />
                 <span className="hidden lg:inline">Admin</span>
-              </NavLink>
+              </Button>
             )}
           </nav>
 
-          {/* Right side controls - vertically centered */}
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2">
               <AccentColorPicker />
               <ThemeToggle />
-
+              
               {!isLoading && (
                 isAuthenticated ? (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleSignOut}
-                    className="gap-2 font-display font-medium"
+                    className="gap-2"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -173,7 +164,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                     variant="default"
                     size="sm"
                     onClick={() => handleNavigation("/auth")}
-                    className="gap-2 font-display font-medium"
+                    className="gap-2"
                   >
                     <LogIn className="w-4 h-4" />
                     Sign In
@@ -182,7 +173,6 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
               )}
             </div>
 
-            {/* Mobile menu toggle */}
             <Button
               variant="outline"
               size="icon"
@@ -201,7 +191,6 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
         </div>
       </motion.header>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -226,47 +215,69 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                 {isAuthenticated && (
                   <div className="flex items-center gap-3 pb-4 border-b border-border">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-primary font-display font-semibold">
+                      <span className="text-primary font-semibold">
                         {getInitials()}
                       </span>
                     </div>
                     <div>
-                      <p className="font-display font-medium text-sm">{displayName || "User"}</p>
+                      <p className="font-medium text-sm">{displayName || "User"}</p>
                       <p className="text-xs text-muted-foreground">Signed in</p>
                     </div>
                   </div>
                 )}
 
                 <nav className="space-y-1">
-                  {/* Mobile nav items - no emojis, pill background for active */}
-                  {[
-                    { path: "/", label: "Home", icon: Home },
-                    { path: "/assessment", label: "Movie Mood", icon: Sparkles },
-                    { path: "/watchlist", label: "Watchlist", icon: Bookmark },
-                    { path: "/profile", label: "Profile", icon: UserCircle },
-                  ].map((item) => (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      onClick={() => handleNavigation(item.path)}
-                      className={cn(
-                        "w-full justify-start gap-3 font-display font-medium",
-                        isActive(item.path) && "bg-primary text-primary-foreground"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      {item.label}
-                    </Button>
-                  ))}
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Home className="w-5 h-5" />
+                    Home
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/assessment")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/assessment" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    ✨ Movie Mood
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/watchlist")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/watchlist" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Bookmark className="w-5 h-5" />
+                    Watchlist
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/profile")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/profile" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <UserCircle className="w-5 h-5" />
+                    Profile
+                  </Button>
 
                   {isAuthenticated && (
                     <Button
                       variant="ghost"
                       onClick={() => handleNavigation("/dashboard")}
-                      className={cn(
-                        "w-full justify-start gap-3 font-display font-medium",
-                        isActive("/dashboard") && "bg-primary text-primary-foreground"
-                      )}
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname === "/dashboard" ? "text-primary bg-primary/10" : ""
+                      }`}
                     >
                       <LayoutDashboard className="w-5 h-5" />
                       Dashboard
@@ -281,10 +292,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                         onOpenDiscovery();
                         setIsMobileMenuOpen(false);
                       }}
-                      className={cn(
-                        "w-full justify-start gap-3 font-display font-medium",
-                        discoveryActive && "bg-yellow-500/90 text-yellow-950"
-                      )}
+                      className={`w-full justify-start gap-3 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950" : ""}`}
                     >
                       <Gem className="w-5 h-5" />
                       Discovery Filters
@@ -296,10 +304,9 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                     <Button
                       variant="ghost"
                       onClick={() => handleNavigation("/admin/dashboard")}
-                      className={cn(
-                        "w-full justify-start gap-3 font-display font-medium",
-                        location.pathname.startsWith("/admin") && "bg-primary text-primary-foreground"
-                      )}
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""
+                      }`}
                     >
                       <Shield className="w-5 h-5" />
                       Admin Panel
@@ -309,20 +316,20 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
 
                 <div className="pt-4 border-t border-border space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground font-display">Theme</span>
+                    <span className="text-sm text-muted-foreground">Theme</span>
                     <div className="flex items-center gap-2">
                       <AccentColorPicker />
                       <ThemeToggle />
                     </div>
                   </div>
-
+                  
                   {/* Auth button in mobile menu */}
                   {!isLoading && (
                     isAuthenticated ? (
                       <Button
                         variant="outline"
                         onClick={handleSignOut}
-                        className="w-full justify-start gap-3 font-display font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <LogOut className="w-5 h-5" />
                         Sign Out
@@ -331,7 +338,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                       <Button
                         variant="default"
                         onClick={() => handleNavigation("/auth")}
-                        className="w-full justify-start gap-3 font-display font-medium"
+                        className="w-full justify-start gap-3"
                       >
                         <LogIn className="w-5 h-5" />
                         Sign In
