@@ -174,6 +174,7 @@ const Index = () => {
       duration: preferences.duration,
       hiddenGems: discoveryFilters.hiddenGems,
       maxRuntime: discoveryFilters.maxRuntime,
+      dateNightMoods: discoveryFilters.dateNightMoods,
     });
   }, [getRecommendations, preferences, discoveryFilters]);
 
@@ -182,16 +183,18 @@ const Index = () => {
   };
 
   const handleGetRecommendations = async () => {
-    if (!selectedMood) return;
+    // Allow Date Night mode even without a mood selected
+    if (!selectedMood && !discoveryFilters.dateNightMoods) return;
     
     await getRecommendations({
-      mood: selectedMood,
+      mood: selectedMood || "romantic", // Default mood for Date Night if none selected
       languages: preferences.language === "any" ? [] : [preferences.language],
       genres: preferences.genres,
       industries: preferences.movieType === "any" ? [] : [preferences.movieType],
       duration: preferences.duration,
       hiddenGems: discoveryFilters.hiddenGems,
       maxRuntime: discoveryFilters.maxRuntime,
+      dateNightMoods: discoveryFilters.dateNightMoods,
     });
   };
 
@@ -204,16 +207,18 @@ const Index = () => {
 
   const handleDiscoveryFiltersChange = (filters: DiscoveryFilters) => {
     setDiscoveryFilters(filters);
-    // Auto-trigger recommendations if mood is selected
-    if (selectedMood) {
+    
+    // Auto-trigger recommendations if Date Night mode is activated OR mood is selected
+    if (filters.dateNightMoods || selectedMood) {
       getRecommendations({
-        mood: selectedMood,
+        mood: selectedMood || "romantic",
         languages: preferences.language === "any" ? [] : [preferences.language],
         genres: preferences.genres,
         industries: preferences.movieType === "any" ? [] : [preferences.movieType],
         duration: preferences.duration,
         hiddenGems: filters.hiddenGems,
         maxRuntime: filters.maxRuntime,
+        dateNightMoods: filters.dateNightMoods,
       });
     }
   };

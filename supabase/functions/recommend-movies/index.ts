@@ -104,6 +104,28 @@ const moodTemplates: Record<string, string[]> = {
   ],
 };
 
+// Mood to genre ID mapping for Date Night Mixer
+const moodToGenreId: Record<string, number> = {
+  romantic: 10749,
+  comedy: 35,
+  action: 28,
+  drama: 18,
+  horror: 27,
+  thriller: 53,
+  adventure: 12,
+  animation: 16,
+  documentary: 99,
+  scifi: 878,
+  mystery: 9648,
+  fantasy: 14,
+  family: 10751,
+  war: 10752,
+  crime: 80,
+  music: 10402,
+  history: 36,
+  western: 37,
+};
+
 // Simple validation function (no external dependencies)
 function validateInput(body: unknown): { 
   valid: boolean; 
@@ -117,6 +139,7 @@ function validateInput(body: unknown): {
     previouslyRecommended?: string[];
     hiddenGems?: boolean;
     maxRuntime?: number;
+    dateNightMoods?: [string, string] | null;
   } 
 } {
   if (!body || typeof body !== 'object') {
@@ -134,7 +157,17 @@ function validateInput(body: unknown): {
   const hiddenGems = typeof b.hiddenGems === 'boolean' ? b.hiddenGems : false;
   const maxRuntime = typeof b.maxRuntime === 'number' ? Math.min(Math.max(b.maxRuntime, 60), 300) : 240;
   
-  return { valid: true, data: { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime } };
+  // Date Night Moods - array of two mood strings
+  let dateNightMoods: [string, string] | null = null;
+  if (Array.isArray(b.dateNightMoods) && b.dateNightMoods.length === 2) {
+    const mood1 = typeof b.dateNightMoods[0] === 'string' ? b.dateNightMoods[0].slice(0, 50) : null;
+    const mood2 = typeof b.dateNightMoods[1] === 'string' ? b.dateNightMoods[1].slice(0, 50) : null;
+    if (mood1 && mood2) {
+      dateNightMoods = [mood1, mood2];
+    }
+  }
+  
+  return { valid: true, data: { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime, dateNightMoods } };
 }
 
 Deno.serve(async (req) => {
@@ -154,7 +187,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime } = validationResult.data;
+    const { mood, languages, genres, industries, duration, previouslyRecommended, hiddenGems, maxRuntime, dateNightMoods } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
 
@@ -168,7 +201,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("Request params:", { mood, languages, genres, industries, duration, hiddenGems, maxRuntime });
+    console.log("Request params:", { mood, languages, genres, industries, duration, hiddenGems, maxRuntime, dateNightMoods });
+
+    // Check if Date Night Mixer is active
+    const isDateNightMode = dateNightMoods && dateNightMoods.length === 2;
 
     let targetLanguage: string | null = null;
     let targetRegion: string | null = null;
@@ -189,7 +225,14 @@ Deno.serve(async (req) => {
 
     let targetGenreIds: number[] = [];
 
-    if (genres && genres.length > 0) {
+    // Date Night Mixer: Use combined genres from two moods
+    if (isDateNightMode && dateNightMoods) {
+      const genre1 = moodToGenreId[dateNightMoods[0].toLowerCase()];
+      const genre2 = moodToGenreId[dateNightMoods[1].toLowerCase()];
+      if (genre1) targetGenreIds.push(genre1);
+      if (genre2) targetGenreIds.push(genre2);
+      console.log(`Date Night Mode: Combining ${dateNightMoods[0]} (${genre1}) + ${dateNightMoods[1]} (${genre2})`);
+    } else if (genres && genres.length > 0) {
       targetGenreIds = genres
         .map((g: string) => genreNameToId[g.toLowerCase()])
         .filter((id: number | undefined): id is number => id !== undefined);
@@ -233,7 +276,7 @@ Deno.serve(async (req) => {
     }
 
     const tmdbUrl = `${TMDB_BASE_URL}/discover/movie?${queryParams.toString()}`;
-    console.log("Fetching from TMDb...");
+    console.log("Fetching from TMDb:", tmdbUrl.replace(TMDB_API_KEY, "***"));
 
     const tmdbResponse = await fetch(tmdbUrl);
 
@@ -243,10 +286,25 @@ Deno.serve(async (req) => {
 
     const tmdbData = await tmdbResponse.json();
     let movies: TMDbMovie[] = tmdbData.results || [];
+    let usedFallback = false;
 
-    console.log(`Fetched ${movies.length} movies from TMDb`);
+    console.log(`Fetched ${movies.length} movies from TMDb (AND logic)`);
 
-    if (movies.length < 5 && targetGenreIds.length > 1) {
+    // Date Night Mixer fallback: Try OR logic if AND returns few results
+    if (isDateNightMode && movies.length < 5 && targetGenreIds.length === 2) {
+      console.log("Date Night: Too few results with AND, trying OR logic...");
+      queryParams.set("with_genres", targetGenreIds.join("|")); // OR operator
+      const orUrl = `${TMDB_BASE_URL}/discover/movie?${queryParams.toString()}`;
+      const orResponse = await fetch(orUrl);
+      if (orResponse.ok) {
+        const orData = await orResponse.json();
+        if (orData.results && orData.results.length > movies.length) {
+          movies = orData.results;
+          usedFallback = true;
+          console.log(`Date Night OR fallback: Found ${movies.length} movies`);
+        }
+      }
+    } else if (movies.length < 5 && targetGenreIds.length > 1) {
       queryParams.set("with_genres", targetGenreIds[0].toString());
       const relaxedUrl = `${TMDB_BASE_URL}/discover/movie?${queryParams.toString()}`;
       const relaxedResponse = await fetch(relaxedUrl);
@@ -273,12 +331,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const templates = moodTemplates[mood?.toLowerCase() || ""] || [
-      "A great movie matching your current mood",
-      "Perfect entertainment for right now",
-      "This film fits your vibe perfectly",
-      "Exactly what you're looking for",
+    // Special templates for Date Night mode
+    const dateNightTemplates = [
+      "Perfect for a cozy date night together 💕",
+      "A romantic pick for two 🎬",
+      "Great choice for couples movie night",
+      "Ideal blend of both your moods",
+      "This one will make you both happy!",
     ];
+
+    const templates = isDateNightMode 
+      ? dateNightTemplates
+      : moodTemplates[mood?.toLowerCase() || ""] || [
+        "A great movie matching your current mood",
+        "Perfect entertainment for right now",
+        "This film fits your vibe perfectly",
+        "Exactly what you're looking for",
+      ];
 
     const formattedMovies = selectedMovies.map((movie, index) => {
       const genreNames = movie.genre_ids
