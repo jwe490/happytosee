@@ -24,6 +24,7 @@ export interface RecommendationParams {
   duration: string;
   hiddenGems?: boolean;
   maxRuntime?: number;
+  dateNightMoods?: [string, string] | null;
 }
 
 export function useMovieRecommendations() {
