@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
+import { useMovieModal } from "@/hooks/useMovieModal";
 import { supabase } from "@/integrations/supabase/client";
-
 const moodTaglines: Record<string, string> = {
   happy: "Feeling Happy? Here's something uplifting 🎉",
   sad: "Feeling Sad? Comfort movies for you 💙",
@@ -70,8 +70,8 @@ const Index = () => {
     movieType: "any",
   });
 
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
+  // URL-driven movie modal (Module 2: History Stack Repair)
+  const { selectedMovie, isOpen: isMovieViewOpen, openMovie, closeMovie } = useMovieModal();
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
 
   // Discovery drawer state
@@ -120,7 +120,8 @@ const Index = () => {
     }
   };
 
-  const handleMovieSelect = (movie: any) => {
+  // Movie selection now uses URL-driven state (Module 2)
+  const handleMovieSelect = useCallback((movie: any) => {
     const movieData: Movie = {
       id: movie.id,
       title: movie.title,
@@ -130,9 +131,8 @@ const Index = () => {
       posterUrl: movie.posterUrl || movie.poster_path,
       moodMatch: movie.matchReason || movie.surpriseReason || "",
     };
-    setSelectedMovie(movieData);
-    setIsMovieViewOpen(true);
-  };
+    openMovie(movieData);
+  }, [openMovie]);
 
   // Throttled scroll handler
   useEffect(() => {
@@ -476,11 +476,11 @@ const Index = () => {
         </motion.div>
       </main>
       
-      {/* Expanded Movie View */}
+      {/* Expanded Movie View - now URL-driven (Module 2) */}
       <ExpandedMovieView
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
-        onClose={() => setIsMovieViewOpen(false)}
+        onClose={closeMovie}
       />
 
       {/* Footer */}
