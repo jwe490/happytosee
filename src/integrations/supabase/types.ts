@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      actor_analytics: {
+        Row: {
+          actor_id: number
+          actor_name: string
+          age_group_stats: Json | null
+          avg_rating: number | null
+          created_at: string | null
+          gender_stats: Json | null
+          id: string
+          mood_associations: Json | null
+          popularity_score: number | null
+          profile_path: string | null
+          updated_at: string | null
+          watch_count: number | null
+        }
+        Insert: {
+          actor_id: number
+          actor_name: string
+          age_group_stats?: Json | null
+          avg_rating?: number | null
+          created_at?: string | null
+          gender_stats?: Json | null
+          id?: string
+          mood_associations?: Json | null
+          popularity_score?: number | null
+          profile_path?: string | null
+          updated_at?: string | null
+          watch_count?: number | null
+        }
+        Update: {
+          actor_id?: number
+          actor_name?: string
+          age_group_stats?: Json | null
+          avg_rating?: number | null
+          created_at?: string | null
+          gender_stats?: Json | null
+          id?: string
+          mood_associations?: Json | null
+          popularity_score?: number | null
+          profile_path?: string | null
+          updated_at?: string | null
+          watch_count?: number | null
+        }
+        Relationships: []
+      }
+      admin_activity_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          admin_name: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          admin_name: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          admin_name?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       collection_movies: {
         Row: {
           added_at: string
@@ -79,6 +163,48 @@ export type Database = {
           name?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      content_performance: {
+        Row: {
+          avg_rating: number | null
+          completion_rate: number | null
+          created_at: string | null
+          drop_off_point: number | null
+          id: string
+          mood_performance: Json | null
+          movie_id: number
+          poster_path: string | null
+          title: string
+          updated_at: string | null
+          watch_count: number | null
+        }
+        Insert: {
+          avg_rating?: number | null
+          completion_rate?: number | null
+          created_at?: string | null
+          drop_off_point?: number | null
+          id?: string
+          mood_performance?: Json | null
+          movie_id: number
+          poster_path?: string | null
+          title: string
+          updated_at?: string | null
+          watch_count?: number | null
+        }
+        Update: {
+          avg_rating?: number | null
+          completion_rate?: number | null
+          created_at?: string | null
+          drop_off_point?: number | null
+          id?: string
+          mood_performance?: Json | null
+          movie_id?: number
+          poster_path?: string | null
+          title?: string
+          updated_at?: string | null
+          watch_count?: number | null
         }
         Relationships: []
       }
@@ -249,6 +375,36 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           created_at: string
@@ -282,6 +438,81 @@ export type Database = {
           review_text?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      user_demographics: {
+        Row: {
+          age_group: string | null
+          created_at: string | null
+          device_type: string | null
+          first_visit: string | null
+          gender: string | null
+          id: string
+          is_returning: boolean | null
+          last_visit: string | null
+          updated_at: string | null
+          user_id: string
+          visit_count: number | null
+        }
+        Insert: {
+          age_group?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          first_visit?: string | null
+          gender?: string | null
+          id?: string
+          is_returning?: boolean | null
+          last_visit?: string | null
+          updated_at?: string | null
+          user_id: string
+          visit_count?: number | null
+        }
+        Update: {
+          age_group?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          first_visit?: string | null
+          gender?: string | null
+          id?: string
+          is_returning?: boolean | null
+          last_visit?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visit_count?: number | null
         }
         Relationships: []
       }
@@ -380,11 +611,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_admin_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cleanup_expired_sessions: { Args: never; Returns: undefined }
       get_admin_stats: { Args: never; Returns: Json }
+      get_admin_users: { Args: never; Returns: Json }
+      get_content_performance_stats: { Args: never; Returns: Json }
+      get_enhanced_admin_stats: { Args: never; Returns: Json }
+      get_mood_analytics: { Args: { time_range?: string }; Returns: Json }
       get_most_watchlisted_movies: { Args: never; Returns: Json }
       get_top_recommended_movies: { Args: never; Returns: Json }
       get_trending_moods: { Args: { time_range?: string }; Returns: Json }
+      get_user_demographics_stats: { Args: never; Returns: Json }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -392,9 +636,35 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_admin_activity: {
+        Args: {
+          p_action: string
+          p_admin_id: string
+          p_admin_name: string
+          p_details?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+        }
+        Returns: string
+      }
+      remove_admin_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      update_recommendation_setting: {
+        Args: {
+          p_setting_key: string
+          p_setting_value: Json
+          p_updated_by: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "super_admin" | "analyst"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -522,7 +792,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "super_admin", "analyst"],
     },
   },
 } as const
