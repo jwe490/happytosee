@@ -102,7 +102,7 @@ export function UserManagementSection({ userRole }: UserManagementSectionProps) 
     }
   };
 
-  const removeRole = async (userId: string, role: string) => {
+  const removeRole = async (userId: string, role: "admin" | "analyst" | "moderator" | "super_admin" | "user") => {
     try {
       const { error } = await supabase.rpc("remove_admin_role", {
         p_user_id: userId,
@@ -187,7 +187,7 @@ export function UserManagementSection({ userRole }: UserManagementSectionProps) 
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Select value={newRole} onValueChange={setNewRole}>
+                  <Select value={newRole} onValueChange={(value: "admin" | "analyst" | "moderator" | "super_admin") => setNewRole(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
@@ -288,7 +288,7 @@ export function UserManagementSection({ userRole }: UserManagementSectionProps) 
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeRole(admin.user_id, admin.role)}
+                        onClick={() => removeRole(admin.user_id, admin.role as "admin" | "analyst" | "moderator" | "super_admin" | "user")}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
