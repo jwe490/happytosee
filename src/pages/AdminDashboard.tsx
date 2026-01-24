@@ -1,28 +1,26 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
-import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
-import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/admin/StatCard";
-import { MoodTrendsChart } from "@/components/admin/MoodTrendsChart";
-import { TopMoviesCard } from "@/components/admin/TopMoviesCard";
-import {
-  Users,
-  UserCheck,
-  Bookmark,
-  Smile,
-  Star,
-  LogOut,
-  RefreshCw,
-  Shield,
-  Home,
-} from "lucide-react";
+import { useAdminRole } from "@/hooks/useAdminRole";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { OverviewSection } from "@/components/admin/sections/OverviewSection";
+import { MoodAnalyticsSection } from "@/components/admin/sections/MoodAnalyticsSection";
+import { ActorAnalyticsSection } from "@/components/admin/sections/ActorAnalyticsSection";
+import { UserInsightsSection } from "@/components/admin/sections/UserInsightsSection";
+import { ContentPerformanceSection } from "@/components/admin/sections/ContentPerformanceSection";
+import { RecommendationsSection } from "@/components/admin/sections/RecommendationsSection";
+import { UserManagementSection } from "@/components/admin/sections/UserManagementSection";
+import { SystemSettingsSection } from "@/components/admin/sections/SystemSettingsSection";
+import { ActivityLogsSection } from "@/components/admin/sections/ActivityLogsSection";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { signOut, user } = useKeyAuth();
-  const { stats, trendingMoods, topRecommended, topWatchlisted, isLoading, refetch } =
-    useAdminAnalytics();
+  const { role, isLoading: roleLoading } = useAdminRole();
+  const [activeSection, setActiveSection] = useState("overview");
 
   const handleSignOut = async () => {
     await signOut();
@@ -30,105 +28,65 @@ export default function AdminDashboard() {
     toast.success("Signed out successfully");
   };
 
-  const handleRefresh = () => {
-    refetch();
-    toast.success("Analytics refreshed");
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </div>
+    );
+  }
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "overview":
+        return <OverviewSection userRole={role} />;
+      case "mood-analytics":
+        return <MoodAnalyticsSection userRole={role} />;
+      case "actor-analytics":
+        return <ActorAnalyticsSection userRole={role} />;
+      case "user-insights":
+        return <UserInsightsSection userRole={role} />;
+      case "content-performance":
+        return <ContentPerformanceSection userRole={role} />;
+      case "recommendations":
+        return <RecommendationsSection userRole={role} />;
+      case "user-management":
+        return <UserManagementSection userRole={role} />;
+      case "system-settings":
+        return <SystemSettingsSection userRole={role} />;
+      case "activity-logs":
+        return <ActivityLogsSection userRole={role} />;
+      default:
+        return <OverviewSection userRole={role} />;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">MoodFlix Admin</h1>
-                <p className="text-sm text-muted-foreground">Analytics Dashboard</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <a href="/">
-                  <Home className="w-4 h-4 mr-2" />
-                  Home
-                </a>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
+      {/* Sidebar */}
+      <AdminSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        userRole={role}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <AdminHeader
+          user={user}
+          userRole={role}
+          onSignOut={handleSignOut}
+        />
+
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {renderSection()}
           </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20">
-          <h2 className="text-2xl font-bold mb-2">Welcome back, Admin!</h2>
-          <p className="text-muted-foreground">
-            Here's an overview of your platform's performance and user engagement.
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">Logged in as: {user?.display_name}</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <StatCard title="Total Users" value={stats?.total_users || 0} icon={Users} description="Registered accounts" />
-          <StatCard title="Active Users" value={stats?.active_users_7d || 0} icon={UserCheck} description="Last 7 days" />
-          <StatCard title="Watchlist Items" value={stats?.total_watchlist_items || 0} icon={Bookmark} description="Movies saved" />
-          <StatCard title="Mood Selections" value={stats?.total_mood_selections || 0} icon={Smile} description="Total selections" />
-          <StatCard title="Total Reviews" value={stats?.total_reviews || 0} icon={Star} description="User reviews" />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <MoodTrendsChart data={trendingMoods} isLoading={isLoading} />
-          <TopMoviesCard title="Most Watchlisted Movies" data={topWatchlisted} type="watchlisted" isLoading={isLoading} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TopMoviesCard title="Top Recommended Movies" data={topRecommended} type="recommended" isLoading={isLoading} />
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Quick Insights</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <p className="text-sm text-muted-foreground">Avg Watchlist Size</p>
-                <p className="text-2xl font-bold">
-                  {stats?.total_users ? (stats.total_watchlist_items / stats.total_users).toFixed(1) : "0"}
-                </p>
-                <p className="text-xs text-muted-foreground">movies per user</p>
-              </div>
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <p className="text-sm text-muted-foreground">Review Rate</p>
-                <p className="text-2xl font-bold">
-                  {stats?.total_users ? ((stats.total_reviews / stats.total_users) * 100).toFixed(0) : "0"}%
-                </p>
-                <p className="text-xs text-muted-foreground">users reviewed</p>
-              </div>
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <p className="text-sm text-muted-foreground">Engagement</p>
-                <p className="text-2xl font-bold">
-                  {stats?.total_users && stats?.active_users_7d
-                    ? ((stats.active_users_7d / stats.total_users) * 100).toFixed(0)
-                    : "0"}%
-                </p>
-                <p className="text-xs text-muted-foreground">weekly active</p>
-              </div>
-              <div className="p-4 rounded-lg bg-card/50 border border-border/50">
-                <p className="text-sm text-muted-foreground">Top Mood</p>
-                <p className="text-2xl font-bold capitalize">{trendingMoods[0]?.mood || "N/A"}</p>
-                <p className="text-xs text-muted-foreground">this week</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
