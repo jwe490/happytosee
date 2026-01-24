@@ -41,25 +41,42 @@ interface UserDemographics {
   total_users: number;
 }
 
+interface ActorAnalytics {
+  actor_id: number;
+  actor_name: string;
+  profile_path?: string;
+  watch_count: number;
+  popularity_score: number;
+  avg_rating: number;
+}
+
 export function useEnhancedAdminAnalytics() {
   const [stats, setStats] = useState<EnhancedStats | null>(null);
   const [moodAnalytics, setMoodAnalytics] = useState<MoodAnalytics | null>(null);
   const [contentPerformance, setContentPerformance] = useState<ContentPerformance | null>(null);
   const [userDemographics, setUserDemographics] = useState<UserDemographics | null>(null);
+  const [actorAnalytics, setActorAnalytics] = useState<ActorAnalytics[]>([]);
+  const [moodData, setMoodData] = useState<Array<{ mood: string; count: number }>>([]);
+  const [topWatchlisted, setTopWatchlisted] = useState<any[]>([]);
+  const [topRecommended, setTopRecommended] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState("weekly");
 
-  const fetchAnalytics = useCallback(async (timeRange: string = "weekly") => {
+  const fetchAnalytics = useCallback(async (range: string = timeRange) => {
     setIsLoading(true);
     setError(null);
 
     try {
       // Fetch all analytics in parallel
-      const [statsRes, moodRes, contentRes, demoRes] = await Promise.all([
+      const [statsRes, moodRes, contentRes, demoRes, trendingMoodsRes, watchlistedRes, recommendedRes] = await Promise.all([
         supabase.rpc("get_enhanced_admin_stats"),
-        supabase.rpc("get_mood_analytics", { time_range: timeRange }),
+        supabase.rpc("get_mood_analytics", { time_range: range }),
         supabase.rpc("get_content_performance_stats"),
         supabase.rpc("get_user_demographics_stats"),
+        supabase.rpc("get_trending_moods", { time_range: range }),
+        supabase.rpc("get_most_watchlisted_movies"),
+        supabase.rpc("get_top_recommended_movies"),
       ]);
 
       if (statsRes.error) throw statsRes.error;
@@ -71,25 +88,48 @@ export function useEnhancedAdminAnalytics() {
       setMoodAnalytics(moodRes.data as unknown as MoodAnalytics);
       setContentPerformance(contentRes.data as unknown as ContentPerformance);
       setUserDemographics(demoRes.data as unknown as UserDemographics);
+      setMoodData((trendingMoodsRes.data as any) || []);
+      setTopWatchlisted((watchlistedRes.data as any) || []);
+      setTopRecommended((recommendedRes.data as any) || []);
+
+      // Fetch actor analytics from the table
+      const { data: actorData } = await supabase
+        .from("actor_analytics")
+        .select("*")
+        .order("popularity_score", { ascending: false })
+        .limit(10);
+      
+      setActorAnalytics(actorData || []);
     } catch (err: any) {
       console.error("Error fetching enhanced analytics:", err);
       setError(err.message || "Failed to fetch analytics");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
+  const handleTimeRangeChange = (range: string) => {
+    setTimeRange(range);
+    fetchAnalytics(range);
+  };
+
   return {
     stats,
     moodAnalytics,
     contentPerformance,
-    userDemographics,
+    demographics: userDemographics,
+    actorAnalytics,
+    moodData,
+    topWatchlisted,
+    topRecommended,
     isLoading,
     error,
+    timeRange,
+    setTimeRange: handleTimeRangeChange,
     refetch: fetchAnalytics,
   };
 }

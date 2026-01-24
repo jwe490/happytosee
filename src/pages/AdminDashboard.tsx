@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useEnhancedAdminAnalytics } from "@/hooks/useEnhancedAdminAnalytics";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { OverviewSection } from "@/components/admin/sections/OverviewSection";
@@ -21,12 +22,31 @@ export default function AdminDashboard() {
   const { signOut, user } = useKeyAuth();
   const { role, isLoading: roleLoading } = useAdminRole();
   const [activeSection, setActiveSection] = useState("overview");
+  
+  const {
+    stats,
+    moodData,
+    topWatchlisted,
+    topRecommended,
+    moodAnalytics,
+    contentPerformance,
+    demographics,
+    actorAnalytics,
+    isLoading: analyticsLoading,
+    setTimeRange,
+    refetch,
+  } = useEnhancedAdminAnalytics();
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth", { replace: true });
     toast.success("Signed out successfully");
   };
+
+  const handleRefresh = useCallback(() => {
+    refetch();
+    toast.success("Data refreshed");
+  }, [refetch]);
 
   if (roleLoading) {
     return (
@@ -42,15 +62,23 @@ export default function AdminDashboard() {
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
-        return <OverviewSection userRole={role} />;
+        return (
+          <OverviewSection
+            stats={stats}
+            moodData={moodData}
+            topWatchlisted={topWatchlisted}
+            topRecommended={topRecommended}
+            isLoading={analyticsLoading}
+          />
+        );
       case "mood-analytics":
-        return <MoodAnalyticsSection userRole={role} />;
+        return <MoodAnalyticsSection moodAnalytics={moodAnalytics} isLoading={analyticsLoading} onTimeRangeChange={setTimeRange} />;
       case "actor-analytics":
-        return <ActorAnalyticsSection userRole={role} />;
+        return <ActorAnalyticsSection actorData={actorAnalytics} isLoading={analyticsLoading} />;
       case "user-insights":
-        return <UserInsightsSection userRole={role} />;
+        return <UserInsightsSection demographics={demographics} isLoading={analyticsLoading} />;
       case "content-performance":
-        return <ContentPerformanceSection userRole={role} />;
+        return <ContentPerformanceSection contentPerformance={contentPerformance} isLoading={analyticsLoading} />;
       case "recommendations":
         return <RecommendationsSection userRole={role} />;
       case "user-management":
@@ -60,24 +88,31 @@ export default function AdminDashboard() {
       case "activity-logs":
         return <ActivityLogsSection userRole={role} />;
       default:
-        return <OverviewSection userRole={role} />;
+        return (
+          <OverviewSection
+            stats={stats}
+            moodData={moodData}
+            topWatchlisted={topWatchlisted}
+            topRecommended={topRecommended}
+            isLoading={analyticsLoading}
+          />
+        );
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
-      {/* Sidebar */}
       <AdminSidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         userRole={role}
       />
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <AdminHeader
           user={user}
           userRole={role}
+          onRefresh={handleRefresh}
           onSignOut={handleSignOut}
         />
 
