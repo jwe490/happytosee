@@ -20,14 +20,14 @@ export function useAdminAuth() {
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+          .in("role", ["admin", "super_admin"]);
 
         if (error) {
           console.error("Error checking admin role:", error);
           setIsAdmin(false);
         } else {
-          setIsAdmin(!!data);
+          // Check if any admin or super_admin role exists
+          setIsAdmin(data && data.length > 0);
         }
       } catch (err) {
         console.error("Error in admin check:", err);
