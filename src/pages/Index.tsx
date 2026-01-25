@@ -87,19 +87,21 @@ const Index = () => {
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
 
-  useEffect(() => {
-    fetchTrendingMovies();
-  }, []);
+  // Initial fetch is handled by the preferences useEffect
 
   // Save mood when it changes
   useEffect(() => {
     saveMood(selectedMood);
   }, [selectedMood]);
 
-  const fetchTrendingMovies = async () => {
+  const fetchTrendingMovies = async (lang?: string, type?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("trending-movies", {
-        body: { category: "trending" },
+        body: { 
+          category: "trending",
+          language: lang !== "any" ? lang : undefined,
+          movieType: type !== "any" ? type : undefined,
+        },
       });
 
       if (error) throw error;
@@ -119,6 +121,11 @@ const Index = () => {
       console.error("Error fetching trending:", error);
     }
   };
+
+  // Refetch featured movies when preferences change
+  useEffect(() => {
+    fetchTrendingMovies(preferences.language, preferences.movieType);
+  }, [preferences.language, preferences.movieType]);
 
   const handleMovieSelect = (movie: any) => {
     const movieData: Movie = {
@@ -351,7 +358,11 @@ const Index = () => {
             <TabsContent value="mood" className="space-y-0">
               <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
                 {/* Trending */}
-                <TrendingSection onMovieSelect={handleMovieSelect} />
+                <TrendingSection 
+                  onMovieSelect={handleMovieSelect}
+                  language={preferences.language}
+                  movieType={preferences.movieType}
+                />
 
                 {/* Mood Selection */}
                 <section id="mood-selector" className="py-8 scroll-mt-24">

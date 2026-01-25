@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Calendar, Smile, Target, Loader2, Sparkles } from "lucide-react";
+import { User, Calendar, Smile, Target, Loader2, Sparkles, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,10 +20,20 @@ interface PersonaFormProps {
 
 export interface PersonaData {
   displayName: string;
+  movieType: string;
   dateOfBirth?: string;
   gender?: string;
   purpose?: string;
 }
+
+const movieTypeOptions = [
+  { value: "hollywood", label: "Hollywood" },
+  { value: "bollywood", label: "Bollywood" },
+  { value: "tollywood", label: "Tollywood (Telugu)" },
+  { value: "kollywood", label: "Kollywood (Tamil)" },
+  { value: "korean", label: "Korean Cinema" },
+  { value: "international", label: "International" },
+];
 
 const purposeOptions = [
   { value: "discover", label: "Discover new movies" },
@@ -42,6 +52,7 @@ const genderOptions = [
 
 export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
   const [displayName, setDisplayName] = useState("");
+  const [movieType, setMovieType] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -66,8 +77,14 @@ export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
       return;
     }
 
+    if (!movieType) {
+      setError("Please select a movie type preference");
+      return;
+    }
+
     onSubmit({
       displayName: displayName.trim(),
+      movieType,
       dateOfBirth: dateOfBirth || undefined,
       gender: gender || undefined,
       purpose: purpose || undefined,
@@ -125,6 +142,26 @@ export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
             className="h-11"
             maxLength={30}
           />
+        </div>
+
+        {/* Movie Type - Required */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Film className="w-4 h-4 text-muted-foreground" />
+            Movie Type *
+          </Label>
+          <Select value={movieType} onValueChange={setMovieType}>
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select movie type" />
+            </SelectTrigger>
+            <SelectContent>
+              {movieTypeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Date of Birth */}
@@ -200,7 +237,7 @@ export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
         {/* Submit */}
         <Button
           type="submit"
-          disabled={isLoading || !displayName.trim()}
+          disabled={isLoading || !displayName.trim() || !movieType}
           className="w-full h-12 gap-2 text-base"
         >
           {isLoading ? (
