@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const { description, type, movieTitle, movieOverview, mood, excludeIds } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({
@@ -91,21 +91,10 @@ Deno.serve(async (req) => {
 
       let searchTerms: string[] = [];
 
-      // Use OpenAI to extract movie titles from description
-      if (OPENAI_API_KEY) {
+      // Use Gemini to extract movie titles from description
+      if (GEMINI_API_KEY) {
         try {
-          const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${OPENAI_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: [
-                {
-                  role: "system",
-                  content: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
+          const prompt = `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
 
 Return ONLY a JSON object in this exact format:
 {
@@ -118,27 +107,45 @@ Rules:
 - Use correct official English titles
 - If user mentions actor names, identify their movies matching the description
 - If description is vague, provide best guesses
-- Do NOT include any explanation, just the JSON`
-                },
-                {
-                  role: "user",
-                  content: description
+- Do NOT include any explanation, just the JSON
+
+User's description: ${description}`;
+
+          const aiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{
+                    text: prompt
+                  }]
+                }],
+                generationConfig: {
+                  temperature: 0.7,
+                  topK: 40,
+                  topP: 0.95,
+                  maxOutputTokens: 1024,
                 }
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.7,
-            }),
-          });
+              }),
+            }
+          );
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const content = aiData.choices?.[0]?.message?.content || "";
+            const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
             console.log("AI response:", content);
 
             // Parse JSON from AI response
             try {
-              const parsed = JSON.parse(content);
-              searchTerms = parsed.movies || [];
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                searchTerms = parsed.movies || [];
+              }
             } catch (parseErr) {
               console.log("Couldn't parse AI JSON, using fallback");
             }
