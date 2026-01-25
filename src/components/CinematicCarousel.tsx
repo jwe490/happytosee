@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
 
 interface Movie {
   id: number;
@@ -53,6 +53,11 @@ export const CinematicCarousel = ({
   const goToNext = useCallback(() => {
     setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % movies.length);
+  }, [movies.length]);
+
+  const goToPrevious = useCallback(() => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + movies.length) % movies.length);
   }, [movies.length]);
 
   const goToSlide = useCallback((index: number) => {
@@ -159,6 +164,27 @@ export const CinematicCarousel = ({
               </div>
             </motion.div>
           </AnimatePresence>
+
+          {/* Navigation Arrows */}
+          {movies.length > 1 && (
+            <>
+              <button
+                onClick={() => { goToPrevious(); handleInteraction(); }}
+                className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+
+              <button
+                onClick={() => { goToNext(); handleInteraction(); }}
+                className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </section>

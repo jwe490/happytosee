@@ -80,11 +80,12 @@ Deno.serve(async (req) => {
 
     console.log("Fetching details for movie:", movieId);
 
-    // Fetch movie details, credits, videos, and watch providers in parallel
-    const [detailsRes, creditsRes, videosRes, providersRes] = await Promise.all([
+    // Fetch movie details, credits, videos, similar movies, and watch providers in parallel
+    const [detailsRes, creditsRes, videosRes, similarRes, providersRes] = await Promise.all([
       fetch(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/credits?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/videos?api_key=${TMDB_API_KEY}&language=en-US`),
+      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/watch/providers?api_key=${TMDB_API_KEY}`),
     ]);
 
@@ -95,6 +96,7 @@ Deno.serve(async (req) => {
     const details = await detailsRes.json();
     const credits = creditsRes.ok ? await creditsRes.json() : { cast: [] };
     const videos = videosRes.ok ? await videosRes.json() : { results: [] };
+    const similar = similarRes.ok ? await similarRes.json() : { results: [] };
     const providers = providersRes.ok ? await providersRes.json() : { results: {} };
 
     console.log("Fetched movie details:", details.title);
@@ -115,6 +117,18 @@ Deno.serve(async (req) => {
     ) || videos.results?.find(
       (v: any) => v.site === "YouTube"
     );
+
+    // Get top 6 similar movies with posters
+    const similarMovies = similar.results
+      ?.filter((m: any) => m.poster_path)
+      .slice(0, 6)
+      .map((movie: any) => ({
+        id: movie.id,
+        title: movie.title,
+        posterUrl: `${TMDB_IMAGE_BASE}${movie.poster_path}`,
+        rating: Math.round(movie.vote_average * 10) / 10,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : null,
+      })) || [];
 
     // Parse watch providers with direct URLs (no third-party aggregators)
     const providerData = providers.results?.US || providers.results?.GB || Object.values(providers.results || {})[0] || {};
@@ -140,7 +154,7 @@ Deno.serve(async (req) => {
       })).filter((p: any) => p.url) || [],
     };
 
-    console.log(`Found ${watchProviders.flatrate.length} streaming providers`);
+    console.log(`Found ${similarMovies.length} similar movies, ${watchProviders.flatrate.length} streaming providers`);
 
     const movieDetails = {
       id: details.id,
@@ -151,7 +165,7 @@ Deno.serve(async (req) => {
       runtime: details.runtime,
       rating: Math.round(details.vote_average * 10) / 10,
       voteCount: details.vote_count,
-      posterUrl: details.poster_path
+      posterUrl: details.poster_path 
         ? `${TMDB_IMAGE_BASE}${details.poster_path}`
         : null,
       backdropUrl: details.backdrop_path
@@ -164,6 +178,7 @@ Deno.serve(async (req) => {
       cast,
       trailerKey: trailer?.key || null,
       trailerName: trailer?.name || null,
+      similarMovies,
       watchProviders,
     };
 
