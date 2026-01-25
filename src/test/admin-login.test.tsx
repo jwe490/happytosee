@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
@@ -41,7 +42,7 @@ describe("Admin Login Flow", () => {
         user: null,
       });
 
-      render(
+      const { getByText } = render(
         <MemoryRouter>
           <AdminProtectedRoute>
             <div>Admin Dashboard Content</div>
@@ -49,7 +50,7 @@ describe("Admin Login Flow", () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText("Verifying admin access...")).toBeInTheDocument();
+      expect(getByText("Verifying admin access...")).toBeInTheDocument();
     });
 
     it("redirects to /admin/login when user is not authenticated", async () => {
@@ -59,7 +60,7 @@ describe("Admin Login Flow", () => {
         user: null,
       });
 
-      render(
+      const { findByText } = render(
         <MemoryRouter initialEntries={["/admin/dashboard"]}>
           <Routes>
             <Route path="/admin/login" element={<div>Login Page</div>} />
@@ -75,9 +76,7 @@ describe("Admin Login Flow", () => {
         </MemoryRouter>
       );
 
-      await waitFor(() => {
-        expect(screen.getByText("Login Page")).toBeInTheDocument();
-      });
+      expect(await findByText("Login Page")).toBeInTheDocument();
     });
 
     it("shows access denied when user is authenticated but not admin", () => {
@@ -87,7 +86,7 @@ describe("Admin Login Flow", () => {
         user: { id: "user-123", display_name: "Regular User" },
       });
 
-      render(
+      const { getByText } = render(
         <MemoryRouter>
           <AdminProtectedRoute>
             <div>Admin Dashboard Content</div>
@@ -95,9 +94,9 @@ describe("Admin Login Flow", () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText("Access Denied")).toBeInTheDocument();
+      expect(getByText("Access Denied")).toBeInTheDocument();
       expect(
-        screen.getByText("You don't have admin privileges to access this area.")
+        getByText("You don't have admin privileges to access this area.")
       ).toBeInTheDocument();
     });
 
@@ -108,7 +107,7 @@ describe("Admin Login Flow", () => {
         user: { id: "admin-123", display_name: "Admin User" },
       });
 
-      render(
+      const { getByText } = render(
         <MemoryRouter>
           <AdminProtectedRoute>
             <div>Admin Dashboard Content</div>
@@ -116,7 +115,7 @@ describe("Admin Login Flow", () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText("Admin Dashboard Content")).toBeInTheDocument();
+      expect(getByText("Admin Dashboard Content")).toBeInTheDocument();
     });
 
     it("grants access to super_admin users", () => {
@@ -127,7 +126,7 @@ describe("Admin Login Flow", () => {
         user: { id: "super-admin-123", display_name: "Super Admin User" },
       });
 
-      render(
+      const { getByText } = render(
         <MemoryRouter>
           <AdminProtectedRoute>
             <div>Admin Dashboard Content</div>
@@ -135,7 +134,7 @@ describe("Admin Login Flow", () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText("Admin Dashboard Content")).toBeInTheDocument();
+      expect(getByText("Admin Dashboard Content")).toBeInTheDocument();
     });
   });
 });

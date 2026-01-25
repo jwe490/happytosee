@@ -14,22 +14,28 @@ interface TrendingMovie {
 
 interface TrendingSectionProps {
   onMovieSelect: (movie: TrendingMovie) => void;
+  language?: string;
+  movieType?: string;
 }
 
-export function TrendingSection({ onMovieSelect }: TrendingSectionProps) {
+export function TrendingSection({ onMovieSelect, language, movieType }: TrendingSectionProps) {
   const [trendingMovies, setTrendingMovies] = useState<TrendingMovie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"trending" | "top_rated" | "upcoming">("trending");
 
   useEffect(() => {
     fetchTrending();
-  }, [activeTab]);
+  }, [activeTab, language, movieType]);
 
   const fetchTrending = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("trending-movies", {
-        body: { category: activeTab },
+        body: { 
+          category: activeTab,
+          language: language !== "any" ? language : undefined,
+          movieType: movieType !== "any" ? movieType : undefined,
+        },
       });
 
       if (error) throw error;
@@ -84,6 +90,10 @@ export function TrendingSection({ onMovieSelect }: TrendingSectionProps) {
                 className="shrink-0 w-36 aspect-[2/3] bg-muted rounded-xl animate-pulse"
               />
             ))
+          ) : trendingMovies.length === 0 ? (
+            <div className="w-full text-center py-8 text-muted-foreground">
+              No movies found for your preferences. Try adjusting your filters.
+            </div>
           ) : (
             trendingMovies.map((movie, index) => (
               <motion.button

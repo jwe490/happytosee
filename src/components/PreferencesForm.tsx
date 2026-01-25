@@ -14,13 +14,15 @@ interface PreferencesFormProps {
 }
 
 const languages = [
+  { value: "any", label: "Any Language" },
   { value: "english", label: "English" },
   { value: "hindi", label: "Hindi" },
-  { value: "spanish", label: "Spanish" },
+  { value: "tamil", label: "Tamil" },
+  { value: "telugu", label: "Telugu" },
   { value: "korean", label: "Korean" },
   { value: "japanese", label: "Japanese" },
+  { value: "spanish", label: "Spanish" },
   { value: "french", label: "French" },
-  { value: "any", label: "Any Language" },
 ];
 
 const genres = [
@@ -36,11 +38,13 @@ const durations = [
 ];
 
 const movieTypes = [
+  { value: "any", label: "Any Type" },
   { value: "hollywood", label: "Hollywood" },
   { value: "bollywood", label: "Bollywood" },
-  { value: "korean", label: "Korean" },
+  { value: "tollywood", label: "Tollywood (Telugu)" },
+  { value: "kollywood", label: "Kollywood (Tamil)" },
+  { value: "korean", label: "Korean Cinema" },
   { value: "international", label: "International" },
-  { value: "any", label: "Any Type" },
 ];
 
 const PreferencesForm = ({ preferences, onUpdatePreferences }: PreferencesFormProps) => {
