@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const { description, type, movieTitle, movieOverview, mood, excludeIds } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({
@@ -91,17 +91,17 @@ Deno.serve(async (req) => {
 
       let searchTerms: string[] = [];
 
-      // Use Lovable AI to extract movie titles from description
-      if (LOVABLE_API_KEY) {
+      // Use OpenAI to extract movie titles from description
+      if (OPENAI_API_KEY) {
         try {
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "Authorization": `Bearer ${OPENAI_API_KEY}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "gpt-4o-mini",
               messages: [
                 {
                   role: "system",
@@ -125,6 +125,8 @@ Rules:
                   content: description
                 }
               ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
             }),
           });
 
@@ -135,11 +137,8 @@ Rules:
 
             // Parse JSON from AI response
             try {
-              const jsonMatch = content.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                searchTerms = parsed.movies || [];
-              }
+              const parsed = JSON.parse(content);
+              searchTerms = parsed.movies || [];
             } catch (parseErr) {
               console.log("Couldn't parse AI JSON, using fallback");
             }
