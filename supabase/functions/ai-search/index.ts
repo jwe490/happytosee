@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const { description, type, movieTitle, movieOverview, mood, excludeIds } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({
@@ -91,10 +91,21 @@ Deno.serve(async (req) => {
 
       let searchTerms: string[] = [];
 
-      // Use Gemini to extract movie titles from description
-      if (GEMINI_API_KEY) {
+      // Use Lovable AI to extract movie titles from description
+      if (LOVABLE_API_KEY) {
         try {
-          const prompt = `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
+          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
 
 Return ONLY a JSON object in this exact format:
 {
@@ -107,36 +118,19 @@ Rules:
 - Use correct official English titles
 - If user mentions actor names, identify their movies matching the description
 - If description is vague, provide best guesses
-- Do NOT include any explanation, just the JSON
-
-User's description: ${description}`;
-
-          const aiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{
-                    text: prompt
-                  }]
-                }],
-                generationConfig: {
-                  temperature: 0.7,
-                  topK: 40,
-                  topP: 0.95,
-                  maxOutputTokens: 1024,
+- Do NOT include any explanation, just the JSON`
+                },
+                {
+                  role: "user",
+                  content: description
                 }
-              }),
-            }
-          );
+              ],
+            }),
+          });
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const content = aiData.choices?.[0]?.message?.content || "";
             console.log("AI response:", content);
 
             // Parse JSON from AI response
