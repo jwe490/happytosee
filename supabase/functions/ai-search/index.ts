@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const { description, type, movieTitle, movieOverview, mood, excludeIds } = validationResult.data;
 
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({
@@ -91,21 +91,20 @@ Deno.serve(async (req) => {
 
       let searchTerms: string[] = [];
 
-      // Use Lovable AI to extract movie titles from description
-      if (LOVABLE_API_KEY) {
+      // Use Gemini API directly to extract movie titles from description
+      if (GEMINI_API_KEY) {
         try {
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
+              contents: [
                 {
-                  role: "system",
-                  content: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
+                  parts: [
+                    {
+                      text: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
 
 Return ONLY a JSON object in this exact format:
 {
@@ -118,20 +117,24 @@ Rules:
 - Use correct official English titles
 - If user mentions actor names, identify their movies matching the description
 - If description is vague, provide best guesses
-- Do NOT include any explanation, just the JSON`
-                },
-                {
-                  role: "user",
-                  content: description
+- Do NOT include any explanation, just the JSON
+
+User description: ${description}`
+                    }
+                  ]
                 }
               ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 500,
+              }
             }),
           });
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const content = aiData.choices?.[0]?.message?.content || "";
-            console.log("AI response:", content);
+            const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            console.log("Gemini response:", content);
 
             // Parse JSON from AI response
             try {
