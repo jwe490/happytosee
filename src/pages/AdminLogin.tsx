@@ -4,36 +4,14 @@ import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Shield, ArrowLeft, LogIn, UserCog } from "lucide-react";
+import { Loader2, Shield, ArrowLeft, LogIn } from "lucide-react";
 import { toast } from "sonner";
-import { getCurrentUserAndPromoteToAdmin } from "@/lib/adminUtils";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useKeyAuth();
   const { isAdmin, isLoading: checkingAdmin } = useAdminAuth();
   const [hasChecked, setHasChecked] = useState(false);
-  const [isPromoting, setIsPromoting] = useState(false);
-
-  const handlePromoteToAdmin = async () => {
-    setIsPromoting(true);
-    try {
-      const result = await getCurrentUserAndPromoteToAdmin();
-
-      if (result.success) {
-        toast.success("Successfully promoted to admin! Refreshing...");
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        toast.error(result.error || "Failed to promote to admin");
-      }
-    } catch (error) {
-      toast.error("An error occurred while promoting to admin");
-    } finally {
-      setIsPromoting(false);
-    }
-  };
 
   // Redirect if already admin
   useEffect(() => {
@@ -102,32 +80,13 @@ export default function AdminLogin() {
                 <p className="text-sm text-muted-foreground">
                   Your account ({user.display_name}) doesn't have admin access.
                 </p>
-                <div className="space-y-2">
-                  <Button
-                    className="w-full gap-2"
-                    onClick={handlePromoteToAdmin}
-                    disabled={isPromoting}
-                  >
-                    {isPromoting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Promoting...
-                      </>
-                    ) : (
-                      <>
-                        <UserCog className="w-4 h-4" />
-                        Make Me Admin
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate("/")}
-                  >
-                    Return Home
-                  </Button>
-                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/")}
+                >
+                  Return Home
+                </Button>
               </div>
             )
           ) : (
