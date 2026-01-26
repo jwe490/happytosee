@@ -5,9 +5,11 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { useEnhancedAdminAnalytics } from "@/hooks/useEnhancedAdminAnalytics";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminGlobalFilters, AdminFilters } from "@/components/admin/AdminGlobalFilters";
 import { OverviewSection } from "@/components/admin/sections/OverviewSection";
 import { MoodAnalyticsSection } from "@/components/admin/sections/MoodAnalyticsSection";
 import { ActorAnalyticsSection } from "@/components/admin/sections/ActorAnalyticsSection";
+import { GenreAnalyticsSection } from "@/components/admin/sections/GenreAnalyticsSection";
 import { UserInsightsSection } from "@/components/admin/sections/UserInsightsSection";
 import { ContentPerformanceSection } from "@/components/admin/sections/ContentPerformanceSection";
 import { RecommendationsSection } from "@/components/admin/sections/RecommendationsSection";
@@ -22,6 +24,11 @@ export default function AdminDashboard() {
   const { signOut, user } = useKeyAuth();
   const { role, isLoading: roleLoading } = useAdminRole();
   const [activeSection, setActiveSection] = useState("overview");
+  const [filters, setFilters] = useState<AdminFilters>({
+    language: "all",
+    region: "all",
+    timeRange: "weekly",
+  });
   
   const {
     stats,
@@ -47,6 +54,14 @@ export default function AdminDashboard() {
     refetch();
     toast.success("Data refreshed");
   }, [refetch]);
+
+  const handleFiltersChange = (newFilters: AdminFilters) => {
+    setFilters(newFilters);
+    if (newFilters.timeRange !== filters.timeRange) {
+      setTimeRange(newFilters.timeRange);
+    }
+    // In a production app, you would also filter data by language/region here
+  };
 
   if (roleLoading) {
     return (
@@ -75,6 +90,8 @@ export default function AdminDashboard() {
         return <MoodAnalyticsSection moodAnalytics={moodAnalytics} isLoading={analyticsLoading} onTimeRangeChange={setTimeRange} />;
       case "actor-analytics":
         return <ActorAnalyticsSection actorData={actorAnalytics} isLoading={analyticsLoading} />;
+      case "genre-analytics":
+        return <GenreAnalyticsSection isLoading={analyticsLoading} />;
       case "user-insights":
         return <UserInsightsSection demographics={demographics} isLoading={analyticsLoading} />;
       case "content-performance":
@@ -116,9 +133,19 @@ export default function AdminDashboard() {
           onSignOut={handleSignOut}
         />
 
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            {renderSection()}
+        <main className="flex-1 overflow-auto">
+          {/* Global Filters Bar */}
+          <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 px-6 py-3">
+            <AdminGlobalFilters 
+              filters={filters} 
+              onFiltersChange={handleFiltersChange}
+            />
+          </div>
+
+          <div className="p-6">
+            <div className="max-w-7xl mx-auto">
+              {renderSection()}
+            </div>
           </div>
         </main>
       </div>
