@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useEnhancedAdminAnalytics } from "@/hooks/useEnhancedAdminAnalytics";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -22,7 +22,7 @@ import { toast } from "sonner";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { signOut, user } = useKeyAuth();
-  const { role, isLoading: roleLoading } = useAdminRole();
+  const { role, isLoading: roleLoading, isSuperAdmin, isAdmin } = useAdminAuth();
   const [activeSection, setActiveSection] = useState("overview");
   const [filters, setFilters] = useState<AdminFilters>({
     language: "all",
