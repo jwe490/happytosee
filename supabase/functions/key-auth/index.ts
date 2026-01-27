@@ -1,10 +1,9 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // Simple JWT implementation
@@ -76,14 +75,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const jwtSecret = Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET") || "moodflix-default-jwt-secret-change-in-production";
-
-    console.log("[key-auth] Environment check:", {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasServiceRoleKey: !!supabaseKey,
-      hasJwtSecret: !!jwtSecret,
-      jwtSecretSource: Deno.env.get("JWT_SECRET") ? "JWT_SECRET" : (Deno.env.get("SUPABASE_JWT_SECRET") ? "SUPABASE_JWT_SECRET" : "default")
-    });
+    const jwtSecret = Deno.env.get("JWT_SECRET");
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is not set");
+    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
