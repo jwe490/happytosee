@@ -76,10 +76,14 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const jwtSecret = Deno.env.get("JWT_SECRET");
-    if (!jwtSecret) {
-      throw new Error("JWT_SECRET is not set");
-    }
+    const jwtSecret = Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET") || "moodflix-default-jwt-secret-change-in-production";
+
+    console.log("[key-auth] Environment check:", {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceRoleKey: !!supabaseKey,
+      hasJwtSecret: !!jwtSecret,
+      jwtSecretSource: Deno.env.get("JWT_SECRET") ? "JWT_SECRET" : (Deno.env.get("SUPABASE_JWT_SECRET") ? "SUPABASE_JWT_SECRET" : "default")
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
