@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield } from "lucide-react";
+import { Menu, X, Bookmark, Home, UserCircle, Sparkles, LogIn, LogOut, Gem, Filter, Shield, LayoutDashboard } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -49,6 +49,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
     navigate("/");
   };
 
+  // Get initials for avatar
   const getInitials = () => {
     if (!displayName) return "U";
     const parts = displayName.trim().split(/\s+/);
@@ -58,98 +59,102 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
     return displayName.charAt(0).toUpperCase();
   };
 
-  const navLinks = [
-    { path: "/", label: "Home", icon: Home },
-    { path: "/watchlist", label: "Watchlist", icon: Bookmark },
-    { path: "/profile", label: "Profile", icon: User },
-    { path: "/assessment", label: "Mood Match", icon: Sparkles },
-  ];
-
   return (
     <>
       <motion.header
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
-            ? "bg-background/90 backdrop-blur-md border-b border-border"
+            ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm"
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <button
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <motion.button
             onClick={() => handleNavigation("/")}
-            className="text-lg font-semibold tracking-tight hover:opacity-70 transition-opacity"
+            className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+            whileTap={{ scale: 0.95 }}
           >
             MoodFlix
-          </button>
+          </motion.button>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Button
-                key={link.path}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleNavigation(link.path)}
-                className={`h-8 px-3 text-sm gap-1.5 ${
-                  location.pathname === link.path 
-                    ? "text-foreground bg-muted" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <link.icon className="w-4 h-4" />
-                {link.label}
-              </Button>
-            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/")}
+              className={location.pathname === "/" ? "text-primary" : ""}
+            >
+              Home
+            </Button>
 
-            {/* Discovery Filter - only on home */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/watchlist")}
+              className={location.pathname === "/watchlist" ? "text-primary" : ""}
+            >
+              Watchlist
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/profile")}
+              className={location.pathname === "/profile" ? "text-primary" : ""}
+            >
+              Profile
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleNavigation("/assessment")}
+              className={location.pathname === "/assessment" ? "text-primary bg-accent/10" : ""}
+            >
+              ✨ Movie Mood
+            </Button>
+
+            {/* Discovery Filter Button - only on home page */}
             {location.pathname === "/" && onOpenDiscovery && (
               <Button
-                variant={discoveryActive ? "default" : "ghost"}
+                variant={discoveryActive ? "default" : "outline"}
                 size="sm"
                 onClick={onOpenDiscovery}
-                className={`h-8 px-3 text-sm gap-1.5 ${
-                  !discoveryActive ? "text-muted-foreground hover:text-foreground" : ""
-                }`}
+                className={`gap-1.5 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950 hover:bg-yellow-500" : ""}`}
               >
-                <Filter className="w-4 h-4" />
-                Discover
+                <Gem className="w-4 h-4" />
+                <span className="hidden lg:inline">Discover</span>
               </Button>
             )}
 
-            {/* Admin link */}
+            {/* Admin link for admin users */}
             {isAdmin && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleNavigation("/admin/dashboard")}
-                className={`h-8 px-3 text-sm gap-1.5 ${
-                  location.pathname.startsWith("/admin") 
-                    ? "text-foreground bg-muted" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`gap-1.5 ${location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""}`}
               >
                 <Shield className="w-4 h-4" />
-                Admin
+                <span className="hidden lg:inline">Admin</span>
               </Button>
             )}
           </nav>
 
-          {/* Right Side */}
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-2">
               <AccentColorPicker />
               <ThemeToggle />
               
               {!isLoading && (
                 isAuthenticated ? (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={handleSignOut}
-                    className="h-8 px-3 text-sm gap-1.5 text-muted-foreground hover:text-foreground"
+                    className="gap-2"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -159,7 +164,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                     variant="default"
                     size="sm"
                     onClick={() => handleNavigation("/auth")}
-                    className="h-8 px-3 text-sm gap-1.5"
+                    className="gap-2"
                   >
                     <LogIn className="w-4 h-4" />
                     Sign In
@@ -168,20 +173,24 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden h-9 w-9"
+              className="md:hidden relative z-50 bg-background/80 backdrop-blur-sm border-border"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <motion.div
+                animate={{ rotate: isMobileMenuOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </motion.div>
             </Button>
           </div>
         </div>
       </motion.header>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -189,6 +198,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
             />
@@ -198,41 +208,83 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-14 right-0 bottom-0 w-64 bg-background border-l border-border z-50 md:hidden overflow-y-auto"
+              className="fixed top-16 right-0 bottom-0 w-72 bg-background border-l border-border shadow-2xl z-50 md:hidden overflow-y-auto"
             >
-              <div className="p-4 space-y-4">
+              <div className="p-6 space-y-6">
                 {/* User info */}
                 {isAuthenticated && (
                   <div className="flex items-center gap-3 pb-4 border-b border-border">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                      <span className="text-sm font-medium">{getInitials()}</span>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-primary font-semibold">
+                        {getInitials()}
+                      </span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{displayName || "User"}</p>
+                      <p className="font-medium text-sm">{displayName || "User"}</p>
                       <p className="text-xs text-muted-foreground">Signed in</p>
                     </div>
                   </div>
                 )}
 
-                {/* Nav Links */}
                 <nav className="space-y-1">
-                  {navLinks.map((link) => (
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Home className="w-5 h-5" />
+                    Home
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/assessment")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/assessment" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    ✨ Movie Mood
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/watchlist")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/watchlist" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <Bookmark className="w-5 h-5" />
+                    Watchlist
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigation("/profile")}
+                    className={`w-full justify-start gap-3 ${
+                      location.pathname === "/profile" ? "text-primary bg-primary/10" : ""
+                    }`}
+                  >
+                    <UserCircle className="w-5 h-5" />
+                    Profile
+                  </Button>
+
+                  {isAuthenticated && (
                     <Button
-                      key={link.path}
                       variant="ghost"
-                      onClick={() => handleNavigation(link.path)}
-                      className={`w-full justify-start gap-3 h-10 ${
-                        location.pathname === link.path 
-                          ? "bg-muted text-foreground" 
-                          : "text-muted-foreground"
+                      onClick={() => handleNavigation("/dashboard")}
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname === "/dashboard" ? "text-primary bg-primary/10" : ""
                       }`}
                     >
-                      <link.icon className="w-4 h-4" />
-                      {link.label}
+                      <LayoutDashboard className="w-5 h-5" />
+                      Dashboard
                     </Button>
-                  ))}
+                  )}
 
-                  {/* Discovery in mobile */}
+                  {/* Discovery filter in mobile menu */}
                   {location.pathname === "/" && onOpenDiscovery && (
                     <Button
                       variant={discoveryActive ? "default" : "ghost"}
@@ -240,59 +292,55 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
                         onOpenDiscovery();
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`w-full justify-start gap-3 h-10 ${
-                        !discoveryActive ? "text-muted-foreground" : ""
-                      }`}
+                      className={`w-full justify-start gap-3 ${discoveryActive ? "bg-yellow-500/90 text-yellow-950" : ""}`}
                     >
-                      <Filter className="w-4 h-4" />
-                      Discover
+                      <Gem className="w-5 h-5" />
+                      Discovery Filters
                     </Button>
                   )}
 
-                  {/* Admin in mobile */}
+                  {/* Admin link in mobile menu */}
                   {isAdmin && (
                     <Button
                       variant="ghost"
                       onClick={() => handleNavigation("/admin/dashboard")}
-                      className={`w-full justify-start gap-3 h-10 ${
-                        location.pathname.startsWith("/admin") 
-                          ? "bg-muted text-foreground" 
-                          : "text-muted-foreground"
+                      className={`w-full justify-start gap-3 ${
+                        location.pathname.startsWith("/admin") ? "text-primary bg-primary/10" : ""
                       }`}
                     >
-                      <Shield className="w-4 h-4" />
+                      <Shield className="w-5 h-5" />
                       Admin Panel
                     </Button>
                   )}
                 </nav>
 
-                {/* Settings */}
                 <div className="pt-4 border-t border-border space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Theme</span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <AccentColorPicker />
                       <ThemeToggle />
                     </div>
                   </div>
                   
+                  {/* Auth button in mobile menu */}
                   {!isLoading && (
                     isAuthenticated ? (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         onClick={handleSignOut}
-                        className="w-full justify-start gap-3 h-10 text-muted-foreground"
+                        className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-5 h-5" />
                         Sign Out
                       </Button>
                     ) : (
                       <Button
                         variant="default"
                         onClick={() => handleNavigation("/auth")}
-                        className="w-full justify-start gap-3 h-10"
+                        className="w-full justify-start gap-3"
                       >
-                        <LogIn className="w-4 h-4" />
+                        <LogIn className="w-5 h-5" />
                         Sign In
                       </Button>
                     )

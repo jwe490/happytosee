@@ -7,17 +7,15 @@ import {
   Film,
   Settings,
   Sliders,
+  Shield,
   Activity,
   UserCog,
   ChevronLeft,
   ChevronRight,
   Smile,
-  Home,
-  Menu,
-  X,
-  Bookmark,
   Star,
-  Clock,
+  Clapperboard,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,13 +24,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavItem {
   title: string;
   icon: React.ElementType;
   section: string;
   requiredRole?: string[];
+  badge?: string;
 }
 
 interface AdminSidebarProps {
@@ -43,22 +41,19 @@ interface AdminSidebarProps {
 
 const navItems: NavItem[] = [
   { title: "Overview", icon: LayoutDashboard, section: "overview" },
-  { title: "User Activity", icon: Activity, section: "user-activity" },
-  { title: "Mood Insights", icon: Smile, section: "mood-analytics" },
-  { title: "Watchlist Stats", icon: Bookmark, section: "watchlist-stats" },
-  { title: "Reviews & Ratings", icon: Star, section: "reviews-stats" },
-  { title: "User Sessions", icon: Clock, section: "user-sessions" },
+  { title: "Mood Analytics", icon: Smile, section: "mood-analytics" },
+  { title: "Genre Analytics", icon: Clapperboard, section: "genre-analytics", badge: "New" },
+  { title: "Actor Analytics", icon: Star, section: "actor-analytics" },
+  { title: "User Insights", icon: Users, section: "user-insights" },
+  { title: "Content Performance", icon: Film, section: "content-performance" },
+  { title: "Recommendations", icon: Sliders, section: "recommendations", requiredRole: ["admin", "super_admin"] },
   { title: "User Management", icon: UserCog, section: "user-management", requiredRole: ["super_admin"] },
-  { title: "Settings", icon: Settings, section: "system-settings", requiredRole: ["super_admin"] },
+  { title: "System Settings", icon: Settings, section: "system-settings", requiredRole: ["super_admin"] },
+  { title: "Activity Logs", icon: Activity, section: "activity-logs", requiredRole: ["admin", "super_admin"] },
 ];
 
-function SidebarContent({ 
-  activeSection, 
-  onSectionChange, 
-  userRole, 
-  collapsed,
-  onNavigate,
-}: AdminSidebarProps & { collapsed: boolean; onNavigate: () => void }) {
+export function AdminSidebar({ activeSection, onSectionChange, userRole }: AdminSidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
   const canAccess = (item: NavItem) => {
@@ -67,27 +62,34 @@ function SidebarContent({
   };
 
   return (
-    <>
+    <aside
+      className={cn(
+        "h-screen sticky top-0 border-r border-border/50 bg-card/50 backdrop-blur-xl transition-all duration-300 flex flex-col",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
       {/* Header */}
-      <div className="p-4 flex items-center gap-3 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Film className="w-4 h-4 text-primary-foreground" />
+      <div className="p-4 flex items-center gap-3 border-b border-border/50">
+        <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 shrink-0">
+          <Shield className="w-5 h-5 text-primary" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="font-semibold text-base truncate">Admin</h1>
-            <p className="text-xs text-muted-foreground truncate capitalize">{userRole.replace("_", " ")}</p>
+            <h1 className="font-bold text-lg truncate bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              MoodFlix
+            </h1>
+            <p className="text-xs text-muted-foreground truncate">Admin Portal</p>
           </div>
         )}
       </div>
 
       {/* Quick Actions */}
       {!collapsed && (
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border/50">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground h-9"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
             onClick={() => navigate("/")}
           >
             <Home className="w-4 h-4" />
@@ -97,7 +99,7 @@ function SidebarContent({
       )}
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-3">
+      <ScrollArea className="flex-1 py-4">
         <nav className="px-2 space-y-1">
           {navItems.map((item) => {
             if (!canAccess(item)) return null;
@@ -110,21 +112,30 @@ function SidebarContent({
                 <Tooltip key={item.section} delayDuration={0}>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => {
-                        onSectionChange(item.section);
-                        onNavigate();
-                      }}
+                      onClick={() => onSectionChange(item.section)}
                       className={cn(
-                        "w-full p-2.5 rounded-lg flex items-center justify-center transition-colors",
+                        "w-full p-3 rounded-xl flex items-center justify-center transition-all relative",
                         isActive
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25"
                           : "hover:bg-muted text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-5 h-5" />
+                      {item.badge && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full" />
+                      )}
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">{item.title}</TooltipContent>
+                  <TooltipContent side="right">
+                    <div className="flex items-center gap-2">
+                      {item.title}
+                      {item.badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  </TooltipContent>
                 </Tooltip>
               );
             }
@@ -132,92 +143,58 @@ function SidebarContent({
             return (
               <button
                 key={item.section}
-                onClick={() => {
-                  onSectionChange(item.section);
-                  onNavigate();
-                }}
+                onClick={() => onSectionChange(item.section)}
                 className={cn(
-                  "w-full p-2.5 rounded-lg flex items-center gap-2.5 transition-colors text-left text-sm",
+                  "w-full p-3 rounded-xl flex items-center gap-3 transition-all text-left group",
                   isActive
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25"
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{item.title}</span>
+                <Icon className={cn("w-5 h-5 shrink-0", isActive && "drop-shadow-sm")} />
+                <span className="truncate flex-1">{item.title}</span>
+                {item.badge && (
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full",
+                    isActive 
+                      ? "bg-primary-foreground/20 text-primary-foreground" 
+                      : "bg-accent text-accent-foreground"
+                  )}>
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
       </ScrollArea>
-    </>
-  );
-}
 
-export function AdminSidebar({ activeSection, onSectionChange, userRole }: AdminSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  return (
-    <>
-      {/* Mobile Trigger */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="fixed top-4 left-4 z-50 lg:hidden h-9 w-9"
-          >
-            <Menu className="w-4 h-4" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
-          <div className="h-full flex flex-col">
-            <SidebarContent
-              activeSection={activeSection}
-              onSectionChange={onSectionChange}
-              userRole={userRole}
-              collapsed={false}
-              onNavigate={() => setMobileOpen(false)}
-            />
+      {/* Role Badge & Collapse */}
+      <div className="p-4 border-t border-border/50 space-y-3">
+        {!collapsed && (
+          <div className="px-3 py-2.5 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+            <p className="text-xs text-muted-foreground">Your Role</p>
+            <p className="text-sm font-semibold capitalize bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              {userRole.replace("_", " ")}
+            </p>
           </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          "h-screen sticky top-0 border-r border-border bg-card hidden lg:flex flex-col transition-all duration-200",
-          collapsed ? "w-14" : "w-56"
         )}
-      >
-        <SidebarContent
-          activeSection={activeSection}
-          onSectionChange={onSectionChange}
-          userRole={userRole}
-          collapsed={collapsed}
-          onNavigate={() => {}}
-        />
-        
-        {/* Collapse Button */}
-        <div className="p-2 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className="w-full h-8 justify-center"
-          >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                <span className="text-xs">Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </aside>
-    </>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full justify-center hover:bg-muted"
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <>
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Collapse
+            </>
+          )}
+        </Button>
+      </div>
+    </aside>
   );
 }

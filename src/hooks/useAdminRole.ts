@@ -1,37 +1,58 @@
-import { useAdminAuth } from "./useAdminAuth";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useKeyAuth } from "./useKeyAuth";
 
-// Re-export AdminRole type from useAdminAuth
-export type { AdminRole } from "./useAdminAuth";
+export type AdminRole = "super_admin" | "admin" | "moderator" | "analyst" | "user";
 
-/**
- * Legacy hook for backwards compatibility
- * Use useAdminAuth directly for new code
- */
 export function useAdminRole() {
-  const { 
-    role, 
-    isAdmin, 
-    isSuperAdmin, 
-    isLoading, 
-    user, 
-    error, 
-    refetch 
-  } = useAdminAuth();
+  const { user, isLoading: authLoading } = useKeyAuth();
+  const [role, setRole] = useState<AdminRole>("user");
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Map role to match legacy expectations
-  const mappedRole = role || "user";
+  useEffect(() => {
+    async function fetchRole() {
+      if (!user) {
+        setRole("user");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc("get_user_role", {
+          _user_id: user.id,
+        });
+
+        if (error) {
+          console.error("Error fetching user role:", error);
+          setRole("user");
+        } else {
+          setRole((data as AdminRole) || "user");
+        }
+      } catch (err) {
+        console.error("Error in role fetch:", err);
+        setRole("user");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (!authLoading) {
+      fetchRole();
+    }
+  }, [user, authLoading]);
+
+  const isAdmin = role === "admin" || role === "super_admin";
+  const isSuperAdmin = role === "super_admin";
   const isModerator = role === "moderator" || isAdmin;
   const isAnalyst = role === "analyst" || isAdmin;
 
   return {
-    role: mappedRole,
+    role,
     isAdmin,
     isSuperAdmin,
     isModerator,
     isAnalyst,
-    isLoading,
+    isLoading: isLoading || authLoading,
     user,
-    error,
-    refetch,
   };
 }
