@@ -75,32 +75,24 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const jwtSecret = Deno.env.get("JWT_SECRET") ||
-                      Deno.env.get("SUPABASE_JWT_SECRET") ||
-                      "moodflix-jwt-secret-default-change-in-production-43f0851500a8a3534e736bc2560849d40146c09b701e57ca01c7f6e5abedbd3a";
+    const jwtSecret = Deno.env.get("JWT_SECRET");
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is not set");
+    }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false }
-    });
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
     const { action, keyHash, profile, token, rememberMe } = body;
 
-    console.log(`[key-auth] Action: ${action}`, { hasKeyHash: !!keyHash, hasToken: !!token });
+    console.log(`[key-auth] Action: ${action}`);
 
     switch (action) {
       case "signup": {
         console.log("[key-auth] Processing signup...");
 
-        if (!keyHash || !profile?.display_name) {
-          return new Response(
-            JSON.stringify({ error: "Key hash and display name are required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
         // Check if key hash already exists
-        const { data: existing } = await supabase.from("key_users").select("id").eq("key_hash", keyHash).maybeSingle();
+        const { data: existing } = await supabase.from("key_users").select("id").eq("key_hash", keyHash).single();
 
         if (existing) {
           console.log("[key-auth] Key already registered");
@@ -149,14 +141,6 @@ Deno.serve(async (req) => {
 
       case "login": {
         console.log("[key-auth] Processing login...");
-
-        if (!keyHash) {
-          return new Response(
-            JSON.stringify({ error: "Key hash is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
         console.log("[key-auth] Key hash (first 16 chars):", keyHash?.substring(0, 16) + "...");
 
         // Find user by key hash
@@ -164,7 +148,7 @@ Deno.serve(async (req) => {
           .from("key_users")
           .select("*")
           .eq("key_hash", keyHash)
-          .maybeSingle();
+          .single();
 
         if (findError) {
           console.log("[key-auth] Find error:", findError.message);
@@ -191,7 +175,7 @@ Deno.serve(async (req) => {
           user_id: user.id,
           token_hash: tokenHash,
           expires_at: expiresAt,
-          is_remembered: rememberMe || false,
+          is_remembered: rememberMe,
           user_agent: req.headers.get("user-agent") || null,
         });
 
@@ -334,20 +318,11 @@ Deno.serve(async (req) => {
           status: 400,
         });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("[key-auth] Error:", error);
-    const errorMessage = error?.message || "Internal server error";
-    console.error("[key-auth] Error details:", {
-      message: errorMessage,
-      stack: error?.stack,
-      name: error?.name
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
     });
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
   }
 });
