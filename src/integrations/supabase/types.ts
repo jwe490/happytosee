@@ -516,6 +516,53 @@ export type Database = {
         }
         Relationships: []
       }
+      user_engagement: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          movie_id: number | null
+          movie_title: string | null
+          page_path: string
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          movie_id?: number | null
+          movie_title?: string | null
+          page_path: string
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          movie_id?: number | null
+          movie_title?: string | null
+          page_path?: string
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -622,6 +669,7 @@ export type Database = {
       get_admin_stats: { Args: never; Returns: Json }
       get_admin_users: { Args: never; Returns: Json }
       get_content_performance_stats: { Args: never; Returns: Json }
+      get_engagement_analytics: { Args: { time_range?: string }; Returns: Json }
       get_enhanced_admin_stats: { Args: never; Returns: Json }
       get_mood_analytics: { Args: { time_range?: string }; Returns: Json }
       get_most_watchlisted_movies: { Args: never; Returns: Json }
