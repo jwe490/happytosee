@@ -81,11 +81,12 @@ Deno.serve(async (req) => {
     console.log("Fetching details for movie:", movieId);
 
     // Fetch movie details, credits, videos, similar movies, and watch providers in parallel
-    const [detailsRes, creditsRes, videosRes, similarRes, providersRes] = await Promise.all([
+    const [detailsRes, creditsRes, videosRes, similarRes1, similarRes2, providersRes] = await Promise.all([
       fetch(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/credits?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/videos?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`),
+      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=2`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/watch/providers?api_key=${TMDB_API_KEY}`),
     ]);
 
@@ -96,8 +97,12 @@ Deno.serve(async (req) => {
     const details = await detailsRes.json();
     const credits = creditsRes.ok ? await creditsRes.json() : { cast: [] };
     const videos = videosRes.ok ? await videosRes.json() : { results: [] };
-    const similar = similarRes.ok ? await similarRes.json() : { results: [] };
+    const similar1 = similarRes1.ok ? await similarRes1.json() : { results: [] };
+    const similar2 = similarRes2.ok ? await similarRes2.json() : { results: [] };
     const providers = providersRes.ok ? await providersRes.json() : { results: {} };
+
+    // Combine both pages of similar movies
+    const allSimilarResults = [...(similar1.results || []), ...(similar2.results || [])];
 
     console.log("Fetched movie details:", details.title);
 
@@ -118,10 +123,10 @@ Deno.serve(async (req) => {
       (v: any) => v.site === "YouTube"
     );
 
-    // Get top 6 similar movies with posters
-    const similarMovies = similar.results
-      ?.filter((m: any) => m.poster_path)
-      .slice(0, 6)
+    // Get up to 20 similar movies with posters
+    const similarMovies = allSimilarResults
+      .filter((m: any) => m.poster_path)
+      .slice(0, 20)
       .map((movie: any) => ({
         id: movie.id,
         title: movie.title,

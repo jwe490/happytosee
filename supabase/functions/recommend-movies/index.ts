@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
       movies = movies.filter(m => !previouslyRecommended.includes(m.title));
     }
 
-    const selectedMovies = movies.slice(0, 12);
+    const selectedMovies = movies.slice(0, 20);
 
     if (selectedMovies.length === 0) {
       return new Response(JSON.stringify({
