@@ -5,6 +5,7 @@ import ExpandedMovieView from "./ExpandedMovieView";
 import { Loader2, Sparkles, ArrowUp, Popcorn } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { Button } from "@/components/ui/button";
+import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 
 interface MovieGridProps {
   movies: Movie[];
@@ -28,6 +29,7 @@ const MovieGrid = ({
   const [showBackToTop, setShowBackToTop] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { trackMovieClick, trackLoadMore, trackMovieView } = useEngagementTracking();
 
   // Infinite scroll with Intersection Observer
   const lastMovieRef = useCallback((node: HTMLDivElement | null) => {
@@ -37,6 +39,7 @@ const MovieGrid = ({
     
     observerRef.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore && onLoadMore) {
+        trackLoadMore();
         onLoadMore();
       }
     }, { threshold: 0.1, rootMargin: '100px' });
@@ -60,6 +63,8 @@ const MovieGrid = ({
   }, []);
 
   const handleMovieClick = (movie: Movie) => {
+    trackMovieClick(movie.id, movie.title);
+    trackMovieView(movie.id, movie.title);
     setSelectedMovie(movie);
     setIsExpanded(true);
   };

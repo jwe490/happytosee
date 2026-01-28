@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Clock, Calendar, Play, Users,
-  Film, Clapperboard, Bookmark, BookmarkCheck,
+  Film, Bookmark, BookmarkCheck,
   ChevronLeft, Eye, EyeOff, Tv, ChevronDown
 } from "lucide-react";
+import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -20,6 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import SimilarMoviesGrid from "./SimilarMoviesGrid";
 
 interface SimilarMovie {
   id: number;
@@ -553,44 +555,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       </div>
                     )}
 
-                    {/* Similar Movies */}
+                    {/* Similar Movies - Infinite Scroll Grid */}
                     {details?.similarMovies && details.similarMovies.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
-                          <Clapperboard className="w-4 h-4 text-primary" />
-                          Similar Movies
-                        </h3>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                          {details.similarMovies.slice(0, 6).map((similar, index) => (
-                            <motion.div 
-                              key={similar.id}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: index * 0.03, duration: 0.2 }}
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.97 }}
-                              onClick={() => handleSimilarMovieClick(similar)}
-                              className="cursor-pointer group"
-                            >
-                              <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm group-hover:shadow-lg transition-shadow duration-150">
-                                <img
-                                  src={similar.posterUrl}
-                                  alt={similar.title}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              </div>
-                              <p className="text-[10px] text-foreground line-clamp-1 mt-1.5 font-medium group-hover:text-primary transition-colors">
-                                {similar.title}
-                              </p>
-                              <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                                <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                                {similar.rating}
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
+                      <SimilarMoviesGrid
+                        movieId={details.id}
+                        initialMovies={details.similarMovies}
+                        onMovieClick={handleSimilarMovieClick}
+                      />
                     )}
 
                     {/* Reviews Section */}

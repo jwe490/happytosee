@@ -34,13 +34,14 @@ const getProviderUrl = (providerId: number): string | null => {
 };
 
 // Simple validation function
-function validateMovieId(body: unknown): { valid: boolean; error?: string; movieId?: number } {
+function validateInput(body: unknown): { valid: boolean; error?: string; movieId?: number; page?: number } {
   if (!body || typeof body !== 'object') {
     return { valid: false, error: "Invalid request body" };
   }
   
   const b = body as Record<string, unknown>;
   let movieId: number;
+  let page = 1;
   
   if (typeof b.movieId === 'number' && Number.isInteger(b.movieId) && b.movieId > 0) {
     movieId = b.movieId;
@@ -49,8 +50,13 @@ function validateMovieId(body: unknown): { valid: boolean; error?: string; movie
   } else {
     return { valid: false, error: "Movie ID must be a positive integer" };
   }
+
+  // Optional page parameter for pagination
+  if (typeof b.page === 'number' && Number.isInteger(b.page) && b.page > 0) {
+    page = Math.min(b.page, 10); // Max 10 pages
+  }
   
-  return { valid: true, movieId };
+  return { valid: true, movieId, page };
 }
 
 Deno.serve(async (req) => {
@@ -62,7 +68,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     
     // Validate input
-    const validationResult = validateMovieId(body);
+    const validationResult = validateInput(body);
     if (!validationResult.valid || !validationResult.movieId) {
       return new Response(JSON.stringify({ error: validationResult.error || "Invalid movie ID" }), {
         status: 400,
@@ -71,6 +77,7 @@ Deno.serve(async (req) => {
     }
 
     const movieId = validationResult.movieId;
+    const page = validationResult.page || 1;
     
     const TMDB_API_KEY = Deno.env.get("TMDB_API_KEY");
     
@@ -78,15 +85,19 @@ Deno.serve(async (req) => {
       throw new Error("TMDB_API_KEY is not configured");
     }
 
-    console.log("Fetching details for movie:", movieId);
+    console.log("Fetching details for movie:", movieId, "page:", page);
+
+    // Calculate which pages to fetch for similar movies based on page parameter
+    const similarPage1 = (page - 1) * 2 + 1;
+    const similarPage2 = (page - 1) * 2 + 2;
 
     // Fetch movie details, credits, videos, similar movies, and watch providers in parallel
     const [detailsRes, creditsRes, videosRes, similarRes1, similarRes2, providersRes] = await Promise.all([
       fetch(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/credits?api_key=${TMDB_API_KEY}&language=en-US`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/videos?api_key=${TMDB_API_KEY}&language=en-US`),
-      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`),
-      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=2`),
+      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=${similarPage1}`),
+      fetch(`${TMDB_BASE_URL}/movie/${movieId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=${similarPage2}`),
       fetch(`${TMDB_BASE_URL}/movie/${movieId}/watch/providers?api_key=${TMDB_API_KEY}`),
     ]);
 
