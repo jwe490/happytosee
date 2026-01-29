@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
 import { supabase } from "@/integrations/supabase/client";
+import { isValidMovieData, validateMovieId } from "@/lib/navigationGuard";
 
 const moodTaglines: Record<string, string> = {
   happy: "Feeling Happy? Here's something uplifting 🎉",
@@ -99,8 +100,18 @@ const Index = () => {
       return;
     }
     
+    // Validate the movie ID from URL using navigation guard
+    const validatedId = validateMovieId(currentMovieId, "Index URL restore");
+    if (!validatedId) {
+      // Invalid movie ID in URL - clear the param without redirecting
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("movie");
+      setSearchParams(newParams, { replace: true });
+      return;
+    }
+    
     // Skip if we already have this movie selected
-    if (selectedMovie?.id === parseInt(currentMovieId)) {
+    if (selectedMovie?.id === validatedId) {
       return;
     }
     
@@ -109,7 +120,7 @@ const Index = () => {
     
     // Create a minimal movie object - ExpandedMovieView will fetch full details
     setSelectedMovie({
-      id: parseInt(currentMovieId),
+      id: validatedId,
       title: "",
       year: 0,
       rating: 0,
@@ -124,7 +135,7 @@ const Index = () => {
         pendingMovieIdRef.current = null;
       }
     });
-  }, [movieIdFromUrl]);
+  }, [movieIdFromUrl, searchParams, setSearchParams]);
 
   // Discovery drawer state
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
@@ -192,10 +203,9 @@ const Index = () => {
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
-  const handleMovieSelect = useCallback((movie: any) => {
-    // Guard against invalid movie data
-    if (!movie?.id) {
-      console.warn("handleMovieSelect called with invalid movie:", movie);
+  const handleMovieSelect = useCallback((movie: unknown) => {
+    // Use navigation guard to validate movie data
+    if (!isValidMovieData(movie, "Index handleMovieSelect")) {
       return;
     }
     
@@ -208,14 +218,15 @@ const Index = () => {
     
     pendingMovieIdRef.current = movieId;
     
+    const m = movie as Record<string, unknown>;
     const movieData: Movie = {
       id: movie.id,
-      title: movie.title || "",
-      year: movie.year || 0,
-      rating: movie.rating || 0,
-      genre: movie.genre || "",
-      posterUrl: movie.posterUrl || movie.poster_path || "",
-      moodMatch: movie.matchReason || movie.surpriseReason || "",
+      title: (m.title as string) || "",
+      year: (m.year as number) || 0,
+      rating: (m.rating as number) || 0,
+      genre: (m.genre as string) || "",
+      posterUrl: (m.posterUrl as string) || (m.poster_path as string) || "",
+      moodMatch: (m.matchReason as string) || (m.surpriseReason as string) || "",
     };
     
     setSelectedMovie(movieData);

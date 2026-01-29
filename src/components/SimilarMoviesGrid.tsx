@@ -4,6 +4,7 @@ import { Star, Clapperboard, Loader2, Sparkles, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { cn } from "@/lib/utils";
+import { isValidMovieData } from "@/lib/navigationGuard";
 
 interface SimilarMovie {
   id: number;
@@ -162,6 +163,11 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
   }, []);
 
   const handleMovieClick = useCallback((movie: SimilarMovie) => {
+    // Validate movie data using navigation guard
+    if (!isValidMovieData(movie, "SimilarMoviesGrid handleMovieClick")) {
+      return;
+    }
+    
     const now = Date.now();
     
     // Debounce rapid clicks (300ms cooldown)

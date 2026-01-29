@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { isValidMovieData } from "@/lib/navigationGuard";
 
 interface Movie {
   id: number;
@@ -308,15 +309,18 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
                         key={movie.id}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
-                        onClick={() =>
-                          onMovieClick({
+                        onClick={() => {
+                          const movieData = {
                             id: movie.id,
                             title: movie.title,
                             posterUrl: movie.posterUrl,
                             rating: movie.rating,
                             year: movie.year,
-                          })
-                        }
+                          };
+                          if (isValidMovieData(movieData, "ActorPanel filmography click")) {
+                            onMovieClick(movieData);
+                          }
+                        }}
                         className="text-left group"
                       >
                         <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm ring-1 ring-border/50 group-hover:ring-primary transition-all">
