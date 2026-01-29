@@ -90,15 +90,11 @@ const Person = () => {
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
-  // Safe navigation back - with fallback to home
+  // Safe navigation back - properly use browser history
   const handleGoBack = () => {
-    // Check if there's history to go back to
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      // Fallback to home page
-      navigate("/");
-    }
+    // Use browser's native back if we have navigation history
+    // This properly preserves scroll position and returns to previous page
+    window.history.back();
   };
 
   const handleImageError = (movieId: number) => {

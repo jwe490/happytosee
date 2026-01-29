@@ -127,29 +127,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       setCurrentMovie(movie);
       setMovieStack([movie]);
       historyDepthRef.current = 1;
-      
-      // Push a single history state for the modal
-      window.history.pushState({ modal: 'movie', movieId: movie.id }, '');
     }
   }, [movie, isOpen]);
-
-  // Handle browser back button
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (isOpen) {
-        e.preventDefault();
-        handleBack();
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener('popstate', handlePopState);
-    }
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [isOpen, handleBack]);
 
   // Fetch movie details when current movie changes
   useEffect(() => {
@@ -193,11 +172,15 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
-    // Close modal first, then navigate
-    onClose();
-    setTimeout(() => {
-      navigate(`/person/${member.id}`);
-    }, 300);
+    // Navigate to person page with state to remember we came from a movie
+    // Don't manipulate history manually - just navigate normally
+    // The person page back button will use browser's history.back() which returns here
+    navigate(`/person/${member.id}`, {
+      state: { 
+        fromMovie: currentMovie?.id,
+        fromMovieTitle: currentMovie?.title 
+      }
+    });
   };
 
   // FIXED: Navigate to similar movie by adding to stack instead of replacing
