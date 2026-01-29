@@ -7,7 +7,8 @@ interface LoadingSkeletonProps {
 }
 
 export function LoadingSkeleton({ className, variant = "text" }: LoadingSkeletonProps) {
-  const baseClasses = "bg-muted animate-pulse rounded-lg";
+  const baseClasses =
+    "rounded-lg bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer";
   
   const variants = {
     card: "h-48 w-full",
@@ -25,10 +26,10 @@ export function LoadingSkeleton({ className, variant = "text" }: LoadingSkeleton
 export function MovieCardSkeleton() {
   return (
     <div className="space-y-2">
-      <div className="aspect-[2/3] rounded-xl bg-muted animate-pulse" />
+      <div className="aspect-[2/3] rounded-xl bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
       <div className="space-y-1.5">
-        <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
-        <div className="h-2.5 bg-muted animate-pulse rounded w-1/2" />
+        <div className="h-3 rounded w-3/4 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+        <div className="h-2.5 rounded w-1/2 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
       </div>
     </div>
   );
@@ -46,18 +47,18 @@ export function MovieGridSkeleton({ count = 6 }: { count?: number }) {
 
 export function ProfileSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-muted" />
+        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
         <div className="space-y-2 flex-1">
-          <div className="h-5 bg-muted rounded w-32" />
-          <div className="h-3 bg-muted rounded w-48" />
+          <div className="h-5 rounded w-32 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+          <div className="h-3 rounded w-48 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
         </div>
       </div>
-      <div className="h-20 bg-muted rounded-xl" />
+      <div className="h-20 rounded-xl bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
       <div className="space-y-3">
-        <div className="h-4 bg-muted rounded w-24" />
-        <div className="h-24 bg-muted rounded-lg" />
+        <div className="h-4 rounded w-24 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+        <div className="h-24 rounded-lg bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
       </div>
     </div>
   );
@@ -91,16 +92,16 @@ export function PageLoadingSpinner() {
 
 export function CollectionSkeleton() {
   return (
-    <div className="space-y-2 animate-pulse">
+    <div className="space-y-2">
       {[1, 2].map((i) => (
         <div key={i} className="p-4 bg-card rounded-xl border border-border">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-4 bg-muted rounded w-28" />
-            <div className="h-6 bg-muted rounded w-16" />
+            <div className="h-4 rounded w-28 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+            <div className="h-6 rounded w-16 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
           </div>
           <div className="flex gap-2">
             {[1, 2, 3].map((j) => (
-              <div key={j} className="w-12 aspect-[2/3] bg-muted rounded" />
+              <div key={j} className="w-12 aspect-[2/3] rounded bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
             ))}
           </div>
         </div>
@@ -111,24 +112,24 @@ export function CollectionSkeleton() {
 
 export function PersonPageSkeleton() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 animate-pulse">
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       <div className="flex flex-col md:flex-row gap-6">
-        <div className="w-48 aspect-[2/3] bg-muted rounded-2xl shrink-0 mx-auto md:mx-0" />
+        <div className="w-48 aspect-[2/3] rounded-2xl shrink-0 mx-auto md:mx-0 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
         <div className="flex-1 space-y-4">
-          <div className="h-8 bg-muted rounded w-48" />
-          <div className="h-4 bg-muted rounded w-32" />
+          <div className="h-8 rounded w-48 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+          <div className="h-4 rounded w-32 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
           <div className="space-y-2">
-            <div className="h-3 bg-muted rounded w-full" />
-            <div className="h-3 bg-muted rounded w-full" />
-            <div className="h-3 bg-muted rounded w-3/4" />
+            <div className="h-3 rounded w-full bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+            <div className="h-3 rounded w-full bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
+            <div className="h-3 rounded w-3/4 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
           </div>
         </div>
       </div>
       <div className="space-y-4">
-        <div className="h-5 bg-muted rounded w-32" />
+        <div className="h-5 rounded w-32 bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="aspect-[2/3] bg-muted rounded-lg" />
+            <div key={i} className="aspect-[2/3] rounded-lg bg-gradient-to-r from-muted via-background to-muted bg-[length:200%_100%] animate-shimmer" />
           ))}
         </div>
       </div>
