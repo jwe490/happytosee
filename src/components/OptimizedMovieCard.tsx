@@ -62,13 +62,13 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
           )}
         />
         
-        {/* Image with blur-up effect */}
+        {/* Image with blur-up and fade-in effect */}
         <img
           src={src}
           alt={movie.title}
           className={cn(
-            "w-full h-full object-cover transition-all duration-500",
-            isLoaded ? "blur-0 scale-100" : "blur-sm scale-105"
+            "w-full h-full object-cover transition-all duration-500 ease-out",
+            isLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-sm scale-105"
           )}
           loading="lazy"
           decoding="async"
