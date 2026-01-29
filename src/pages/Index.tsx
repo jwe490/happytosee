@@ -14,6 +14,7 @@ import { CinematicCarousel } from "@/components/CinematicCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
+import Footer from "@/components/Footer";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -526,11 +527,7 @@ const Index = () => {
 
 
       {/* Footer */}
-      <footer className="py-6 border-t border-border bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>Movie data from TMDb. Find your perfect movie match.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
