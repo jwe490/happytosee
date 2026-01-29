@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -78,6 +78,7 @@ interface PersonDetails {
 const Person = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [person, setPerson] = useState<PersonDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showFullBio, setShowFullBio] = useState(false);
@@ -90,11 +91,24 @@ const Person = () => {
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
-  // Safe navigation back - properly use browser history
+  // Safe navigation back.
+  // Prefer an explicit returnTo (passed when navigating here) because browser history
+  // may be missing / polluted (e.g., direct opens, external referrers).
   const handleGoBack = () => {
-    // Use browser's native back if we have navigation history
-    // This properly preserves scroll position and returns to previous page
+    const state = location.state as { returnTo?: string } | null;
+    if (state?.returnTo) {
+      navigate(state.returnTo);
+      return;
+    }
+
+    // Fallback to browser history; if that doesn't actually change route, go home.
+    const before = window.location.href;
     window.history.back();
+    setTimeout(() => {
+      if (window.location.href === before) {
+        navigate("/");
+      }
+    }, 0);
   };
 
   const handleImageError = (movieId: number) => {
