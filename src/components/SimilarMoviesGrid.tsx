@@ -4,6 +4,7 @@ import { Star, Clapperboard, Loader2, Sparkles, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { cn } from "@/lib/utils";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 interface SimilarMovie {
   id: number;
@@ -50,7 +51,7 @@ const MoviePosterCard = ({
       <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm group-hover:shadow-lg transition-shadow duration-150 relative">
         {/* Loading skeleton */}
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 bg-muted animate-pulse" />
+          <LoadingSkeleton className="absolute inset-0 rounded-none" />
         )}
         
         {/* Error fallback */}

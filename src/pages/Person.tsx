@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,6 +25,14 @@ import { PersonPageSkeleton } from "@/components/ui/loading-skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import Footer from "@/components/Footer";
 import { Movie as RecommendationMovie } from "@/hooks/useMovieRecommendations";
@@ -94,6 +102,15 @@ const Person = () => {
 
   // Extract state for back navigation
   const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
+
+  const fromMovieTitle = navState?.fromMovieTitle;
+  const returnTo = navState?.returnTo;
+  const showMovieCrumb = !!fromMovieTitle && !!returnTo;
+
+  const truncatedFromMovieTitle = useMemo(() => {
+    if (!fromMovieTitle) return "";
+    return fromMovieTitle.length > 26 ? `${fromMovieTitle.slice(0, 26)}...` : fromMovieTitle;
+  }, [fromMovieTitle]);
 
   // Robust back navigation:
   // 1) Prefer explicit returnTo (sent from the movie modal)
@@ -214,15 +231,10 @@ const Person = () => {
     );
   }
 
-  const MovieCard = ({ movie, index }: { movie: Movie; index: number }) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.02, duration: 0.2 }}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.98 }}
+  const MovieCard = ({ movie }: { movie: Movie; index: number }) => (
+    <div
       onClick={() => handleMovieSelect(movie)}
-      className="group cursor-pointer"
+      className="group cursor-pointer transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98]"
     >
       <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md group-hover:shadow-xl transition-all ring-1 ring-border/50 group-hover:ring-2 group-hover:ring-primary/50">
         {!imageErrors.has(movie.id) && movie.posterUrl ? (
@@ -270,7 +282,7 @@ const Person = () => {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 
   return (
@@ -278,6 +290,45 @@ const Person = () => {
       <Header />
 
       <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 animate-fade-up">
+        {/* Breadcrumbs */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Home
+                </button>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+
+            {showMovieCrumb && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <button
+                      type="button"
+                      onClick={handleBackToMovie}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {truncatedFromMovieTitle}
+                    </button>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </>
+            )}
+
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="max-w-[16rem] truncate">{person.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handleGoBack}
@@ -294,24 +345,20 @@ const Person = () => {
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-full border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all active:scale-95"
             >
               <Film className="w-3.5 h-3.5" />
-              Back to "{navState.fromMovieTitle.length > 20 ? navState.fromMovieTitle.slice(0, 20) + '...' : navState.fromMovieTitle}"
+              Back to "{navState.fromMovieTitle.length > 20 ? navState.fromMovieTitle.slice(0, 20) + "..." : navState.fromMovieTitle}"
             </button>
           )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-4 sm:space-y-6"
-          >
+          <div className="space-y-4 sm:space-y-6">
             {person.profileUrl ? (
-              <motion.img
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <img
                 src={person.profileUrl}
                 alt={person.name}
                 className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-border/50"
+                loading="eager"
+                decoding="async"
               />
             ) : (
               <div className="w-full aspect-[2/3] bg-muted rounded-2xl flex items-center justify-center">
@@ -437,7 +484,7 @@ const Person = () => {
                 </div>
               </Card>
             )}
-          </motion.div>
+          </div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

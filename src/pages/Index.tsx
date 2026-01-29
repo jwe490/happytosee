@@ -235,6 +235,38 @@ const Index = () => {
     setSelectedMovie(null);
   }, [searchParams, setSearchParams]);
 
+  // URL-driven movie change requested from inside the ExpandedMovieView (e.g., clicking Similar Movies)
+  const handleRequestMovieChange = useCallback((movieId: number) => {
+    const nextId = String(movieId);
+
+    // Guard against invalid IDs
+    if (!movieId || Number.isNaN(movieId)) return;
+
+    // Prevent duplicate selections during rapid clicks
+    if (pendingMovieIdRef.current === nextId) return;
+
+    pendingMovieIdRef.current = nextId;
+
+    // Set a minimal movie immediately for responsiveness
+    setSelectedMovie({
+      id: movieId,
+      title: "",
+      year: 0,
+      rating: 0,
+      genre: "",
+      posterUrl: "",
+      moodMatch: "",
+    });
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("movie", nextId);
+    setSearchParams(newParams);
+
+    requestAnimationFrame(() => {
+      pendingMovieIdRef.current = null;
+    });
+  }, [searchParams, setSearchParams]);
+
   // Throttled scroll handler
   useEffect(() => {
     const handleScroll = () => {
@@ -577,6 +609,7 @@ const Index = () => {
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
         onClose={handleMovieViewClose}
+        onRequestMovieChange={handleRequestMovieChange}
       />
 
 
