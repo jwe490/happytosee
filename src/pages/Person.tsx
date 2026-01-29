@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   Star,
@@ -99,6 +98,7 @@ const Person = () => {
   const [selectedMovie, setSelectedMovie] = useState<RecommendationMovie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [renderHeavy, setRenderHeavy] = useState(false);
 
   // Extract state for back navigation
   const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
@@ -146,6 +146,13 @@ const Person = () => {
     if (id) {
       fetchPersonDetails(parseInt(id));
     }
+  }, [id]);
+
+  // Defer heavy grids/photos by one frame to keep the open transition smooth.
+  useEffect(() => {
+    setRenderHeavy(false);
+    const raf = requestAnimationFrame(() => setRenderHeavy(true));
+    return () => cancelAnimationFrame(raf);
   }, [id]);
 
   const handleMovieSelect = (movie: Movie) => {
@@ -289,65 +296,46 @@ const Person = () => {
     <div className="min-h-screen bg-background pt-20 animate-fade-in">
       <Header />
 
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 animate-fade-up">
-        {/* Breadcrumbs */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/")}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Home
-                </button>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 pb-24 space-y-6 sm:space-y-8 animate-fade-up">
+        {/* Breadcrumbs (symmetric + consistent) */}
+        <div className="w-full flex items-center justify-center">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Home
+                  </button>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
 
-            {showMovieCrumb && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <button
-                      type="button"
-                      onClick={handleBackToMovie}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {truncatedFromMovieTitle}
-                    </button>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </>
-            )}
+              {showMovieCrumb && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <button
+                        type="button"
+                        onClick={handleBackToMovie}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors max-w-[10rem] truncate"
+                      >
+                        {truncatedFromMovieTitle}
+                      </button>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              )}
 
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="max-w-[16rem] truncate">{person.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={handleGoBack}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </button>
-          
-          {/* Dedicated Back to Movie chip */}
-          {navState?.returnTo && navState?.fromMovieTitle && (
-            <button
-              onClick={handleBackToMovie}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-full border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all active:scale-95"
-            >
-              <Film className="w-3.5 h-3.5" />
-              Back to "{navState.fromMovieTitle.length > 20 ? navState.fromMovieTitle.slice(0, 20) + "..." : navState.fromMovieTitle}"
-            </button>
-          )}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="max-w-[16rem] truncate">{person.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
@@ -486,12 +474,7 @@ const Person = () => {
             )}
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4 sm:space-y-6"
-          >
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
                 {person.name}
@@ -526,19 +509,9 @@ const Person = () => {
             {person.biography && (
               <Card className="p-4 sm:p-6">
                 <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Biography</h2>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={showFullBio ? "full" : "preview"}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <p className={`text-muted-foreground leading-relaxed text-sm ${!showFullBio ? "line-clamp-6" : ""}`}>
-                      {person.biography}
-                    </p>
-                  </motion.div>
-                </AnimatePresence>
+                <p className={`text-muted-foreground leading-relaxed text-sm ${!showFullBio ? "line-clamp-6" : ""}`}>
+                  {person.biography}
+                </p>
                 {person.biography.length > 400 && (
                   <Button
                     variant="ghost"
@@ -560,21 +533,19 @@ const Person = () => {
               </Card>
             )}
 
-            {person.additionalPhotos && person.additionalPhotos.length > 0 && (
+            {renderHeavy && person.additionalPhotos && person.additionalPhotos.length > 0 && (
               <Card className="p-4 sm:p-6">
                 <h2 className="font-display text-lg sm:text-xl font-semibold mb-4">Photos</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {(showAllPhotos ? person.additionalPhotos : person.additionalPhotos.slice(0, 6)).map(
                     (photo, index) => (
-                      <motion.img
+                      <img
                         key={index}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
                         src={photo}
                         alt={`${person.name} photo ${index + 1}`}
                         className="w-full aspect-[2/3] object-cover rounded-xl hover:scale-105 transition-transform cursor-pointer ring-1 ring-border/50"
                         loading="lazy"
+                        decoding="async"
                       />
                     )
                   )}
@@ -600,7 +571,13 @@ const Person = () => {
               </Card>
             )}
 
-            {(person.actingRoles || person.crewRoles) && (
+            {!renderHeavy && (
+              <Card className="p-4 sm:p-6">
+                <div className="h-40 rounded-xl bg-muted animate-shimmer" />
+              </Card>
+            )}
+
+            {renderHeavy && (person.actingRoles || person.crewRoles) && (
               <Card className="p-4 sm:p-6">
                 <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">Filmography</h2>
 
@@ -620,7 +597,7 @@ const Person = () => {
 
                   {person.actingRoles && person.actingRoles.length > 0 && (
                     <TabsContent value="acting" className="mt-6">
-                      <motion.button
+                      <button
                         onClick={() => toggleSection("acting")}
                         className="flex items-center justify-between w-full mb-4 text-left group"
                       >
@@ -633,31 +610,23 @@ const Person = () => {
                         ) : (
                           <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         )}
-                      </motion.button>
+                      </button>
 
-                      <AnimatePresence>
-                        {expandedSections.acting && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                              {person.actingRoles.map((movie, index) => (
-                                <MovieCard key={movie.id} movie={movie} index={index} />
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      {expandedSections.acting && (
+                        <div className="overflow-hidden animate-fade-in">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                            {person.actingRoles.map((movie, index) => (
+                              <MovieCard key={movie.id} movie={movie} index={index} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </TabsContent>
                   )}
 
                   {person.crewRoles && Object.entries(person.crewRoles).map(([category, movies]) => (
                     <TabsContent key={category} value={category} className="mt-6">
-                      <motion.button
+                      <button
                         onClick={() => toggleSection(category)}
                         className="flex items-center justify-between w-full mb-4 text-left group"
                       >
@@ -670,35 +639,42 @@ const Person = () => {
                         ) : (
                           <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         )}
-                      </motion.button>
+                      </button>
 
-                      <AnimatePresence>
-                        {expandedSections[category] && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                              {movies.map((movie, index) => (
-                                <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      {expandedSections[category] && (
+                        <div className="overflow-hidden animate-fade-in">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                            {movies.map((movie, index) => (
+                              <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </TabsContent>
                   ))}
                 </Tabs>
               </Card>
             )}
-          </motion.div>
+          </div>
         </div>
       </main>
 
       <Footer />
+
+      {/* Floating persistent Back-to-movie button */}
+      {navState?.returnTo && navState?.fromMovieTitle && (
+        <div className="fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4">
+          <div className="mx-auto w-full max-w-md">
+            <Button
+              onClick={handleBackToMovie}
+              className="w-full rounded-full min-h-[48px] shadow-lg"
+            >
+              <Film className="w-4 h-4 mr-2" />
+              Back to {navState.fromMovieTitle}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ExpandedMovieView
         movie={selectedMovie}

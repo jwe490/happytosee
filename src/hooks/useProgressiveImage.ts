@@ -16,6 +16,13 @@ export function useProgressiveImage({
   const [isInView, setIsInView] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
 
+  // Reset loading state when the requested src changes.
+  useEffect(() => {
+    setIsLoaded(false);
+    setCurrentSrc(placeholder);
+    // If a new src arrives while in view, the loader effect below will kick in.
+  }, [src, placeholder]);
+
   useEffect(() => {
     if (!imgRef.current) return;
 
@@ -38,13 +45,17 @@ export function useProgressiveImage({
     if (!isInView || !src) return;
 
     const img = new Image();
+
+    let cancelled = false;
     
     img.onload = () => {
+      if (cancelled) return;
       setCurrentSrc(src);
       setIsLoaded(true);
     };
     
     img.onerror = () => {
+      if (cancelled) return;
       setCurrentSrc(placeholder);
       setIsLoaded(true);
     };
@@ -52,6 +63,7 @@ export function useProgressiveImage({
     img.src = src;
 
     return () => {
+      cancelled = true;
       img.onload = null;
       img.onerror = null;
     };

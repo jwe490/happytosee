@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Bookmark, BookmarkCheck } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
@@ -15,6 +15,11 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const inWatchlist = isInWatchlist(movie.id);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Prevent showing the previous poster while the new one loads.
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [movie.posterUrl, movie.id]);
 
   const handleWatchlistClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,6 +75,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
             setImageLoaded(true);
           }}
           loading="lazy"
+          decoding="async"
         />
 
         {/* Rating Badge */}
