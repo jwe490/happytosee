@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -12,6 +12,8 @@ import { ReviewsStatsSection } from "@/components/admin/sections/ReviewsStatsSec
 import { UserSessionsSection } from "@/components/admin/sections/UserSessionsSection";
 import { UserManagementSection } from "@/components/admin/sections/UserManagementSection";
 import { SystemSettingsSection } from "@/components/admin/sections/SystemSettingsSection";
+import { EngagementAnalyticsSection } from "@/components/admin/sections/EngagementAnalyticsSection";
+import { RealTimeStatsPanel } from "@/components/admin/RealTimeStatsPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -61,14 +63,22 @@ export default function AdminDashboard() {
     switch (activeSection) {
       case "overview":
         return (
-          <OverviewSection
-            stats={stats}
-            moodData={moodData}
-            topWatchlisted={topWatchlisted}
-            topRecommended={topRecommended}
-            isLoading={analyticsLoading}
-          />
+          <div className="space-y-8">
+            {/* Real-Time Analytics Panel */}
+            <RealTimeStatsPanel />
+            
+            {/* Traditional Overview Stats */}
+            <OverviewSection
+              stats={stats}
+              moodData={moodData}
+              topWatchlisted={topWatchlisted}
+              topRecommended={topRecommended}
+              isLoading={analyticsLoading}
+            />
+          </div>
         );
+      case "engagement-analytics":
+        return <EngagementAnalyticsSection />;
       case "user-activity":
         return <UserActivitySection stats={stats} isLoading={analyticsLoading} />;
       case "mood-analytics":

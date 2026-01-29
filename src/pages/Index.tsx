@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import MoodSelector from "@/components/MoodSelector";
-import FloatingMoodSelector from "@/components/FloatingMoodSelector";
+// FloatingMoodSelector removed per user request
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
@@ -247,16 +247,7 @@ const Index = () => {
         onFiltersChange={handleDiscoveryFiltersChange}
       />
 
-      {/* Floating Mood Selector */}
-      <AnimatePresence>
-        {hasScrolledPastMood && (
-          <FloatingMoodSelector
-            selectedMood={selectedMood}
-            onSelectMood={handleFloatingMoodSelect}
-            isLoading={isLoading}
-          />
-        )}
-      </AnimatePresence>
+      {/* Floating Mood Selector - Removed per user request */}
 
       {/* Sticky Filter Bar */}
       <AnimatePresence>
