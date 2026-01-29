@@ -114,12 +114,14 @@ export const AssessmentQuestion = ({
               whileTap={{ scale: 0.98 }}
               onClick={() => handleOptionClick(option.value)}
               className={`
-                relative group p-4 md:p-5 rounded-2xl border-2
+                relative group rounded-2xl border-2
                 transition-all duration-300 text-left
+                min-h-[56px] touch-manipulation
+                p-3 sm:p-4 md:p-5
                 ${isVisualCards ? "aspect-[3/4]" : ""}
                 ${isSelected 
                   ? "border-primary bg-primary/10 shadow-lg" 
-                  : "border-border/50 bg-card hover:border-primary/50 hover:bg-card/80 hover:shadow-md"
+                  : "border-border/50 bg-card hover:border-primary/50 hover:bg-card/80 hover:shadow-md active:scale-[0.98]"
                 }
               `}
             >
@@ -140,12 +142,12 @@ export const AssessmentQuestion = ({
               {/* Hover gradient effect */}
               <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
 
-              <div className="relative z-10 h-full flex flex-col justify-center gap-2">
+              <div className="relative z-10 h-full flex flex-col justify-center gap-1.5 sm:gap-2">
                 {/* Emoji and label row */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {option.emoji && (
                     <motion.span
-                      className="text-2xl md:text-3xl"
+                      className="text-xl sm:text-2xl md:text-3xl shrink-0"
                       initial={{ scale: 1 }}
                       whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
                       transition={{ duration: 0.4 }}
@@ -153,7 +155,7 @@ export const AssessmentQuestion = ({
                       {option.emoji}
                     </motion.span>
                   )}
-                  <span className="font-semibold text-foreground text-sm md:text-base">
+                  <span className="font-semibold text-foreground text-sm sm:text-base leading-tight">
                     {option.label}
                   </span>
                 </div>
