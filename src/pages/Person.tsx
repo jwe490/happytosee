@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -34,7 +34,11 @@ import {
 } from "@/components/ui/breadcrumb";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import Footer from "@/components/Footer";
+import { PageTransition } from "@/components/PageTransition";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { Movie as RecommendationMovie } from "@/hooks/useMovieRecommendations";
+import { getLastMovie, LastMovieInfo } from "@/lib/lastMovie";
+import { cn } from "@/lib/utils";
 
 interface Movie {
   id: number;
@@ -100,11 +104,15 @@ const Person = () => {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [renderHeavy, setRenderHeavy] = useState(false);
 
-  // Extract state for back navigation
-  const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
+  // Scroll-aware floating button
+  const isFloatingVisible = useScrollDirection(15);
 
-  const fromMovieTitle = navState?.fromMovieTitle;
-  const returnTo = navState?.returnTo;
+  // Extract state for back navigation - use navState if available, else fallback to sessionStorage
+  const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
+  const lastMovie = useMemo(() => getLastMovie(), []);
+
+  const fromMovieTitle = navState?.fromMovieTitle || lastMovie?.title || null;
+  const returnTo = navState?.returnTo || lastMovie?.returnTo || null;
   const showMovieCrumb = !!fromMovieTitle && !!returnTo;
 
   const truncatedFromMovieTitle = useMemo(() => {
@@ -131,10 +139,10 @@ const Person = () => {
     navigate("/");
   };
 
-  // Dedicated back-to-movie handler
+  // Dedicated back-to-movie handler (supports both navState and sessionStorage fallback)
   const handleBackToMovie = () => {
-    if (navState?.returnTo) {
-      navigate(navState.returnTo);
+    if (returnTo) {
+      navigate(returnTo);
     }
   };
 
@@ -661,16 +669,23 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button */}
-      {navState?.returnTo && navState?.fromMovieTitle && (
-        <div className="fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4">
+      {/* Floating scroll-aware Back-to-movie button */}
+      {showMovieCrumb && (
+        <div
+          className={cn(
+            "fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-300 ease-out",
+            isFloatingVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-20 opacity-0 pointer-events-none"
+          )}
+        >
           <div className="mx-auto w-full max-w-md">
             <Button
               onClick={handleBackToMovie}
               className="w-full rounded-full min-h-[48px] shadow-lg"
             >
               <Film className="w-4 h-4 mr-2" />
-              Back to {navState.fromMovieTitle}
+              Back to {truncatedFromMovieTitle}
             </Button>
           </div>
         </div>
