@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
@@ -13,7 +14,7 @@ import { CinematicCarousel } from "@/components/CinematicCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
-import { ShareMoodButton } from "@/components/gamification";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
@@ -60,6 +61,9 @@ const saveMood = (mood: string | null) => {
 };
 
 const Index = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
   const [selectedMood, setSelectedMood] = useState<string | null>(() => loadSavedMood());
   const [showPreferences, setShowPreferences] = useState(() => !!loadSavedMood());
   const [showStickyBar, setShowStickyBar] = useState(false);
@@ -72,8 +76,27 @@ const Index = () => {
   });
 
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
+  
+  // URL-based modal state for proper history navigation
+  const movieIdFromUrl = searchParams.get("movie");
+  const isMovieViewOpen = !!movieIdFromUrl && !!selectedMovie;
+  
+  // Restore movie from URL when navigating back
+  useEffect(() => {
+    if (movieIdFromUrl && !selectedMovie) {
+      // Create a minimal movie object - ExpandedMovieView will fetch full details
+      setSelectedMovie({
+        id: parseInt(movieIdFromUrl),
+        title: "",
+        year: 0,
+        rating: 0,
+        genre: "",
+        posterUrl: "",
+        moodMatch: "",
+      });
+    }
+  }, [movieIdFromUrl, selectedMovie]);
 
   // Discovery drawer state
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
@@ -146,8 +169,16 @@ const Index = () => {
       moodMatch: movie.matchReason || movie.surpriseReason || "",
     };
     setSelectedMovie(movieData);
-    setIsMovieViewOpen(true);
+    // Use URL param to open modal - this enables proper history navigation
+    setSearchParams({ movie: String(movie.id) });
   };
+  
+  const handleMovieViewClose = useCallback(() => {
+    // Remove movie param from URL to close modal
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("movie");
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
   // Throttled scroll handler
   useEffect(() => {
@@ -490,19 +521,9 @@ const Index = () => {
       <ExpandedMovieView
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
-        onClose={() => setIsMovieViewOpen(false)}
+        onClose={handleMovieViewClose}
       />
 
-      {/* Share Mood Button - appears when mood is selected */}
-      <ShareMoodButton
-        currentMood={selectedMood || undefined}
-        currentMoodEmoji={selectedMood ? moodEmojis[selectedMood] : undefined}
-        currentMovie={selectedMovie ? { 
-          id: selectedMovie.id, 
-          title: selectedMovie.title, 
-          poster: selectedMovie.posterUrl 
-        } : undefined}
-      />
 
       {/* Footer */}
       <footer className="py-6 border-t border-border bg-secondary/30">
