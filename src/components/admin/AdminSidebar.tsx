@@ -18,6 +18,7 @@ import {
   Bookmark,
   Star,
   Clock,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +50,7 @@ const navItems: NavItem[] = [
   { title: "Watchlist Stats", icon: Bookmark, section: "watchlist-stats" },
   { title: "Reviews & Ratings", icon: Star, section: "reviews-stats" },
   { title: "User Sessions", icon: Clock, section: "user-sessions" },
+  { title: "Site Editor", icon: Palette, section: "site-editor", requiredRole: ["admin", "super_admin"] },
   { title: "User Management", icon: UserCog, section: "user-management", requiredRole: ["super_admin"] },
   { title: "Settings", icon: Settings, section: "system-settings", requiredRole: ["super_admin"] },
 ];

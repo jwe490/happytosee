@@ -1,6 +1,9 @@
-import { motion } from "framer-motion";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, Loader2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, Loader2, X } from "lucide-react";
+import ExpandedMovieView from "@/components/ExpandedMovieView";
+import { Movie } from "@/hooks/useMovieRecommendations";
 
 // Popcorn illustration
 const PopcornIllustration = () => (
@@ -62,8 +65,16 @@ const MovieCardSkeleton = ({ index }: { index: number }) => (
   </motion.div>
 );
 
-// Movie card component
-const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number }) => {
+// Movie card component with internal navigation
+const MovieCard = ({ 
+  movie, 
+  index,
+  onMovieClick,
+}: { 
+  movie: RecommendedMovie; 
+  index: number;
+  onMovieClick: (movie: RecommendedMovie) => void;
+}) => {
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const inWatchlist = isInWatchlist(movie.id);
 
@@ -89,42 +100,40 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.1 + index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
-      className="group relative"
+      className="group relative cursor-pointer"
+      onClick={() => onMovieClick(movie)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onMovieClick(movie)}
     >
-      <a
-        href={`https://www.themoviedb.org/movie/${movie.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-      >
-        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-[1.03]">
-          <img
-            src={movie.posterUrl || '/placeholder.svg'}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/placeholder.svg';
-            }}
-          />
-          
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white text-sm font-medium line-clamp-2">{movie.title}</p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-white/70 text-xs">{movie.year}</span>
-              </div>
+      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-[1.03]">
+        <img
+          src={movie.posterUrl || '/placeholder.svg'}
+          alt={movie.title}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/placeholder.svg';
+          }}
+        />
+        
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute bottom-0 left-0 right-0 p-3">
+            <p className="text-white text-sm font-medium line-clamp-2">{movie.title}</p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-white/70 text-xs">{movie.year}</span>
+              <span className="text-primary text-xs font-medium">View Details →</span>
             </div>
           </div>
-
-          {/* Rating badge */}
-          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
-            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || 'N/A'}</span>
-          </div>
         </div>
-      </a>
+
+        {/* Rating badge */}
+        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
+          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+          <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || 'N/A'}</span>
+        </div>
+      </div>
 
       {/* Watchlist button */}
       <button
@@ -134,6 +143,7 @@ const MovieCard = ({ movie, index }: { movie: RecommendedMovie; index: number })
             ? 'bg-primary text-primary-foreground' 
             : 'bg-black/50 text-white hover:bg-black/70'
         }`}
+        aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
       >
         {inWatchlist ? (
           <BookmarkCheck className="w-4 h-4" />
@@ -158,116 +168,157 @@ export const MoodRecommendationsSlide = ({
   onShare,
   onRetake 
 }: MoodRecommendationsSlideProps) => {
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const hasMovies = movies && movies.length > 0;
   const displayMood = mood.charAt(0).toUpperCase() + mood.slice(1);
 
+  const handleMovieClick = useCallback((movie: RecommendedMovie) => {
+    // Convert to Movie type for ExpandedMovieView
+    const movieData: Movie = {
+      id: movie.id,
+      title: movie.title,
+      rating: movie.rating,
+      year: movie.year,
+      genre: movie.genre || "",
+      posterUrl: movie.posterUrl,
+      moodMatch: mood,
+    };
+    setSelectedMovie(movieData);
+    setIsExpanded(true);
+  }, [mood]);
+
+  const handleCloseExpanded = useCallback(() => {
+    setIsExpanded(false);
+    setTimeout(() => setSelectedMovie(null), 300);
+  }, []);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen bg-background flex flex-col py-20 px-4 sm:px-6"
-    >
-      <div className="max-w-4xl mx-auto w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-foreground"
-          >
-            <PopcornIllustration />
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-right"
-          >
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">Recommended for your</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{displayMood} Mood</h2>
-          </motion.div>
-        </div>
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-background flex flex-col py-20 px-4 sm:px-6"
+      >
+        <div className="max-w-4xl mx-auto w-full">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-foreground"
+            >
+              <PopcornIllustration />
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-right"
+            >
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Recommended for your</p>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{displayMood} Mood</h2>
+            </motion.div>
+          </div>
 
-        {/* Section heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-6"
-        >
-          <h3 className="text-lg font-semibold text-foreground">Movies For You</h3>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Finding movies for your mood…" : "Handpicked based on your preferences"}
-          </p>
-        </motion.div>
+          {/* Section heading */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-6"
+          >
+            <h3 className="text-lg font-semibold text-foreground">Movies For You</h3>
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? "Finding movies for your mood…" : "Tap any movie to see details"}
+            </p>
+          </motion.div>
 
-        {/* Movies grid */}
-        <div className="flex-1">
-          {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => (
-                <MovieCardSkeleton key={i} index={i} />
-              ))}
-            </div>
-          ) : !hasMovies ? (
+          {/* Movies grid */}
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <MovieCardSkeleton key={i} index={i} />
+                ))}
+              </div>
+            ) : !hasMovies ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-16"
+              >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No matches found
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Try another mood for different recommendations
+                </p>
+                <button
+                  onClick={onRetake}
+                  className="px-6 py-2.5 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
+                >
+                  Try Another Mood
+                </button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {movies.map((movie, index) => (
+                  <MovieCard 
+                    key={movie.id} 
+                    movie={movie} 
+                    index={index}
+                    onMovieClick={handleMovieClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          {hasMovies && !isLoading && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-16"
+              transition={{ delay: 0.6 }}
+              className="flex gap-3 mt-8 justify-center flex-wrap"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <RefreshCw className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No matches found
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Try another mood for different recommendations
-              </p>
+              <button
+                onClick={onShare}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90 min-w-[140px]"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Results
+              </button>
+              
               <button
                 onClick={onRetake}
-                className="px-6 py-2.5 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-muted font-medium text-foreground transition-colors hover:bg-muted/80 min-w-[140px]"
               >
-                Try Another Mood
+                <RefreshCw className="w-4 h-4" />
+                Retake
               </button>
             </motion.div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {movies.map((movie, index) => (
-                <MovieCard key={movie.id} movie={movie} index={index} />
-              ))}
-            </div>
           )}
         </div>
+      </motion.div>
 
-        {/* Action buttons */}
-        {hasMovies && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex gap-3 mt-8 justify-center"
-          >
-            <button
-              onClick={onShare}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
-            >
-              <Share2 className="w-4 h-4" />
-              Share Results
-            </button>
-            
-            <button
-              onClick={onRetake}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-muted font-medium text-foreground transition-colors hover:bg-muted/80"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Retake
-            </button>
-          </motion.div>
+      {/* Expanded Movie View Modal */}
+      <AnimatePresence>
+        {isExpanded && selectedMovie && (
+          <ExpandedMovieView
+            movie={selectedMovie}
+            isOpen={isExpanded}
+            onClose={handleCloseExpanded}
+          />
         )}
-      </div>
-    </motion.div>
+      </AnimatePresence>
+    </>
   );
 };
