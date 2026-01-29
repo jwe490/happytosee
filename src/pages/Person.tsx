@@ -92,14 +92,16 @@ const Person = () => {
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
+  // Extract state for back navigation
+  const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
+
   // Robust back navigation:
   // 1) Prefer explicit returnTo (sent from the movie modal)
   // 2) Otherwise, only navigate(-1) when browser history has entries
   // 3) Else go home
   const handleGoBack = () => {
-    const state = location.state as { returnTo?: string } | null;
-    if (state?.returnTo) {
-      navigate(state.returnTo);
+    if (navState?.returnTo) {
+      navigate(navState.returnTo);
       return;
     }
 
@@ -110,6 +112,13 @@ const Person = () => {
     }
 
     navigate("/");
+  };
+
+  // Dedicated back-to-movie handler
+  const handleBackToMovie = () => {
+    if (navState?.returnTo) {
+      navigate(navState.returnTo);
+    }
   };
 
   const handleImageError = (movieId: number) => {
@@ -269,13 +278,26 @@ const Person = () => {
       <Header />
 
       <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 animate-fade-up">
-        <button
-          onClick={handleGoBack}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleGoBack}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back
+          </button>
+          
+          {/* Dedicated Back to Movie chip */}
+          {navState?.returnTo && navState?.fromMovieTitle && (
+            <button
+              onClick={handleBackToMovie}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-full border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all active:scale-95"
+            >
+              <Film className="w-3.5 h-3.5" />
+              Back to "{navState.fromMovieTitle.length > 20 ? navState.fromMovieTitle.slice(0, 20) + '...' : navState.fromMovieTitle}"
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
           <motion.div
