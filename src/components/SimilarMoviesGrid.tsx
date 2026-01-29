@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, Clapperboard, Loader2, Sparkles } from "lucide-react";
+import { Star, Clapperboard, Loader2, Sparkles, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
+import { cn } from "@/lib/utils";
 
 interface SimilarMovie {
   id: number;
@@ -18,6 +19,71 @@ interface SimilarMoviesGridProps {
   onMovieClick: (movie: SimilarMovie) => void;
 }
 
+// Extracted movie poster card for better performance and loading states
+const MoviePosterCard = ({ 
+  movie, 
+  index, 
+  isLast, 
+  lastMovieRef, 
+  onClick 
+}: { 
+  movie: SimilarMovie; 
+  index: number; 
+  isLast: boolean; 
+  lastMovieRef: (node: HTMLDivElement | null) => void;
+  onClick: (movie: SimilarMovie) => void;
+}) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <motion.div 
+      ref={isLast ? lastMovieRef : null}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: Math.min(index * 0.02, 0.5), duration: 0.2 }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={() => onClick(movie)}
+      className="cursor-pointer group"
+    >
+      <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm group-hover:shadow-lg transition-shadow duration-150 relative">
+        {/* Loading skeleton */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-muted animate-pulse" />
+        )}
+        
+        {/* Error fallback */}
+        {imageError ? (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <Film className="w-8 h-8 text-muted-foreground" />
+          </div>
+        ) : (
+          <img
+            src={movie.posterUrl}
+            alt={movie.title}
+            className={cn(
+              "w-full h-full object-cover transition-opacity duration-300",
+              imageLoaded ? "opacity-100" : "opacity-0"
+            )}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        )}
+      </div>
+      <p className="text-[10px] text-foreground line-clamp-1 mt-1.5 font-medium group-hover:text-primary transition-colors">
+        {movie.title}
+      </p>
+      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+        <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+        {movie.rating?.toFixed(1) || "N/A"}
+        {movie.year && <span>• {movie.year}</span>}
+      </div>
+    </motion.div>
+  );
+};
+
 const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMoviesGridProps) => {
   const [movies, setMovies] = useState<SimilarMovie[]>(initialMovies);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -25,6 +91,8 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
   const [currentPage, setCurrentPage] = useState(2); // Start from page 2 since page 1 is already loaded
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastClickRef = useRef<number>(0);
+  const clickedMovieRef = useRef<number | null>(null);
   const { trackSimilarMovieClick, trackLoadMore } = useEngagementTracking();
 
   // Reset when movie changes
@@ -93,10 +161,30 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
     };
   }, []);
 
-  const handleMovieClick = (movie: SimilarMovie) => {
+  const handleMovieClick = useCallback((movie: SimilarMovie) => {
+    const now = Date.now();
+    
+    // Debounce rapid clicks (300ms cooldown)
+    if (now - lastClickRef.current < 300) {
+      return;
+    }
+    
+    // Prevent clicking the same movie twice
+    if (clickedMovieRef.current === movie.id) {
+      return;
+    }
+    
+    lastClickRef.current = now;
+    clickedMovieRef.current = movie.id;
+    
     trackSimilarMovieClick(movie.id, movie.title);
     onMovieClick(movie);
-  };
+    
+    // Reset after a short delay
+    setTimeout(() => {
+      clickedMovieRef.current = null;
+    }, 500);
+  }, [onMovieClick, trackSimilarMovieClick]);
 
   if (movies.length === 0) return null;
 
@@ -113,34 +201,14 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
           const isLastMovie = index === movies.length - 1;
           
           return (
-            <motion.div 
+            <MoviePosterCard
               key={similar.id}
-              ref={isLastMovie ? lastMovieRef : null}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: Math.min(index * 0.02, 0.5), duration: 0.2 }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => handleMovieClick(similar)}
-              className="cursor-pointer group"
-            >
-              <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm group-hover:shadow-lg transition-shadow duration-150">
-                <img
-                  src={similar.posterUrl}
-                  alt={similar.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <p className="text-[10px] text-foreground line-clamp-1 mt-1.5 font-medium group-hover:text-primary transition-colors">
-                {similar.title}
-              </p>
-              <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                {similar.rating}
-                {similar.year && <span>• {similar.year}</span>}
-              </div>
-            </motion.div>
+              movie={similar}
+              index={index}
+              isLast={isLastMovie}
+              lastMovieRef={lastMovieRef}
+              onClick={handleMovieClick}
+            />
           );
         })}
       </div>

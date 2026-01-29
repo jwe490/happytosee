@@ -81,12 +81,12 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
           {/* Logo */}
           <button
             onClick={() => handleNavigation("/")}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95"
           >
             <img 
               src={logo} 
               alt="MoodFlix" 
-              className="h-8 w-auto dark:invert"
+              className="h-10 md:h-12 w-auto dark:invert transition-transform"
             />
           </button>
 
