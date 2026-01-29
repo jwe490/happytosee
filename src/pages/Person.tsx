@@ -90,6 +90,17 @@ const Person = () => {
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
+  // Safe navigation back - with fallback to home
+  const handleGoBack = () => {
+    // Check if there's history to go back to
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      // Fallback to home page
+      navigate("/");
+    }
+  };
+
   const handleImageError = (movieId: number) => {
     setImageErrors(prev => new Set([...prev, movieId]));
   };
@@ -175,7 +186,7 @@ const Person = () => {
           <p className="text-muted-foreground mb-6">
             {error || "We couldn't find this person. They might not exist or there was an error loading their details."}
           </p>
-          <Button onClick={() => navigate(-1)} className="gap-2">
+          <Button onClick={handleGoBack} className="gap-2">
             <ChevronLeft className="w-4 h-4" />
             Go Back
           </Button>
@@ -251,7 +262,7 @@ const Person = () => {
         <motion.button
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          onClick={() => navigate(-1)}
+          onClick={handleGoBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
         >
           <ChevronLeft className="w-4 h-4" />
