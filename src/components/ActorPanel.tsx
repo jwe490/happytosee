@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -6,10 +6,8 @@ import {
   Calendar,
   MapPin,
   Film,
-  ExternalLink,
   Instagram,
   Twitter,
-  Facebook,
   TrendingUp,
   Award,
   Clapperboard,
@@ -20,8 +18,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Movie {
   id: number;
@@ -67,11 +65,83 @@ interface ActorPanelProps {
   onMovieClick: (movie: { id: number; title: string; posterUrl: string; rating: number; year: number }) => void;
 }
 
+// Memoized movie card for filmography
+const FilmographyCard = memo(({ 
+  movie, 
+  onMovieClick, 
+  hasImageError,
+  onImageError 
+}: { 
+  movie: Movie; 
+  onMovieClick: (movie: Movie) => void;
+  hasImageError: boolean;
+  onImageError: (id: number) => void;
+}) => (
+  <button
+    onClick={() => onMovieClick(movie)}
+    className="text-left group transition-transform active:scale-95"
+  >
+    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm ring-1 ring-border/50 group-hover:ring-primary/50 transition-all">
+      {!hasImageError && movie.posterUrl ? (
+        <img
+          src={movie.posterUrl}
+          alt={movie.title}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={() => onImageError(movie.id)}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-secondary">
+          <Film className="w-6 h-6 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+    <p className="text-[11px] font-medium text-foreground line-clamp-1 mt-1.5 group-hover:text-primary transition-colors">
+      {movie.title}
+    </p>
+    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+      <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+      {movie.rating?.toFixed(1) || "N/A"}
+    </div>
+    {movie.character && (
+      <p className="text-[9px] text-muted-foreground line-clamp-1 italic">
+        as {movie.character}
+      </p>
+    )}
+  </button>
+));
+FilmographyCard.displayName = "FilmographyCard";
+
+// Loading skeleton for actor panel
+const ActorPanelSkeleton = () => (
+  <div className="p-4 space-y-6 animate-fade-in">
+    <div className="flex gap-4">
+      <Skeleton className="w-24 h-36 rounded-xl shrink-0" />
+      <div className="flex-1 space-y-3">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-2/3" />
+        <Skeleton className="h-3 w-1/2" />
+      </div>
+    </div>
+    <div className="grid grid-cols-3 gap-2">
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className="h-20 rounded-lg" />
+      ))}
+    </div>
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-16 w-full" />
+    </div>
+  </div>
+);
+
 export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }: ActorPanelProps) => {
   const [person, setPerson] = useState<PersonDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showFullBio, setShowFullBio] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [expandedDecades, setExpandedDecades] = useState<Set<string>>(new Set(["2020s"]));
 
   useEffect(() => {
     if (actorId && isOpen) {
@@ -79,6 +149,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
     } else {
       setPerson(null);
       setShowFullBio(false);
+      setImageErrors(new Set());
     }
   }, [actorId, isOpen]);
 
@@ -102,6 +173,38 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
     setImageErrors((prev) => new Set([...prev, movieId]));
   };
 
+  // Group movies by decade for categorized filmography
+  const filmographyByDecade = useMemo(() => {
+    if (!person?.actingRoles) return {};
+    
+    const grouped: Record<string, Movie[]> = {};
+    
+    person.actingRoles
+      .filter(m => m.year && m.year > 1900)
+      .sort((a, b) => b.year - a.year)
+      .forEach(movie => {
+        const decade = `${Math.floor(movie.year / 10) * 10}s`;
+        if (!grouped[decade]) grouped[decade] = [];
+        grouped[decade].push(movie);
+      });
+    
+    return grouped;
+  }, [person?.actingRoles]);
+
+  const decades = useMemo(() => Object.keys(filmographyByDecade).sort((a, b) => parseInt(b) - parseInt(a)), [filmographyByDecade]);
+
+  const toggleDecade = (decade: string) => {
+    setExpandedDecades(prev => {
+      const next = new Set(prev);
+      if (next.has(decade)) {
+        next.delete(decade);
+      } else {
+        next.add(decade);
+      }
+      return next;
+    });
+  };
+
   const calculateAge = (birthday: string, deathday?: string | null) => {
     const birth = new Date(birthday);
     const end = deathday ? new Date(deathday) : new Date();
@@ -112,8 +215,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -127,7 +229,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          transition={{ type: "spring", damping: 30, stiffness: 350 }}
           className="absolute inset-0 z-[70] bg-background overflow-y-auto"
         >
           {/* Header */}
@@ -145,25 +247,11 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
           </div>
 
           {/* Loading state */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                    transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">Loading actor details...</p>
-            </div>
-          )}
+          {isLoading && <ActorPanelSkeleton />}
 
           {/* Content */}
           {!isLoading && person && (
-            <div className="p-4 space-y-6 pb-20">
+            <div className="p-4 space-y-6 pb-20 animate-fade-in">
               {/* Profile header */}
               <div className="flex gap-4">
                 {person.profileUrl ? (
@@ -173,7 +261,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
                     className="w-24 h-36 object-cover rounded-xl shadow-lg ring-1 ring-border/50 shrink-0"
                   />
                 ) : (
-                  <div className="w-24 h-36 bg-muted rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-24 h-36 bg-secondary rounded-xl flex items-center justify-center shrink-0">
                     <User className="w-10 h-10 text-muted-foreground" />
                   </div>
                 )}
@@ -181,14 +269,15 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
                   <h2 className="font-display text-xl font-bold text-foreground">{person.name}</h2>
                   <p className="text-sm text-muted-foreground">{person.knownFor}</p>
                   {person.birthday && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3" />
                       {formatDate(person.birthday)} ({calculateAge(person.birthday, person.deathday)} years)
                     </p>
                   )}
                   {person.placeOfBirth && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <MapPin className="w-3 h-3" />
-                      {person.placeOfBirth}
+                      <span className="line-clamp-1">{person.placeOfBirth}</span>
                     </p>
                   )}
                 </div>
@@ -197,17 +286,17 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
               {/* Stats */}
               {person.stats && (
                 <div className="grid grid-cols-3 gap-2">
-                  <Card className="p-3 text-center">
+                  <Card className="p-3 text-center bg-secondary/50">
                     <Film className="w-4 h-4 mx-auto text-primary mb-1" />
                     <p className="text-lg font-bold">{person.stats.totalMovies || 0}</p>
                     <p className="text-[10px] text-muted-foreground">Movies</p>
                   </Card>
-                  <Card className="p-3 text-center">
+                  <Card className="p-3 text-center bg-secondary/50">
                     <Clapperboard className="w-4 h-4 mx-auto text-primary mb-1" />
                     <p className="text-lg font-bold">{person.stats.asActor || 0}</p>
                     <p className="text-[10px] text-muted-foreground">Acting</p>
                   </Card>
-                  <Card className="p-3 text-center">
+                  <Card className="p-3 text-center bg-secondary/50">
                     <TrendingUp className="w-4 h-4 mx-auto text-primary mb-1" />
                     <p className="text-lg font-bold">{person.popularity?.toFixed(0) || 0}</p>
                     <p className="text-[10px] text-muted-foreground">Popularity</p>
@@ -253,8 +342,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
               {person.externalIds &&
                 (person.externalIds.imdb ||
                   person.externalIds.instagram ||
-                  person.externalIds.twitter ||
-                  person.externalIds.facebook) && (
+                  person.externalIds.twitter) && (
                   <div className="flex flex-wrap gap-2">
                     {person.externalIds.imdb && (
                       <Button variant="outline" size="sm" asChild className="gap-2 h-8">
@@ -295,60 +383,62 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
                   </div>
                 )}
 
-              {/* Filmography */}
-              {person.actingRoles && person.actingRoles.length > 0 && (
-                <div className="space-y-3">
+              {/* Categorized Filmography by Decade */}
+              {decades.length > 0 && (
+                <div className="space-y-4">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <Clapperboard className="w-4 h-4 text-primary" />
-                    Filmography ({person.actingRoles.length})
+                    Filmography ({person.actingRoles?.length || 0} credits)
                   </h3>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {person.actingRoles.slice(0, 12).map((movie) => (
-                      <motion.button
-                        key={movie.id}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() =>
-                          onMovieClick({
-                            id: movie.id,
-                            title: movie.title,
-                            posterUrl: movie.posterUrl,
-                            rating: movie.rating,
-                            year: movie.year,
-                          })
-                        }
-                        className="text-left group"
-                      >
-                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm ring-1 ring-border/50 group-hover:ring-primary transition-all">
-                          {!imageErrors.has(movie.id) && movie.posterUrl ? (
-                            <img
-                              src={movie.posterUrl}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                              onError={() => handleImageError(movie.id)}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Film className="w-6 h-6 text-muted-foreground" />
+                  
+                  <div className="space-y-3">
+                    {decades.map((decade) => {
+                      const movies = filmographyByDecade[decade];
+                      const isExpanded = expandedDecades.has(decade);
+                      
+                      return (
+                        <div key={decade} className="border border-border rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleDecade(decade)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{decade}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({movies.length} {movies.length === 1 ? 'movie' : 'movies'})
+                              </span>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="p-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                              {movies.map((movie) => (
+                                <FilmographyCard
+                                  key={movie.id}
+                                  movie={movie}
+                                  onMovieClick={(m) =>
+                                    onMovieClick({
+                                      id: m.id,
+                                      title: m.title,
+                                      posterUrl: m.posterUrl,
+                                      rating: m.rating,
+                                      year: m.year,
+                                    })
+                                  }
+                                  hasImageError={imageErrors.has(movie.id)}
+                                  onImageError={handleImageError}
+                                />
+                              ))}
                             </div>
                           )}
                         </div>
-                        <p className="text-[10px] font-medium text-foreground line-clamp-1 mt-1 group-hover:text-primary transition-colors">
-                          {movie.title}
-                        </p>
-                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                          <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                          {movie.rating?.toFixed(1) || "N/A"}
-                          {movie.year && <span>• {movie.year}</span>}
-                        </div>
-                        {movie.character && (
-                          <p className="text-[9px] text-muted-foreground line-clamp-1 italic">
-                            as {movie.character}
-                          </p>
-                        )}
-                      </motion.button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -357,7 +447,7 @@ export const ActorPanel = ({ actorId, actorName, isOpen, onClose, onMovieClick }
 
           {/* Error/not found */}
           {!isLoading && !person && actorId && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="flex flex-col items-center justify-center py-20 gap-4 animate-fade-in">
               <User className="w-12 h-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Could not load actor details</p>
               <Button variant="outline" size="sm" onClick={onClose}>
