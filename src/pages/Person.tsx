@@ -92,9 +92,10 @@ const Person = () => {
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
-  // Safe navigation back.
-  // Prefer an explicit returnTo (passed when navigating here) because browser history
-  // may be missing / polluted (e.g., direct opens, external referrers).
+  // Robust back navigation:
+  // 1) Prefer explicit returnTo (sent from the movie modal)
+  // 2) Otherwise, only navigate(-1) when browser history has entries
+  // 3) Else go home
   const handleGoBack = () => {
     const state = location.state as { returnTo?: string } | null;
     if (state?.returnTo) {
@@ -102,14 +103,13 @@ const Person = () => {
       return;
     }
 
-    // Fallback to browser history; if that doesn't actually change route, go home.
-    const before = window.location.href;
-    window.history.back();
-    setTimeout(() => {
-      if (window.location.href === before) {
-        navigate("/");
-      }
-    }, 0);
+    const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
+    if (canGoBack) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/");
   };
 
   const handleImageError = (movieId: number) => {
@@ -147,7 +147,6 @@ const Person = () => {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      console.log("Person data received:", data);
       setPerson(data);
     } catch (error) {
       console.error("Error fetching person details:", error);
@@ -266,30 +265,17 @@ const Person = () => {
   );
 
   return (
-    <motion.div 
-      className="min-h-screen bg-background pt-20"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
+    <div className="min-h-screen bg-background pt-20 animate-fade-in">
       <Header />
 
-      <motion.main 
-        className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-      >
-        <motion.button
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 animate-fade-up">
+        <button
           onClick={handleGoBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors active:scale-95"
         >
           <ChevronLeft className="w-4 h-4" />
           Back
-        </motion.button>
+        </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
           <motion.div
@@ -641,7 +627,7 @@ const Person = () => {
             )}
           </motion.div>
         </div>
-      </motion.main>
+      </main>
 
       <Footer />
 
@@ -653,7 +639,7 @@ const Person = () => {
           setSelectedMovie(null);
         }}
       />
-    </motion.div>
+    </div>
   );
 };
 
