@@ -57,6 +57,12 @@ const moodGenreMapping: Record<string, number[]> = {
   excited: [28, 12, 878],
   bored: [28, 12, 53],
   nostalgic: [18, 10751],
+  chill: [35, 18, 10402],
+  adventurous: [12, 28, 14],
+  thrilled: [53, 27, 28],
+  stressed: [35, 16, 10751],
+  motivated: [18, 36, 99],
+  inspired: [18, 99, 36],
 };
 
 const moodTemplates: Record<string, string[]> = {
@@ -101,6 +107,42 @@ const moodTemplates: Record<string, string[]> = {
     "This film captures the essence of bygone eras",
     "A journey back to simpler, cherished times",
     "Reminiscent of the movies you grew up loving",
+  ],
+  chill: [
+    "Perfect for a relaxing, low-key evening",
+    "Easygoing vibes for your laid-back mood",
+    "A calming watch to unwind with",
+    "Smooth and soothing entertainment",
+  ],
+  adventurous: [
+    "An epic journey awaits in this adventure",
+    "Explore new worlds with this thrilling ride",
+    "For the explorer in you seeking excitement",
+    "A daring escapade that feeds your wanderlust",
+  ],
+  thrilled: [
+    "Heart-pounding suspense at its finest",
+    "Edge-of-your-seat tension throughout",
+    "A gripping thriller that won't let go",
+    "Intense moments that keep you guessing",
+  ],
+  stressed: [
+    "A light escape to help you decompress",
+    "Stress-busting entertainment to relax",
+    "Take a break with this easygoing film",
+    "Forget your worries with this comfort watch",
+  ],
+  motivated: [
+    "An inspiring story of triumph and success",
+    "Fuel your drive with this motivational film",
+    "Stories of perseverance that push you forward",
+    "Get inspired by these incredible journeys",
+  ],
+  inspired: [
+    "A thought-provoking film that sparks creativity",
+    "Stories that ignite your imagination",
+    "Beautiful narratives that inspire change",
+    "Visionary filmmaking that opens new perspectives",
   ],
 };
 
