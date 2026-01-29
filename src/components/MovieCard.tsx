@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Bookmark, BookmarkCheck } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
 import { useWatchlist } from "@/hooks/useWatchlist";
+import { cn } from "@/lib/utils";
 
 interface MovieCardProps {
   movie: Movie;
@@ -12,6 +14,7 @@ interface MovieCardProps {
 const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
   const { addToWatchlist, removeFromWatchlist, isInWatchlist, user } = useWatchlist();
   const inWatchlist = isInWatchlist(movie.id);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleWatchlistClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,14 +47,27 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
       className="group cursor-pointer"
     >
       <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-lg transition-shadow duration-300">
-        {/* Poster Image */}
+        {/* Skeleton loader */}
+        <div 
+          className={cn(
+            "absolute inset-0 bg-muted animate-pulse transition-opacity duration-300",
+            imageLoaded ? "opacity-0" : "opacity-100"
+          )}
+        />
+        
+        {/* Poster Image with fade-in */}
         <img
           src={movie.posterUrl}
           alt={movie.title}
-          className="absolute inset-0 w-full h-full object-cover"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out",
+            imageLoaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={() => setImageLoaded(true)}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = `https://picsum.photos/seed/${encodeURIComponent(movie.title.replace(/\s+/g, ''))}/400/600`;
+            setImageLoaded(true);
           }}
           loading="lazy"
         />
