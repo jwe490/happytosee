@@ -34,25 +34,36 @@ const genreNameToId: Record<string, number> = {
   "science fiction": 878, "tv movie": 10770, "thriller": 53, "war": 10752, "western": 37
 };
 
+// More comprehensive language mappings
 const languageToCode: Record<string, string> = {
   "english": "en", "hindi": "hi", "spanish": "es", "french": "fr",
   "korean": "ko", "japanese": "ja", "tamil": "ta", "telugu": "te",
   "german": "de", "italian": "it", "chinese": "zh", "portuguese": "pt",
+  "malayalam": "ml", "kannada": "kn", "bengali": "bn", "marathi": "mr",
+  "punjabi": "pa", "gujarati": "gu",
 };
 
-const industryMapping: Record<string, { language: string; region?: string }> = {
-  "bollywood": { language: "hi", region: "IN" },
-  "hollywood": { language: "en", region: "US" },
-  "korean cinema": { language: "ko", region: "KR" },
-  "japanese cinema": { language: "ja", region: "JP" },
-  "tollywood": { language: "te", region: "IN" },
-  "kollywood": { language: "ta", region: "IN" },
+// Industry mapping - key is lowercase, includes language codes for TMDb filtering
+const industryMapping: Record<string, { language: string; region?: string; name: string }> = {
+  "bollywood": { language: "hi", region: "IN", name: "Bollywood" },
+  "hollywood": { language: "en", region: "US", name: "Hollywood" },
+  "korean cinema": { language: "ko", region: "KR", name: "Korean Cinema" },
+  "korean": { language: "ko", region: "KR", name: "Korean Cinema" },
+  "japanese cinema": { language: "ja", region: "JP", name: "Japanese Cinema" },
+  "japanese": { language: "ja", region: "JP", name: "Japanese Cinema" },
+  "tollywood": { language: "te", region: "IN", name: "Tollywood" },
+  "kollywood": { language: "ta", region: "IN", name: "Kollywood" },
+  "mollywood": { language: "ml", region: "IN", name: "Mollywood" },
+  "sandalwood": { language: "kn", region: "IN", name: "Sandalwood" },
+  "french cinema": { language: "fr", region: "FR", name: "French Cinema" },
+  "spanish cinema": { language: "es", region: "ES", name: "Spanish Cinema" },
+  "chinese cinema": { language: "zh", region: "CN", name: "Chinese Cinema" },
 };
 
 const moodGenreMapping: Record<string, number[]> = {
   happy: [35, 10751, 16],
   sad: [18, 10749],
-  romantic: [10749, 35],
+  romantic: [10749, 35, 18],
   relaxed: [18, 35],
   excited: [28, 12, 878],
   bored: [28, 12, 53],
@@ -243,26 +254,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("Request params:", { mood, languages, genres, industries, duration, hiddenGems, maxRuntime, dateNightMoods });
+    console.log("Request params:", JSON.stringify({ mood, languages, genres, industries, duration, hiddenGems, maxRuntime, dateNightMoods }));
 
     // Check if Date Night Mixer is active
     const isDateNightMode = dateNightMoods && dateNightMoods.length === 2;
 
     let targetLanguage: string | null = null;
     let targetRegion: string | null = null;
+    let industryName: string | null = null;
 
+    // Process industries first (highest priority for language filtering)
     if (industries && industries.length > 0) {
       const industry = industries[0].toLowerCase();
       const industryConfig = industryMapping[industry];
       if (industryConfig) {
         targetLanguage = industryConfig.language;
         targetRegion = industryConfig.region || null;
+        industryName = industryConfig.name;
+        console.log(`Industry filter: ${industryName} -> language: ${targetLanguage}, region: ${targetRegion}`);
       }
     }
 
+    // Process languages if no industry set
     if (!targetLanguage && languages && languages.length > 0) {
       const lang = languages[0].toLowerCase();
       targetLanguage = languageToCode[lang] || lang;
+      console.log(`Language filter: ${lang} -> ${targetLanguage}`);
     }
 
     let targetGenreIds: number[] = [];
@@ -275,29 +292,35 @@ Deno.serve(async (req) => {
       if (genre2) targetGenreIds.push(genre2);
       console.log(`Date Night Mode: Combining ${dateNightMoods[0]} (${genre1}) + ${dateNightMoods[1]} (${genre2})`);
     } else if (genres && genres.length > 0) {
+      // User-selected genres take priority
       targetGenreIds = genres
         .map((g: string) => genreNameToId[g.toLowerCase()])
         .filter((id: number | undefined): id is number => id !== undefined);
+      console.log(`User genre filter: ${genres.join(", ")} -> ${targetGenreIds.join(", ")}`);
     }
 
+    // Only add mood-based genres if no explicit genres selected
     if (targetGenreIds.length === 0 && mood) {
-      targetGenreIds = moodGenreMapping[mood.toLowerCase()] || [28, 35, 18];
+      targetGenreIds = moodGenreMapping[mood.toLowerCase()] || [];
+      console.log(`Mood genre mapping: ${mood} -> ${targetGenreIds.join(", ")}`);
     }
 
+    // Build the TMDb discover URL
     const queryParams = new URLSearchParams({
       api_key: TMDB_API_KEY,
-      sort_by: "vote_average.desc",
-      page: String(Math.floor(Math.random() * 5) + 1),
+      sort_by: "popularity.desc", // Changed from vote_average to get more relevant results
+      page: String(Math.floor(Math.random() * 3) + 1), // Reduced random pages for better results
       language: "en-US",
     });
 
     // Hidden Gems Mode - highly rated but not blockbusters
     if (hiddenGems) {
       queryParams.set("vote_average.gte", "7.0");
-      queryParams.set("vote_count.gte", "200");
-      queryParams.set("vote_count.lte", "5000");
-    } else {
       queryParams.set("vote_count.gte", "100");
+      queryParams.set("vote_count.lte", "5000");
+      queryParams.set("sort_by", "vote_average.desc");
+    } else {
+      queryParams.set("vote_count.gte", "50"); // Lower threshold for regional cinema
     }
 
     // Runtime filter
@@ -305,14 +328,18 @@ Deno.serve(async (req) => {
       queryParams.set("with_runtime.lte", String(maxRuntime));
     }
 
+    // Genre filter - use OR logic (|) for mood-based, AND logic (,) for user-selected
     if (targetGenreIds.length > 0) {
-      queryParams.set("with_genres", targetGenreIds.join(","));
+      // Use OR logic for better results with regional cinema
+      queryParams.set("with_genres", targetGenreIds.join("|"));
     }
 
+    // Language filter - critical for regional cinema accuracy
     if (targetLanguage) {
       queryParams.set("with_original_language", targetLanguage);
     }
 
+    // Region filter
     if (targetRegion) {
       queryParams.set("region", targetRegion);
     }
@@ -328,38 +355,57 @@ Deno.serve(async (req) => {
 
     const tmdbData = await tmdbResponse.json();
     let movies: TMDbMovie[] = tmdbData.results || [];
-    let usedFallback = false;
 
-    console.log(`Fetched ${movies.length} movies from TMDb (AND logic)`);
+    console.log(`Fetched ${movies.length} movies from TMDb`);
+
+    // If we got too few results, try relaxing the filters
+    if (movies.length < 10 && targetLanguage) {
+      console.log("Trying to fetch more movies with relaxed filters...");
+      
+      // Try without genre filter
+      const relaxedParams = new URLSearchParams(queryParams);
+      relaxedParams.delete("with_genres");
+      relaxedParams.set("page", "1");
+      
+      const relaxedUrl = `${TMDB_BASE_URL}/discover/movie?${relaxedParams.toString()}`;
+      const relaxedResponse = await fetch(relaxedUrl);
+      
+      if (relaxedResponse.ok) {
+        const relaxedData = await relaxedResponse.json();
+        const relaxedMovies = relaxedData.results || [];
+        console.log(`Relaxed filter found ${relaxedMovies.length} movies`);
+        
+        // Add non-duplicate movies
+        const existingIds = new Set(movies.map(m => m.id));
+        for (const movie of relaxedMovies) {
+          if (!existingIds.has(movie.id)) {
+            movies.push(movie);
+            existingIds.add(movie.id);
+          }
+        }
+      }
+    }
 
     // Date Night Mixer fallback: Try OR logic if AND returns few results
     if (isDateNightMode && movies.length < 5 && targetGenreIds.length === 2) {
-      console.log("Date Night: Too few results with AND, trying OR logic...");
+      console.log("Date Night: Too few results, trying relaxed query...");
       queryParams.set("with_genres", targetGenreIds.join("|")); // OR operator
+      queryParams.delete("with_original_language"); // Remove language filter
       const orUrl = `${TMDB_BASE_URL}/discover/movie?${queryParams.toString()}`;
       const orResponse = await fetch(orUrl);
       if (orResponse.ok) {
         const orData = await orResponse.json();
         if (orData.results && orData.results.length > movies.length) {
           movies = orData.results;
-          usedFallback = true;
-          console.log(`Date Night OR fallback: Found ${movies.length} movies`);
-        }
-      }
-    } else if (movies.length < 5 && targetGenreIds.length > 1) {
-      queryParams.set("with_genres", targetGenreIds[0].toString());
-      const relaxedUrl = `${TMDB_BASE_URL}/discover/movie?${queryParams.toString()}`;
-      const relaxedResponse = await fetch(relaxedUrl);
-      if (relaxedResponse.ok) {
-        const relaxedData = await relaxedResponse.json();
-        if (relaxedData.results && relaxedData.results.length > movies.length) {
-          movies = relaxedData.results;
+          console.log(`Date Night fallback: Found ${movies.length} movies`);
         }
       }
     }
 
+    // Filter out previously recommended
     if (previouslyRecommended && previouslyRecommended.length > 0) {
-      movies = movies.filter(m => !previouslyRecommended.includes(m.title));
+      const prevSet = new Set(previouslyRecommended.map(t => t.toLowerCase()));
+      movies = movies.filter(m => !prevSet.has(m.title.toLowerCase()));
     }
 
     const selectedMovies = movies.slice(0, 20);
@@ -401,12 +447,14 @@ Deno.serve(async (req) => {
 
       const langToIndustry: Record<string, string> = {
         "hi": "Bollywood", "ta": "Kollywood", "te": "Tollywood",
+        "ml": "Mollywood", "kn": "Sandalwood", "bn": "Tollywood",
         "ko": "Korean Cinema", "ja": "Japanese Cinema", "en": "Hollywood",
-        "fr": "French Cinema", "es": "Spanish Cinema",
+        "fr": "French Cinema", "es": "Spanish Cinema", "zh": "Chinese Cinema",
       };
 
       const langToName: Record<string, string> = {
         "en": "English", "hi": "Hindi", "ta": "Tamil", "te": "Telugu",
+        "ml": "Malayalam", "kn": "Kannada", "bn": "Bengali", "mr": "Marathi",
         "ko": "Korean", "ja": "Japanese", "es": "Spanish", "fr": "French",
         "de": "German", "zh": "Chinese", "pt": "Portuguese", "it": "Italian",
       };
@@ -420,7 +468,7 @@ Deno.serve(async (req) => {
         rating: Math.round(movie.vote_average * 10) / 10,
         genre: genreNames,
         language: langToName[movie.original_language] || movie.original_language.toUpperCase(),
-        industry: langToIndustry[movie.original_language] || "International",
+        industry: industryName || langToIndustry[movie.original_language] || "International",
         posterUrl: movie.poster_path
           ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
           : `https://via.placeholder.com/400x600/1a1a1a/ffffff?text=${encodeURIComponent(movie.title)}`,

@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("AI search request:", { description, type });
+    console.log("AI search request:", { description, type, hasGeminiKey: !!GEMINI_API_KEY });
 
     // Handle "describe" type - use AI to parse natural language
     if (type === "describe") {
@@ -90,10 +90,12 @@ Deno.serve(async (req) => {
       }
 
       let searchTerms: string[] = [];
+      let aiConfidence = "low";
 
       // Use Gemini API directly to extract movie titles from description
       if (GEMINI_API_KEY) {
         try {
+          console.log("Calling Gemini API...");
           const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: {
@@ -106,18 +108,16 @@ Deno.serve(async (req) => {
                     {
                       text: `You are a movie identification expert. Given a user's description of a movie (which may include plot details, actor names, character names, themes, or partial/misspelled titles), identify the most likely movie(s) they're looking for.
 
-Return ONLY a JSON object in this exact format:
-{
-  "movies": ["Movie Title 1", "Movie Title 2", "Movie Title 3"],
-  "confidence": "high" | "medium" | "low"
-}
+Return ONLY a valid JSON object in this exact format, nothing else:
+{"movies": ["Movie Title 1", "Movie Title 2"], "confidence": "high"}
 
 Rules:
 - Return 1-5 movie titles, most likely first
 - Use correct official English titles
 - If user mentions actor names, identify their movies matching the description
 - If description is vague, provide best guesses
-- Do NOT include any explanation, just the JSON
+- confidence must be "high", "medium", or "low"
+- Return ONLY the JSON, no markdown, no explanation
 
 User description: ${description}`
                     }
@@ -125,50 +125,92 @@ User description: ${description}`
                 }
               ],
               generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 500,
+                temperature: 0.3,
+                maxOutputTokens: 300,
               }
             }),
           });
 
+          console.log("Gemini response status:", aiResponse.status);
+
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
             const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            console.log("Gemini response:", content);
+            console.log("Gemini raw response:", content);
 
-            // Parse JSON from AI response
+            // Parse JSON from AI response - handle potential markdown wrapper
             try {
-              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              // Remove any markdown code blocks
+              let cleanContent = content.trim();
+              if (cleanContent.startsWith("```json")) {
+                cleanContent = cleanContent.slice(7);
+              } else if (cleanContent.startsWith("```")) {
+                cleanContent = cleanContent.slice(3);
+              }
+              if (cleanContent.endsWith("```")) {
+                cleanContent = cleanContent.slice(0, -3);
+              }
+              cleanContent = cleanContent.trim();
+
+              const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                searchTerms = parsed.movies || [];
+                if (Array.isArray(parsed.movies) && parsed.movies.length > 0) {
+                  searchTerms = parsed.movies.filter((m: unknown) => typeof m === 'string');
+                  aiConfidence = parsed.confidence || "medium";
+                  console.log("Parsed movies from AI:", searchTerms);
+                }
               }
             } catch (parseErr) {
-              console.log("Couldn't parse AI JSON, using fallback");
+              console.log("Couldn't parse AI JSON:", parseErr);
             }
+          } else {
+            const errorText = await aiResponse.text();
+            console.error("Gemini API error:", aiResponse.status, errorText);
           }
         } catch (aiErr) {
           console.error("AI error:", aiErr);
         }
+      } else {
+        console.log("No Gemini API key configured");
       }
 
-      // Fallback: use original description as search
+      // Smart fallback: extract likely movie-related terms
       if (searchTerms.length === 0) {
-        searchTerms = [description.slice(0, 50)];
+        console.log("Using fallback: extracting keywords from description");
+        // Extract actor names, titles, and key phrases
+        const lowerDesc = description.toLowerCase();
+        
+        // Common patterns to extract
+        const actorPatterns = /(?:with|starring|featuring)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/gi;
+        const actorMatch = description.match(actorPatterns);
+        
+        // Use the full description but also try shorter key phrases
+        searchTerms = [description.slice(0, 100)];
+        
+        // If description mentions an actor, also search by actor name
+        if (actorMatch) {
+          const actorName = actorMatch[0].replace(/(?:with|starring|featuring)\s+/i, '');
+          searchTerms.unshift(actorName); // Search actor first
+        }
       }
 
       // Search TMDB for each identified title
       const allMovies: any[] = [];
       const seenIds = new Set<number>();
 
-      for (const term of searchTerms.slice(0, 3)) {
+      for (const term of searchTerms.slice(0, 5)) {
         try {
           const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(term)}&language=en-US&page=1`;
+          console.log("Searching TMDb for:", term);
           const searchResponse = await fetch(searchUrl);
 
           if (searchResponse.ok) {
             const searchData = await searchResponse.json();
-            for (const movie of (searchData.results || []).slice(0, 5)) {
+            const results = searchData.results || [];
+            console.log(`Found ${results.length} results for "${term}"`);
+            
+            for (const movie of results.slice(0, 5)) {
               if (!seenIds.has(movie.id)) {
                 seenIds.add(movie.id);
                 allMovies.push({
@@ -188,6 +230,8 @@ User description: ${description}`
           console.error("Search error for term:", term, err);
         }
       }
+
+      console.log(`Returning ${allMovies.length} movies total`);
 
       return new Response(JSON.stringify({
         movies: allMovies.slice(0, 10),
