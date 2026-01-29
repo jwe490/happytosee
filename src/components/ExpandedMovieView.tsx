@@ -99,6 +99,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const [showContent, setShowContent] = useState(false);
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
   const historyDepthRef = useRef(0);
+  const requestSeqRef = useRef(0);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
@@ -172,20 +173,30 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   }, [isOpen]);
 
   const fetchMovieDetails = async (id: number) => {
+    const seq = ++requestSeqRef.current;
     setIsLoading(true);
     setShowContent(false);
+    // Critical: clear previous details immediately so we never show the old poster/content
+    // while loading the next movie.
+    setDetails(null);
+    setShowTrailer(false);
     try {
       const { data, error } = await supabase.functions.invoke("movie-details", {
         body: { movieId: id },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
+      // Ignore stale responses if the user switched movies quickly.
+      if (requestSeqRef.current !== seq) return;
+
       setDetails(data);
-      setTimeout(() => setShowContent(true), 200);
+      setTimeout(() => {
+        if (requestSeqRef.current === seq) setShowContent(true);
+      }, 200);
     } catch (error) {
       console.error("Error fetching movie details:", error);
     } finally {
-      setIsLoading(false);
+      if (requestSeqRef.current === seq) setIsLoading(false);
     }
   };
 
