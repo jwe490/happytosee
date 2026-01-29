@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Clock, Calendar, Play, Users,
@@ -22,6 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import SimilarMoviesGrid from "./SimilarMoviesGrid";
+import ActorPanel from "./ActorPanel";
 
 interface SimilarMovie {
   id: number;
@@ -84,8 +84,6 @@ interface HistoryState {
 }
 
 const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [movieStack, setMovieStack] = useState<Movie[]>([]);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
@@ -96,6 +94,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const historyDepthRef = useRef(0);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
+  
+  // Actor panel state
+  const [actorPanelOpen, setActorPanelOpen] = useState(false);
+  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
+  const [selectedActorName, setSelectedActorName] = useState<string>("");
 
   // FIXED: Proper back navigation that follows the movie stack
   const handleBack = useCallback(() => {
@@ -173,16 +176,37 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
-    // Navigate to person page with an explicit return URL so the actor page can always
-    // go back to the exact movie state (including ?movie=...)
-    const returnTo = `${location.pathname}${location.search}`;
-    navigate(`/person/${member.id}`, {
-      state: { 
-        returnTo,
-        fromMovie: currentMovie?.id,
-        fromMovieTitle: currentMovie?.title,
-      }
-    });
+    // Open actor panel inside the modal instead of navigating
+    setSelectedActorId(member.id);
+    setSelectedActorName(member.name);
+    setActorPanelOpen(true);
+  };
+
+  const handleActorPanelClose = () => {
+    setActorPanelOpen(false);
+    setSelectedActorId(null);
+    setSelectedActorName("");
+  };
+
+  const handleActorMovieClick = (movieData: { id: number; title: string; posterUrl: string; rating: number; year: number }) => {
+    // Close actor panel and add movie to stack
+    handleActorPanelClose();
+    const newMovie: Movie = {
+      id: movieData.id,
+      title: movieData.title,
+      rating: movieData.rating,
+      year: movieData.year,
+      genre: "",
+      posterUrl: movieData.posterUrl,
+      moodMatch: "",
+    };
+    setMovieStack(prev => [...prev, newMovie]);
+    setCurrentMovie(newMovie);
+    historyDepthRef.current += 1;
+    
+    // Scroll to top of the modal
+    const container = document.querySelector('.expanded-movie-scroll');
+    if (container) container.scrollTop = 0;
   };
 
   // FIXED: Navigate to similar movie by adding to stack instead of replacing
@@ -614,6 +638,15 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
               </AnimatePresence>
             </div>
           </div>
+
+          {/* Actor Panel - slides in from right */}
+          <ActorPanel
+            actorId={selectedActorId}
+            actorName={selectedActorName}
+            isOpen={actorPanelOpen}
+            onClose={handleActorPanelClose}
+            onMovieClick={handleActorMovieClick}
+          />
         </motion.div>
       )}
     </AnimatePresence>

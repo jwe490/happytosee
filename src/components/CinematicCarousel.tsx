@@ -119,7 +119,8 @@ export const CinematicCarousel = ({
                 alt={currentMovie.title}
                 className="w-full h-full object-cover"
                 loading="eager"
-                fetchPriority="high"
+                // @ts-expect-error fetchpriority is valid HTML but React types it differently
+                fetchpriority="high"
               />
 
               {/* Gradient Overlay */}
