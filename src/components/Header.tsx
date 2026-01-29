@@ -7,6 +7,7 @@ import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield 
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import logo from "@/assets/logo.svg";
 
 interface HeaderProps {
   onOpenDiscovery?: () => void;
@@ -80,9 +81,13 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
           {/* Logo */}
           <button
             onClick={() => handleNavigation("/")}
-            className="text-lg font-semibold tracking-tight hover:opacity-70 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            MoodFlix
+            <img 
+              src={logo} 
+              alt="MoodFlix" 
+              className="h-8 w-auto dark:invert"
+            />
           </button>
 
           {/* Desktop Nav */}

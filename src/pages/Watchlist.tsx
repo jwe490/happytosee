@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -157,6 +158,8 @@ const Watchlist = () => {
             </div>
           )}
         </main>
+
+        <Footer />
 
         <ExpandedMovieView
           movie={selectedMovie}

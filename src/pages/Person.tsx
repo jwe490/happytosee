@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
+import Footer from "@/components/Footer";
 import { Movie as RecommendationMovie } from "@/hooks/useMovieRecommendations";
 
 interface Movie {
@@ -630,6 +631,8 @@ const Person = () => {
           </motion.div>
         </div>
       </main>
+
+      <Footer />
 
       <ExpandedMovieView
         movie={selectedMovie}
