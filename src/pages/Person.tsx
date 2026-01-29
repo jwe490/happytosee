@@ -266,10 +266,21 @@ const Person = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <motion.div 
+      className="min-h-screen bg-background pt-20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
       <Header />
 
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
+      <motion.main 
+        className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+      >
         <motion.button
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -630,7 +641,7 @@ const Person = () => {
             )}
           </motion.div>
         </div>
-      </main>
+      </motion.main>
 
       <Footer />
 
@@ -642,7 +653,7 @@ const Person = () => {
           setSelectedMovie(null);
         }}
       />
-    </div>
+    </motion.div>
   );
 };
 

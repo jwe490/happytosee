@@ -79,25 +79,52 @@ const Index = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   
+  // Track pending movie selection to prevent race conditions
+  const pendingMovieIdRef = useRef<string | null>(null);
+  
   // URL-based modal state for proper history navigation
   const movieIdFromUrl = searchParams.get("movie");
   const isMovieViewOpen = !!movieIdFromUrl && !!selectedMovie;
   
-  // Restore movie from URL when navigating back
+  // Restore movie from URL when navigating back - with race condition protection
   useEffect(() => {
-    if (movieIdFromUrl && !selectedMovie) {
-      // Create a minimal movie object - ExpandedMovieView will fetch full details
-      setSelectedMovie({
-        id: parseInt(movieIdFromUrl),
-        title: "",
-        year: 0,
-        rating: 0,
-        genre: "",
-        posterUrl: "",
-        moodMatch: "",
-      });
+    const currentMovieId = movieIdFromUrl;
+    
+    // Skip if no movie ID in URL or if we're currently processing this ID
+    if (!currentMovieId) {
+      // URL cleared, clear the movie
+      if (selectedMovie && !pendingMovieIdRef.current) {
+        setSelectedMovie(null);
+      }
+      return;
     }
-  }, [movieIdFromUrl, selectedMovie]);
+    
+    // Skip if we already have this movie selected
+    if (selectedMovie?.id === parseInt(currentMovieId)) {
+      return;
+    }
+    
+    // Set pending to prevent duplicate processing
+    pendingMovieIdRef.current = currentMovieId;
+    
+    // Create a minimal movie object - ExpandedMovieView will fetch full details
+    setSelectedMovie({
+      id: parseInt(currentMovieId),
+      title: "",
+      year: 0,
+      rating: 0,
+      genre: "",
+      posterUrl: "",
+      moodMatch: "",
+    });
+    
+    // Clear pending after state update
+    requestAnimationFrame(() => {
+      if (pendingMovieIdRef.current === currentMovieId) {
+        pendingMovieIdRef.current = null;
+      }
+    });
+  }, [movieIdFromUrl]);
 
   // Discovery drawer state
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
@@ -159,26 +186,53 @@ const Index = () => {
     fetchTrendingMovies(preferences.language, preferences.movieType);
   }, [preferences.language, preferences.movieType]);
 
-  const handleMovieSelect = (movie: any) => {
+  const handleMovieSelect = useCallback((movie: any) => {
+    // Guard against invalid movie data
+    if (!movie?.id) {
+      console.warn("handleMovieSelect called with invalid movie:", movie);
+      return;
+    }
+    
+    const movieId = String(movie.id);
+    
+    // Prevent duplicate selections during rapid clicks
+    if (pendingMovieIdRef.current === movieId) {
+      return;
+    }
+    
+    pendingMovieIdRef.current = movieId;
+    
     const movieData: Movie = {
       id: movie.id,
-      title: movie.title,
+      title: movie.title || "",
       year: movie.year || 0,
       rating: movie.rating || 0,
       genre: movie.genre || "",
-      posterUrl: movie.posterUrl || movie.poster_path,
+      posterUrl: movie.posterUrl || movie.poster_path || "",
       moodMatch: movie.matchReason || movie.surpriseReason || "",
     };
+    
     setSelectedMovie(movieData);
     // Use URL param to open modal - this enables proper history navigation
-    setSearchParams({ movie: String(movie.id) });
-  };
+    setSearchParams({ movie: movieId });
+    
+    // Clear pending after short delay
+    requestAnimationFrame(() => {
+      pendingMovieIdRef.current = null;
+    });
+  }, [setSearchParams]);
   
   const handleMovieViewClose = useCallback(() => {
+    // Prevent close during pending selection
+    if (pendingMovieIdRef.current) {
+      return;
+    }
+    
     // Remove movie param from URL to close modal
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("movie");
     setSearchParams(newParams);
+    setSelectedMovie(null);
   }, [searchParams, setSearchParams]);
 
   // Throttled scroll handler

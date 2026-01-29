@@ -27,7 +27,7 @@ const Footer = () => {
               <img 
                 src={logo} 
                 alt="MoodFlix" 
-                className="h-6 w-auto dark:invert"
+                className="h-8 w-auto dark:invert"
               />
             </button>
             <p className="text-sm text-muted-foreground max-w-xs">
