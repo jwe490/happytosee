@@ -48,86 +48,119 @@ const HeroSection = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[65vh] sm:min-h-[70vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-6 pb-12"
+      className="relative min-h-[70vh] sm:min-h-[75vh] flex flex-col items-center justify-center overflow-hidden px-4 pt-6 pb-12"
     >
-      {/* Artistic gradient background - warm undertones */}
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 via-background to-background" />
+      {/* Simple gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
       
-      {/* Subtle artistic glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-foreground/5 blur-[120px]" />
+      {/* Subtle glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-accent/10 blur-[100px] opacity-50" />
 
-      {/* Floating posters - static for performance, CSS animations only */}
+      {/* Floating posters - positioned at corners, smaller */}
       {!isMobile && floatingImages.map((img, index) => {
         const positions = [
           "top-20 left-[5%]",
           "top-24 right-[5%]",
-          "bottom-24 left-[8%]",
-          "bottom-20 right-[8%]",
+          "bottom-20 left-[8%]",
+          "bottom-16 right-[8%]",
         ];
         const rotations = ["-rotate-6", "rotate-6", "rotate-3", "-rotate-3"];
         
         return (
-          <div
+          <motion.div
             key={img.id}
-            className={`absolute ${positions[index]} z-0 hidden lg:block opacity-0 animate-fade-in`}
-            style={{ animationDelay: `${0.4 + index * 0.1}s`, animationFillMode: 'forwards' }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 0.6, scale: 1 }}
+            transition={{ delay: 0.5 + index * 0.1, duration: 0.5 }}
+            className={`absolute ${positions[index]} z-0 hidden lg:block`}
           >
-            <div className={`w-20 h-30 ${rotations[index]} rounded-lg overflow-hidden shadow-lg opacity-50 hover:opacity-80 transition-opacity duration-300`}>
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 5 + index, repeat: Infinity, ease: "easeInOut" }}
+              className={`w-24 h-36 ${rotations[index]} rounded-lg overflow-hidden shadow-lg opacity-70 hover:opacity-100 transition-opacity`}
+            >
               <img 
                 src={img.url} 
-                alt=""
+                alt="Movie poster"
                 className="w-full h-full object-cover"
-                loading="lazy"
+                loading="eager"
               />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         );
       })}
 
       {/* Main Content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border mb-6 animate-fade-in">
-          <Sparkles className="w-4 h-4 text-foreground" />
-          <span className="text-sm font-medium text-foreground tracking-wide">AI-Powered Discovery</span>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-6"
+        >
+          <Sparkles className="w-4 h-4 text-accent" />
+          <span className="text-sm font-medium text-accent">AI-Powered Discovery</span>
+        </motion.div>
 
-        {/* Title - Artistic typography matching logo */}
-        <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-foreground leading-[0.9] tracking-tighter animate-fade-up">
+        {/* Title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-foreground leading-[0.9] tracking-tight"
+        >
           <span className="block">Mood</span>
-          <span className="block text-foreground/80">Flix</span>
-        </h1>
+          <span className="block bg-gradient-to-r from-foreground via-accent to-foreground bg-clip-text text-transparent">
+            Flix
+          </span>
+        </motion.h1>
 
         {/* Tagline */}
-        <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-md mx-auto animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-md mx-auto"
+        >
           Find the perfect movie for{" "}
           <span className="text-foreground font-semibold">how you're feeling right now.</span>
-        </p>
+        </motion.p>
 
         {/* CTA */}
-        <div className="mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-8"
+        >
           <Button
             size="lg"
             onClick={() => {
               document.getElementById('mood-selector')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="rounded-full px-8 py-6 text-base font-semibold gap-3 shadow-lg hover:shadow-xl transition-shadow"
+            className="rounded-full px-8 py-6 text-base font-semibold gap-3"
           >
             <span>🎬</span>
             Discover Now
             <ArrowDown className="w-4 h-4" />
           </Button>
-        </div>
+        </motion.div>
 
-        {/* Minimal stats - simplified for performance */}
-        <div className="mt-10 flex items-center justify-center gap-8 text-muted-foreground text-sm animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        {/* Minimal stats */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-10 flex items-center justify-center gap-8 text-muted-foreground text-sm"
+        >
           <div className="text-center">
             <div className="font-display font-bold text-foreground text-xl">500k+</div>
             <div>Movies</div>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center">
-            <div className="font-display font-bold text-foreground text-xl">12</div>
+            <div className="font-display font-bold text-foreground text-xl">7</div>
             <div>Moods</div>
           </div>
           <div className="w-px h-8 bg-border" />
@@ -135,7 +168,7 @@ const HeroSection = () => {
             <div className="font-display font-bold text-foreground text-xl">∞</div>
             <div>Picks</div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Scroll indicator */}

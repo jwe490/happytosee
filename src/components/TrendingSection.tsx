@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { TrendingUp, Flame, Clock, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -95,35 +96,36 @@ export function TrendingSection({ onMovieSelect, language, movieType }: Trending
             </div>
           ) : (
             trendingMovies.map((movie, index) => (
-              <button
+              <motion.button
                 key={movie.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
                 onClick={() => onMovieSelect(movie)}
-                className="shrink-0 w-36 snap-start group text-left animate-fade-in active:scale-95 transition-transform"
-                style={{ animationDelay: `${index * 0.04}s` }}
+                className="shrink-0 w-36 snap-start group text-left"
               >
-                <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-2 shadow-sm">
+                <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-2">
                   <img
                     src={movie.posterUrl}
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold text-foreground flex items-center gap-1 border border-border/60">
-                    <Star className="w-3 h-3 fill-foreground text-foreground" />
+                  <div className="absolute top-2 left-2 bg-background/70 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold text-foreground flex items-center gap-1 border border-border/60">
+                    <Star className="w-3 h-3 fill-accent text-accent" />
                     {movie.rating}
                   </div>
                   {activeTab === "trending" && (
-                    <div className="absolute bottom-2 right-2 w-8 h-8 bg-foreground rounded-full flex items-center justify-center font-bold text-background text-sm">
+                    <div className="absolute bottom-2 right-2 w-8 h-8 bg-accent rounded-full flex items-center justify-center font-bold text-accent-foreground text-sm">
                       #{index + 1}
                     </div>
                   )}
                 </div>
-                <h3 className="font-medium text-sm line-clamp-1 group-hover:text-muted-foreground transition-colors">
+                <h3 className="font-medium text-sm line-clamp-1 group-hover:text-accent transition-colors">
                   {movie.title}
                 </h3>
                 <p className="text-xs text-muted-foreground">{movie.year}</p>
-              </button>
+              </motion.button>
             ))
           )}
         </div>
