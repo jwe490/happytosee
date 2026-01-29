@@ -318,6 +318,39 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_journal: {
+        Row: {
+          created_at: string
+          id: string
+          mood: string
+          movie_id: number | null
+          movie_poster: string | null
+          movie_title: string | null
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mood: string
+          movie_id?: number | null
+          movie_poster?: string | null
+          movie_title?: string | null
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mood?: string
+          movie_id?: number | null
+          movie_poster?: string | null
+          movie_title?: string | null
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mood_selections: {
         Row: {
           id: string
@@ -336,6 +369,78 @@ export type Database = {
           mood?: string
           selected_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      mood_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_active_date: string | null
+          longest_streak: number | null
+          total_days_active: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
+          total_days_active?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
+          total_days_active?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      movie_battles: {
+        Row: {
+          created_at: string
+          id: string
+          movie_a_id: number
+          movie_a_poster: string | null
+          movie_a_title: string
+          movie_b_id: number
+          movie_b_poster: string | null
+          movie_b_title: string
+          user_id: string | null
+          winner_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movie_a_id: number
+          movie_a_poster?: string | null
+          movie_a_title: string
+          movie_b_id: number
+          movie_b_poster?: string | null
+          movie_b_title: string
+          user_id?: string | null
+          winner_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movie_a_id?: number
+          movie_a_poster?: string | null
+          movie_a_title?: string
+          movie_b_id?: number
+          movie_b_poster?: string | null
+          movie_b_title?: string
+          user_id?: string | null
+          winner_id?: number | null
         }
         Relationships: []
       }
@@ -597,6 +702,36 @@ export type Database = {
           setting_value?: Json
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_description: string | null
+          badge_icon: string | null
+          badge_id: string
+          badge_name: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_description?: string | null
+          badge_icon?: string | null
+          badge_id: string
+          badge_name: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_description?: string | null
+          badge_icon?: string | null
+          badge_id?: string
+          badge_name?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -13,10 +13,12 @@ import { CinematicCarousel } from "@/components/CinematicCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
+import { EngagementHub } from "@/components/gamification";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
+import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
 
 const moodTaglines: Record<string, string> = {
@@ -86,6 +88,14 @@ const Index = () => {
   const lastScrollY = useRef(0);
 
   const { movies, isLoading, isLoadingMore, hasMore, getRecommendations, loadMore, clearHistory, recommendedCount } = useMovieRecommendations();
+  const { logMood, updateStreak } = useGamification();
+
+  // Current mood emoji for sharing
+  const moodEmojis: Record<string, string> = {
+    happy: "😊", sad: "😢", romantic: "🥰", excited: "🤩", chill: "😌",
+    adventurous: "🤠", nostalgic: "🥹", thrilled: "😱", stressed: "😤",
+    motivated: "💪", bored: "😑", inspired: "✨",
+  };
 
   // Initial fetch is handled by the preferences useEffect
 
@@ -167,7 +177,9 @@ const Index = () => {
   const handleMoodSelect = useCallback((mood: string) => {
     setSelectedMood(mood);
     setShowPreferences(true);
-  }, []);
+    // Log mood to journal and update streak
+    logMood(mood);
+  }, [logMood]);
 
   const handleFloatingMoodSelect = useCallback(async (mood: string) => {
     setSelectedMood(mood);
@@ -483,6 +495,17 @@ const Index = () => {
         movie={selectedMovie}
         isOpen={isMovieViewOpen}
         onClose={() => setIsMovieViewOpen(false)}
+      />
+
+      {/* Engagement Hub - Gamification sidebar */}
+      <EngagementHub
+        currentMood={selectedMood || undefined}
+        currentMoodEmoji={selectedMood ? moodEmojis[selectedMood] : undefined}
+        currentMovie={selectedMovie ? { 
+          id: selectedMovie.id, 
+          title: selectedMovie.title, 
+          poster: selectedMovie.posterUrl 
+        } : undefined}
       />
 
       {/* Footer */}
