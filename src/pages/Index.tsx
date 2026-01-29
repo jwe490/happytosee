@@ -186,6 +186,12 @@ const Index = () => {
     fetchTrendingMovies(preferences.language, preferences.movieType);
   }, [preferences.language, preferences.movieType]);
 
+  const setMovieParam = useCallback((movieId: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("movie", movieId);
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
   const handleMovieSelect = useCallback((movie: any) => {
     // Guard against invalid movie data
     if (!movie?.id) {
@@ -214,13 +220,13 @@ const Index = () => {
     
     setSelectedMovie(movieData);
     // Use URL param to open modal - this enables proper history navigation
-    setSearchParams({ movie: movieId });
+    setMovieParam(movieId);
     
     // Clear pending after short delay
     requestAnimationFrame(() => {
       pendingMovieIdRef.current = null;
     });
-  }, [setSearchParams]);
+  }, [setMovieParam]);
   
   const handleMovieViewClose = useCallback(() => {
     // Prevent close during pending selection
@@ -573,11 +579,12 @@ const Index = () => {
       </main>
       
       {/* Expanded Movie View */}
-      <ExpandedMovieView
-        movie={selectedMovie}
-        isOpen={isMovieViewOpen}
-        onClose={handleMovieViewClose}
-      />
+       <ExpandedMovieView
+         movie={selectedMovie}
+         isOpen={isMovieViewOpen}
+         onClose={handleMovieViewClose}
+         onMovieIdChange={(id) => setMovieParam(String(id))}
+       />
 
 
       {/* Footer */}

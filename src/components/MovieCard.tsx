@@ -46,7 +46,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
       onClick={onClick}
       className="group cursor-pointer"
     >
-      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-lg transition-shadow duration-300">
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-lg transition-shadow duration-300 ring-1 ring-border/60">
         {/* Skeleton loader */}
         <div 
           className={cn(
@@ -73,19 +73,19 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
         />
 
         {/* Rating Badge */}
-        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm">
-          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-xs font-semibold text-white">{movie.rating}</span>
+        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-card/75 backdrop-blur-sm border border-border/60">
+          <Star className="w-3 h-3 fill-accent text-accent" />
+          <span className="text-xs font-semibold text-foreground">{movie.rating}</span>
         </div>
 
         {/* Watchlist Button */}
         {user && (
           <button
             onClick={handleWatchlistClick}
-            className={`absolute top-2 left-2 p-1.5 rounded-full transition-all ${
+            className={`absolute top-2 left-2 p-1.5 rounded-full transition-all border border-border/60 ${
               inWatchlist
                 ? "bg-accent text-accent-foreground"
-                : "bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                : "bg-card/70 text-foreground opacity-0 group-hover:opacity-100"
             }`}
           >
             {inWatchlist ? (
@@ -97,7 +97,7 @@ const MovieCard = ({ movie, index, onClick }: MovieCardProps) => {
         )}
 
         {/* Gradient for text readability */}
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
       </div>
 
       {/* Movie Info - Always visible below card */}
