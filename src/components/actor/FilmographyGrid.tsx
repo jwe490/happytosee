@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Film, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActorMovieCredit } from "./actorTypes";
+import { isValidMovieData } from "@/lib/navigationGuard";
 
 interface FilmographyGridProps {
   title: string;
@@ -94,15 +95,18 @@ export function FilmographyGrid({
             transition={{ delay: Math.min(index * 0.01, 0.15), duration: 0.2 }}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() =>
-              onMovieClick({
+            onClick={() => {
+              const movieData = {
                 id: movie.id,
                 title: movie.title,
                 posterUrl: movie.posterUrl,
                 rating: movie.rating,
                 year: movie.year,
-              })
-            }
+              };
+              if (isValidMovieData(movieData, "FilmographyGrid onClick")) {
+                onMovieClick(movieData);
+              }
+            }}
             className="text-left group"
           >
             <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted shadow-sm ring-1 ring-border/60 group-hover:ring-primary transition-all">

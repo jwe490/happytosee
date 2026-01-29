@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/collapsible";
 import SimilarMoviesGrid from "./SimilarMoviesGrid";
 import ActorPanel from "./ActorPanel";
+import { isValidMovieData } from "@/lib/navigationGuard";
+import { toast } from "@/hooks/use-toast";
 
 interface SimilarMovie {
   id: number;
@@ -202,6 +204,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
   };
 
   const handleActorMovieClick = (movieData: { id: number; title: string; posterUrl: string; rating: number; year: number }) => {
+    // Validate movie data using navigation guard
+    if (!isValidMovieData(movieData, "ExpandedMovieView handleActorMovieClick")) {
+      return;
+    }
+    
     // Close actor panel and add movie to stack
     handleActorPanelClose();
     const newMovie: Movie = {
@@ -226,6 +233,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
 
   // FIXED: Navigate to similar movie by adding to stack instead of replacing
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
+    // Validate movie data using navigation guard
+    if (!isValidMovieData(similar, "ExpandedMovieView handleSimilarMovieClick")) {
+      return;
+    }
+    
     const newMovie: Movie = {
       id: similar.id,
       title: similar.title,
