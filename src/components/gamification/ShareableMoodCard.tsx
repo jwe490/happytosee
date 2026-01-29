@@ -1,46 +1,44 @@
 import { useRef, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas";
-import { Download, Share2, Twitter, Facebook, Link, Check } from "lucide-react";
+import { Download, Share2, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 interface MoodCardData {
   mood: string;
   moodEmoji: string;
   movieTitle?: string;
   moviePoster?: string;
-  streak?: number;
-  date?: Date;
 }
 
 interface ShareableMoodCardProps {
   data: MoodCardData;
   userName?: string;
+  onClose?: () => void;
 }
 
-const moodGradients: Record<string, string> = {
-  happy: "from-yellow-400 via-orange-400 to-pink-400",
-  sad: "from-blue-400 via-indigo-400 to-purple-400",
-  romantic: "from-pink-400 via-rose-400 to-red-400",
-  excited: "from-orange-400 via-red-400 to-pink-500",
-  chill: "from-teal-400 via-cyan-400 to-blue-400",
-  adventurous: "from-green-400 via-emerald-400 to-teal-400",
-  nostalgic: "from-amber-400 via-yellow-400 to-orange-400",
-  thrilled: "from-purple-500 via-pink-500 to-red-500",
-  stressed: "from-red-500 via-orange-500 to-yellow-500",
-  motivated: "from-blue-500 via-purple-500 to-pink-500",
-  bored: "from-gray-400 via-slate-400 to-zinc-400",
-  inspired: "from-violet-400 via-purple-400 to-fuchsia-400",
+const moodGradients: Record<string, { from: string; to: string; accent: string }> = {
+  happy: { from: "#fbbf24", to: "#f97316", accent: "#fef3c7" },
+  sad: { from: "#60a5fa", to: "#8b5cf6", accent: "#dbeafe" },
+  romantic: { from: "#f472b6", to: "#ec4899", accent: "#fce7f3" },
+  excited: { from: "#f97316", to: "#ef4444", accent: "#ffedd5" },
+  chill: { from: "#2dd4bf", to: "#0ea5e9", accent: "#ccfbf1" },
+  adventurous: { from: "#22c55e", to: "#14b8a6", accent: "#dcfce7" },
+  nostalgic: { from: "#fbbf24", to: "#f59e0b", accent: "#fef3c7" },
+  thrilled: { from: "#a855f7", to: "#ec4899", accent: "#f3e8ff" },
+  stressed: { from: "#ef4444", to: "#f97316", accent: "#fee2e2" },
+  motivated: { from: "#3b82f6", to: "#8b5cf6", accent: "#dbeafe" },
+  bored: { from: "#6b7280", to: "#4b5563", accent: "#f3f4f6" },
+  inspired: { from: "#a855f7", to: "#d946ef", accent: "#f3e8ff" },
 };
 
-export function ShareableMoodCard({ data, userName }: ShareableMoodCardProps) {
+export function ShareableMoodCard({ data, userName, onClose }: ShareableMoodCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const gradient = moodGradients[data.mood] || moodGradients.happy;
-  const displayDate = data.date || new Date();
 
   const generateImage = useCallback(async () => {
     if (!cardRef.current) return null;
@@ -48,7 +46,7 @@ export function ShareableMoodCard({ data, userName }: ShareableMoodCardProps) {
     setIsGenerating(true);
     try {
       const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
+        scale: 3,
         backgroundColor: null,
         useCORS: true,
         logging: false,
@@ -69,163 +67,177 @@ export function ShareableMoodCard({ data, userName }: ShareableMoodCardProps) {
       return;
     }
 
+    // Celebrate!
+    confetti({
+      particleCount: 80,
+      spread: 60,
+      origin: { y: 0.6 },
+    });
+
     const link = document.createElement("a");
-    link.download = `moodflix-${data.mood}-${Date.now()}.png`;
+    link.download = `moodflix-${data.mood}.png`;
     link.href = imageUrl;
     link.click();
-    toast.success("Card downloaded!");
+    toast.success("Card saved! 🎉");
   };
 
-  const handleCopyLink = async () => {
-    const url = window.location.origin;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    toast.success("Link copied!");
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleShare = async () => {
+    const imageUrl = await generateImage();
+    if (!imageUrl) {
+      toast.error("Failed to generate image");
+      return;
+    }
 
-  const handleShareTwitter = () => {
-    const text = `I'm feeling ${data.mood} ${data.moodEmoji} today! ${data.movieTitle ? `Watching: ${data.movieTitle}` : "Finding my perfect movie match"} on MoodFlix 🎬`;
-    const url = window.location.origin;
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-      "_blank"
-    );
-  };
+    // Convert to blob for sharing
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const file = new File([blob], `moodflix-${data.mood}.png`, { type: "image/png" });
 
-  const handleShareFacebook = () => {
-    const url = window.location.origin;
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      "_blank"
-    );
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `My mood: ${data.mood}`,
+          text: `I'm feeling ${data.mood} ${data.moodEmoji} on MoodFlix!`,
+        });
+        confetti({ particleCount: 50, spread: 40 });
+      } catch (err) {
+        // User cancelled or error
+        if ((err as Error).name !== "AbortError") {
+          // Fallback to copy
+          await navigator.clipboard.writeText(window.location.origin);
+          toast.success("Link copied!");
+        }
+      }
+    } else {
+      // Fallback for browsers without share API
+      await navigator.clipboard.writeText(
+        `I'm feeling ${data.mood} ${data.moodEmoji}! Find your mood match at ${window.location.origin}`
+      );
+      toast.success("Copied to clipboard!");
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {/* The shareable card */}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div
-        ref={cardRef}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className={`
-          relative w-full max-w-sm mx-auto aspect-square rounded-3xl overflow-hidden
-          bg-gradient-to-br ${gradient} p-6 shadow-2xl
-        `}
+        initial={{ y: 20 }}
+        animate={{ y: 0 }}
+        className="relative max-w-xs w-full"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, white 2px, transparent 2px)`,
-            backgroundSize: "30px 30px",
-          }} />
-        </div>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
-        {/* Content */}
-        <div className="relative h-full flex flex-col justify-between text-white">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium opacity-80">
-              {displayDate.toLocaleDateString("en-US", { 
-                month: "short", 
-                day: "numeric", 
-                year: "numeric" 
-              })}
-            </span>
-            {data.streak && data.streak > 1 && (
-              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 text-xs font-bold">
-                🔥 {data.streak} day streak
-              </span>
-            )}
-          </div>
+        {/* The card */}
+        <div
+          ref={cardRef}
+          className="relative w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl"
+          style={{
+            background: `linear-gradient(145deg, ${gradient.from}, ${gradient.to})`,
+          }}
+        >
+          {/* Subtle pattern */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `radial-gradient(circle at 20% 80%, ${gradient.accent} 0%, transparent 50%)`,
+            }}
+          />
 
-          {/* Main mood */}
-          <div className="text-center">
+          {/* Content */}
+          <div className="relative h-full flex flex-col items-center justify-center p-8 text-white text-center">
+            {/* Emoji */}
             <motion.span
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ repeat: Infinity, duration: 2, repeatType: "reverse" }}
-              className="text-8xl block mb-2"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", delay: 0.2 }}
+              className="text-7xl mb-4 drop-shadow-lg"
             >
               {data.moodEmoji}
             </motion.span>
-            <h2 className="text-3xl font-display font-bold capitalize mb-1">
+
+            {/* Mood label */}
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-3xl font-display font-bold capitalize tracking-wide"
+            >
               {data.mood}
-            </h2>
+            </motion.h2>
+
+            {/* Username */}
             {userName && (
-              <p className="text-sm opacity-80">{userName}'s mood today</p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.8 }}
+                transition={{ delay: 0.4 }}
+                className="text-sm mt-2 opacity-80"
+              >
+                {userName}'s vibe
+              </motion.p>
             )}
-          </div>
 
-          {/* Movie */}
-          {data.movieTitle && (
-            <div className="flex items-center gap-3 bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-              {data.moviePoster && (
-                <img
-                  src={data.moviePoster}
-                  alt=""
-                  className="w-12 h-16 rounded-lg object-cover shadow-lg"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs opacity-70">Watching</p>
-                <p className="font-semibold truncate">{data.movieTitle}</p>
-              </div>
-            </div>
-          )}
+            {/* Movie if present */}
+            {data.movieTitle && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-6 px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm"
+              >
+                <p className="text-sm font-medium truncate max-w-[200px]">
+                  🎬 {data.movieTitle}
+                </p>
+              </motion.div>
+            )}
 
-          {/* Footer */}
-          <div className="flex items-center justify-center">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
-              <span className="text-lg">🎬</span>
-              <span className="font-display font-bold text-sm">MoodFlix</span>
-            </div>
+            {/* Branding */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="absolute bottom-6 flex items-center gap-1.5 text-white/70"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-medium tracking-wider">MOODFLIX</span>
+            </motion.div>
           </div>
         </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <Button
+            onClick={handleDownload}
+            disabled={isGenerating}
+            className="flex-1 gap-2 rounded-full bg-white text-gray-900 hover:bg-white/90"
+          >
+            <Download className="w-4 h-4" />
+            {isGenerating ? "..." : "Save"}
+          </Button>
+          <Button
+            onClick={handleShare}
+            disabled={isGenerating}
+            variant="outline"
+            className="flex-1 gap-2 rounded-full border-white/30 text-white hover:bg-white/10"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </Button>
+        </div>
       </motion.div>
-
-      {/* Share buttons */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownload}
-          disabled={isGenerating}
-          className="gap-2"
-        >
-          <Download className="w-4 h-4" />
-          {isGenerating ? "Generating..." : "Download"}
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShareTwitter}
-          className="gap-2"
-        >
-          <Twitter className="w-4 h-4" />
-          Twitter
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShareFacebook}
-          className="gap-2"
-        >
-          <Facebook className="w-4 h-4" />
-          Facebook
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopyLink}
-          className="gap-2"
-        >
-          {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
-          {copied ? "Copied!" : "Copy Link"}
-        </Button>
-      </div>
-    </div>
+    </motion.div>
   );
 }
