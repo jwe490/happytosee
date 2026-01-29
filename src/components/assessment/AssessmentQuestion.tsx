@@ -86,12 +86,13 @@ export const AssessmentQuestion = ({
         )}
       </div>
 
+      {/* FIXED: Responsive grid with proper sizing using clamp() */}
       <div
         className={`grid gap-3 ${
           isVisualCards
             ? "grid-cols-2"
             : normalizedOptions.length > 4 
-              ? "grid-cols-2 sm:grid-cols-3"
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
               : "grid-cols-1 sm:grid-cols-2"
         }`}
       >
@@ -113,11 +114,16 @@ export const AssessmentQuestion = ({
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleOptionClick(option.value)}
+              style={{
+                // FIXED: Using CSS clamp() for fluid responsive sizing
+                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                padding: 'clamp(0.75rem, 2vw, 1.25rem)',
+              }}
               className={`
                 relative group rounded-2xl border-2
                 transition-all duration-300 text-left
                 min-h-[56px] touch-manipulation
-                p-3 sm:p-4 md:p-5
+                w-full
                 ${isVisualCards ? "aspect-[3/4]" : ""}
                 ${isSelected 
                   ? "border-primary bg-primary/10 shadow-lg" 
@@ -147,7 +153,8 @@ export const AssessmentQuestion = ({
                 <div className="flex items-center gap-2 sm:gap-3">
                   {option.emoji && (
                     <motion.span
-                      className="text-xl sm:text-2xl md:text-3xl shrink-0"
+                      className="shrink-0"
+                      style={{ fontSize: 'clamp(1.25rem, 4vw, 1.75rem)' }}
                       initial={{ scale: 1 }}
                       whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
                       transition={{ duration: 0.4 }}
@@ -155,14 +162,20 @@ export const AssessmentQuestion = ({
                       {option.emoji}
                     </motion.span>
                   )}
-                  <span className="font-semibold text-foreground text-sm sm:text-base leading-tight">
+                  <span 
+                    className="font-semibold text-foreground leading-tight"
+                    style={{ fontSize: 'clamp(0.875rem, 2vw, 1rem)' }}
+                  >
                     {option.label}
                   </span>
                 </div>
 
                 {/* Description */}
                 {option.description && (
-                  <p className="text-xs md:text-sm text-muted-foreground pl-0 md:pl-10">
+                  <p 
+                    className="text-muted-foreground pl-0 md:pl-10"
+                    style={{ fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)' }}
+                  >
                     {option.description}
                   </p>
                 )}
@@ -172,7 +185,7 @@ export const AssessmentQuestion = ({
         })}
       </div>
 
-      {/* Continue button for multi-select */}
+      {/* Continue button for multi-select - FIXED with proper touch target */}
       {multiSelect && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -184,7 +197,8 @@ export const AssessmentQuestion = ({
             onClick={handleContinue}
             disabled={selectedOptions.length === 0}
             size="lg"
-            className="rounded-full px-8 gap-2"
+            className="rounded-full px-8 gap-2 min-h-[48px] min-w-[140px] touch-manipulation"
+            style={{ fontSize: 'clamp(0.875rem, 2vw, 1rem)' }}
           >
             Continue
             <ChevronRight className="w-4 h-4" />

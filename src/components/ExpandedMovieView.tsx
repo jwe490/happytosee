@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -77,38 +77,68 @@ interface ExpandedMovieViewProps {
   onClose: () => void;
 }
 
+// Track history depth for proper back navigation
+interface HistoryState {
+  movieId: number;
+  depth: number;
+}
+
 const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
   const navigate = useNavigate();
+  const [movieStack, setMovieStack] = useState<Movie[]>([]);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
+  const historyDepthRef = useRef(0);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
+  // FIXED: Proper back navigation that follows the movie stack
   const handleBack = useCallback(() => {
-    window.history.back();
-  }, []);
+    if (movieStack.length > 1) {
+      // Go back to previous movie in stack
+      const newStack = [...movieStack];
+      newStack.pop(); // Remove current
+      const previousMovie = newStack[newStack.length - 1];
+      setMovieStack(newStack);
+      setCurrentMovie(previousMovie);
+      historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+      
+      // Scroll to top of the modal
+      const container = document.querySelector('.expanded-movie-scroll');
+      if (container) container.scrollTop = 0;
+    } else {
+      // Close the modal completely
+      onClose();
+    }
+  }, [movieStack, onClose]);
 
   const { handlers: swipeHandlers } = useSwipeGesture({
     onSwipeRight: handleBack,
     threshold: 100,
   });
 
+  // Initialize movie when opened
   useEffect(() => {
     if (movie && isOpen) {
       setCurrentMovie(movie);
-      window.history.pushState({ modal: 'movie' }, '');
+      setMovieStack([movie]);
+      historyDepthRef.current = 1;
+      
+      // Push a single history state for the modal
+      window.history.pushState({ modal: 'movie', movieId: movie.id }, '');
     }
   }, [movie, isOpen]);
 
+  // Handle browser back button
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
       if (isOpen) {
         e.preventDefault();
-        onClose();
+        handleBack();
       }
     };
 
@@ -119,8 +149,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleBack]);
 
+  // Fetch movie details when current movie changes
   useEffect(() => {
     if (currentMovie && isOpen) {
       fetchMovieDetails(currentMovie.id);
@@ -133,6 +164,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     }
   }, [currentMovie, isOpen]);
 
+  // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -161,11 +193,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
-    window.history.replaceState(null, '');
+    // Close modal first, then navigate
     onClose();
-    navigate(`/person/${member.id}`);
+    setTimeout(() => {
+      navigate(`/person/${member.id}`);
+    }, 300);
   };
 
+  // FIXED: Navigate to similar movie by adding to stack instead of replacing
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
     const newMovie: Movie = {
       id: similar.id,
@@ -176,7 +211,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       posterUrl: similar.posterUrl,
       moodMatch: "",
     };
+    
+    // Add to movie stack for proper back navigation
+    setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
+    historyDepthRef.current += 1;
+    
+    // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
     if (container) container.scrollTop = 0;
   }, []);
@@ -218,17 +259,19 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
             <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
           </motion.div>
 
-          {/* Back button - Fixed position to always be visible */}
+          {/* Back button with stack depth indicator */}
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ delay: 0.1, duration: 0.2 }}
             onClick={handleBack}
-            className="fixed top-4 left-4 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card shadow-lg active:scale-95 transition-all duration-150"
+            className="fixed top-4 left-4 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card shadow-lg active:scale-95 transition-all duration-150 min-h-[44px] touch-manipulation"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium">
+              {movieStack.length > 1 ? `Back (${movieStack.length - 1})` : 'Close'}
+            </span>
           </motion.button>
 
           {/* Main content */}
@@ -277,7 +320,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                       <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/20 text-accent text-sm font-medium">
                           <Star className="w-3.5 h-3.5 fill-accent" />
-                          {details?.rating || currentMovie.rating}
+                          {details?.rating?.toFixed(1) || currentMovie.rating?.toFixed(1)}
                         </span>
                         
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm">
@@ -315,7 +358,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                           <Button
                             size="lg"
                             onClick={() => setShowTrailer(!showTrailer)}
-                            className="gap-2 rounded-full active:scale-95 transition-transform col-span-2"
+                            className="gap-2 rounded-full active:scale-95 transition-transform col-span-2 min-h-[48px] touch-manipulation"
                           >
                             <Play className="w-4 h-4 fill-current" />
                             {showTrailer ? "Hide Trailer" : "Watch Trailer"}
@@ -341,7 +384,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                                   });
                                 }
                               }}
-                              className="gap-2 rounded-full active:scale-95 transition-transform"
+                              className="gap-2 rounded-full active:scale-95 transition-transform min-h-[48px] touch-manipulation"
                             >
                               {isInWatchlist(details.id) ? (
                                 <>
@@ -365,7 +408,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                                 title: details.title,
                                 poster_path: details.posterUrl,
                               })}
-                              className="gap-2 rounded-full active:scale-95 transition-transform"
+                              className="gap-2 rounded-full active:scale-95 transition-transform min-h-[48px] touch-manipulation"
                             >
                               {isWatched(details.id) ? (
                                 <>
@@ -445,7 +488,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                     {/* Where to Watch - Collapsible */}
                     {hasWatchProviders && (
                       <Collapsible open={watchProvidersOpen} onOpenChange={setWatchProvidersOpen}>
-                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors min-h-[48px] touch-manipulation">
                           <div className="flex items-center gap-2">
                             <Tv className="w-4 h-4 text-primary" />
                             <span className="font-medium text-sm">Where to Watch</span>
@@ -467,7 +510,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                                       href={provider.url || "#"}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group"
+                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group min-h-[44px]"
                                     >
                                       {provider.logoUrl && (
                                         <img src={provider.logoUrl} alt="" className="w-6 h-6 rounded" />
@@ -488,7 +531,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                                       href={provider.url || "#"}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group"
+                                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group min-h-[44px]"
                                     >
                                       {provider.logoUrl && (
                                         <img src={provider.logoUrl} alt="" className="w-6 h-6 rounded" />
@@ -529,7 +572,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                             <button
                               key={member.id}
                               onClick={() => handleCastClick(member)}
-                              className="text-center space-y-1.5 group cursor-pointer"
+                              className="text-center space-y-1.5 group cursor-pointer min-h-[44px]"
                             >
                               <div className="aspect-[2/3] rounded-lg overflow-hidden bg-muted ring-2 ring-transparent group-hover:ring-primary transition-all">
                                 {member.profileUrl ? (

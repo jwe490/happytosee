@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import MovieCard from "./MovieCard";
 import ExpandedMovieView from "./ExpandedMovieView";
@@ -16,6 +16,23 @@ interface MovieGridProps {
   enableInfiniteScroll?: boolean;
 }
 
+// Debounce utility
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 const MovieGrid = ({
   movies,
   isLoading,
@@ -27,11 +44,26 @@ const MovieGrid = ({
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
   const { trackMovieClick, trackLoadMore, trackMovieView } = useEngagementTracking();
 
-  // Infinite scroll with Intersection Observer
+  // Debounced scroll position for performance
+  const debouncedScrollY = useDebounce(scrollY, 150);
+
+  // Memoize unique movies to prevent unnecessary re-renders
+  const uniqueMovies = useMemo(() => {
+    const seenIds = new Set<number>();
+    return movies.filter(movie => {
+      if (seenIds.has(movie.id)) return false;
+      seenIds.add(movie.id);
+      return true;
+    });
+  }, [movies]);
+
+  // Infinite scroll with Intersection Observer - with throttling
   const lastMovieRef = useCallback((node: HTMLDivElement | null) => {
     if (isLoadingMore || !enableInfiniteScroll) return;
     
@@ -42,17 +74,33 @@ const MovieGrid = ({
         trackLoadMore();
         onLoadMore();
       }
-    }, { threshold: 0.1, rootMargin: '100px' });
+    }, { 
+      threshold: 0.1, 
+      rootMargin: '200px' // Increased for better UX
+    });
     
     if (node) observerRef.current.observe(node);
-  }, [isLoadingMore, hasMore, onLoadMore, enableInfiniteScroll]);
+  }, [isLoadingMore, hasMore, onLoadMore, enableInfiniteScroll, trackLoadMore]);
 
+  // Optimized scroll handler using requestAnimationFrame
   useEffect(() => {
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 1000);
+      if (scrollFrameRef.current) return;
+      
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+        setShowBackToTop(window.scrollY > 1000);
+        scrollFrameRef.current = null;
+      });
     };
+    
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollFrameRef.current) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
   }, []);
 
   // Cleanup observer on unmount
@@ -62,21 +110,21 @@ const MovieGrid = ({
     };
   }, []);
 
-  const handleMovieClick = (movie: Movie) => {
+  const handleMovieClick = useCallback((movie: Movie) => {
     trackMovieClick(movie.id, movie.title);
     trackMovieView(movie.id, movie.title);
     setSelectedMovie(movie);
     setIsExpanded(true);
-  };
+  }, [trackMovieClick, trackMovieView]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsExpanded(false);
     setTimeout(() => setSelectedMovie(null), 400);
-  };
+  }, []);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -105,17 +153,9 @@ const MovieGrid = ({
     );
   }
 
-  if (movies.length === 0) {
+  if (uniqueMovies.length === 0) {
     return null;
   }
-
-  // Track unique movies to prevent duplicates
-  const seenIds = new Set<number>();
-  const uniqueMovies = movies.filter(movie => {
-    if (seenIds.has(movie.id)) return false;
-    seenIds.add(movie.id);
-    return true;
-  });
 
   return (
     <>
@@ -152,7 +192,7 @@ const MovieGrid = ({
             show: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.05
+                staggerChildren: 0.03 // Reduced for better performance
               }
             }
           }}
@@ -162,7 +202,7 @@ const MovieGrid = ({
             
             return (
               <motion.div
-                key={`${movie.id}-${index}`}
+                key={movie.id}
                 ref={isLastMovie ? lastMovieRef : null}
                 variants={{
                   hidden: { opacity: 0, y: 20 },
@@ -199,7 +239,7 @@ const MovieGrid = ({
               onClick={onLoadMore}
               disabled={isLoadingMore}
               size="lg"
-              className="rounded-full px-10 py-6 font-semibold gap-3 shadow-lg hover:shadow-xl transition-all bg-foreground text-background hover:bg-foreground/90"
+              className="rounded-full px-10 py-6 font-semibold gap-3 shadow-lg hover:shadow-xl transition-all bg-foreground text-background hover:bg-foreground/90 min-h-[48px] touch-manipulation"
             >
               {isLoadingMore ? (
                 <>
@@ -244,7 +284,7 @@ const MovieGrid = ({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={scrollToTop}
-            className="fixed bottom-20 right-4 z-40 p-4 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl transition-shadow"
+            className="fixed bottom-20 right-4 z-40 p-4 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl transition-shadow min-w-[48px] min-h-[48px] touch-manipulation"
             aria-label="Back to top"
           >
             <ArrowUp className="w-5 h-5" />

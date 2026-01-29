@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWatchlist } from "@/hooks/useWatchlist";
-import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, Loader2, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, RefreshCw, Star, Share2, X } from "lucide-react";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { Movie } from "@/hooks/useMovieRecommendations";
 
@@ -65,7 +65,7 @@ const MovieCardSkeleton = ({ index }: { index: number }) => (
   </motion.div>
 );
 
-// Movie card component with internal navigation
+// Movie card component with internal navigation - FIXED to use internal modal
 const MovieCard = ({ 
   movie, 
   index,
@@ -100,7 +100,7 @@ const MovieCard = ({
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.1 + index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
-      className="group relative cursor-pointer"
+      className="group relative cursor-pointer touch-manipulation"
       onClick={() => onMovieClick(movie)}
       role="button"
       tabIndex={0}
@@ -138,7 +138,7 @@ const MovieCard = ({
       {/* Watchlist button */}
       <button
         onClick={handleWatchlistClick}
-        className={`absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200 ${
+        className={`absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center ${
           inWatchlist 
             ? 'bg-primary text-primary-foreground' 
             : 'bg-black/50 text-white hover:bg-black/70'
@@ -174,6 +174,7 @@ export const MoodRecommendationsSlide = ({
   const hasMovies = movies && movies.length > 0;
   const displayMood = mood.charAt(0).toUpperCase() + mood.slice(1);
 
+  // CRITICAL FIX: Open internal movie modal instead of external TMDb link
   const handleMovieClick = useCallback((movie: RecommendedMovie) => {
     // Convert to Movie type for ExpandedMovieView
     const movieData: Movie = {
@@ -183,7 +184,7 @@ export const MoodRecommendationsSlide = ({
       year: movie.year,
       genre: movie.genre || "",
       posterUrl: movie.posterUrl,
-      moodMatch: mood,
+      moodMatch: `Perfect for your ${mood} mood`,
     };
     setSelectedMovie(movieData);
     setIsExpanded(true);
@@ -191,6 +192,7 @@ export const MoodRecommendationsSlide = ({
 
   const handleCloseExpanded = useCallback(() => {
     setIsExpanded(false);
+    // Delay clearing the movie to allow exit animation
     setTimeout(() => setSelectedMovie(null), 300);
   }, []);
 
@@ -262,7 +264,7 @@ export const MoodRecommendationsSlide = ({
                 </p>
                 <button
                   onClick={onRetake}
-                  className="px-6 py-2.5 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90"
+                  className="px-6 py-2.5 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90 min-h-[44px]"
                 >
                   Try Another Mood
                 </button>
@@ -281,7 +283,7 @@ export const MoodRecommendationsSlide = ({
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons - FIXED with proper touch targets */}
           {hasMovies && !isLoading && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -291,7 +293,7 @@ export const MoodRecommendationsSlide = ({
             >
               <button
                 onClick={onShare}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90 min-w-[140px]"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium transition-opacity hover:opacity-90 min-w-[140px] min-h-[48px] touch-manipulation"
               >
                 <Share2 className="w-4 h-4" />
                 Share Results
@@ -299,7 +301,7 @@ export const MoodRecommendationsSlide = ({
               
               <button
                 onClick={onRetake}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-muted font-medium text-foreground transition-colors hover:bg-muted/80 min-w-[140px]"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-muted font-medium text-foreground transition-colors hover:bg-muted/80 min-w-[140px] min-h-[48px] touch-manipulation"
               >
                 <RefreshCw className="w-4 h-4" />
                 Retake
@@ -309,7 +311,7 @@ export const MoodRecommendationsSlide = ({
         </div>
       </motion.div>
 
-      {/* Expanded Movie View Modal */}
+      {/* Expanded Movie View Modal - INTERNAL navigation, no external links */}
       <AnimatePresence>
         {isExpanded && selectedMovie && (
           <ExpandedMovieView
