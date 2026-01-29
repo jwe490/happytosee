@@ -18,7 +18,6 @@ import {
   Bookmark,
   Star,
   Clock,
-  PenTool,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,7 +43,6 @@ interface AdminSidebarProps {
 
 const navItems: NavItem[] = [
   { title: "Overview", icon: LayoutDashboard, section: "overview" },
-  { title: "Site Editor", icon: PenTool, section: "site-editor", requiredRole: ["admin", "super_admin"] },
   { title: "Engagement", icon: MousePointerClick, section: "engagement-analytics" },
   { title: "User Activity", icon: Activity, section: "user-activity" },
   { title: "Mood Insights", icon: Smile, section: "mood-analytics" },

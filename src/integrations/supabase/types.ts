@@ -166,39 +166,6 @@ export type Database = {
         }
         Relationships: []
       }
-      content_history: {
-        Row: {
-          change_description: string | null
-          components: Json | null
-          content: Json
-          created_at: string
-          created_by: string | null
-          id: string
-          page_key: string
-          version: number
-        }
-        Insert: {
-          change_description?: string | null
-          components?: Json | null
-          content: Json
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          page_key: string
-          version: number
-        }
-        Update: {
-          change_description?: string | null
-          components?: Json | null
-          content?: Json
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          page_key?: string
-          version?: number
-        }
-        Relationships: []
-      }
       content_performance: {
         Row: {
           avg_rating: number | null
@@ -339,36 +306,6 @@ export type Database = {
         }
         Relationships: []
       }
-      page_layouts: {
-        Row: {
-          components: Json
-          draft_components: Json | null
-          id: string
-          is_published: boolean
-          page_key: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          components?: Json
-          draft_components?: Json | null
-          id?: string
-          is_published?: boolean
-          page_key: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          components?: Json
-          draft_components?: Json | null
-          id?: string
-          is_published?: boolean
-          page_key?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           accent_color: string | null
@@ -501,69 +438,6 @@ export type Database = {
           review_text?: string | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      site_content: {
-        Row: {
-          content: Json
-          draft_content: Json | null
-          id: string
-          is_published: boolean
-          page_key: string
-          updated_at: string
-          updated_by: string | null
-          version: number
-        }
-        Insert: {
-          content?: Json
-          draft_content?: Json | null
-          id?: string
-          is_published?: boolean
-          page_key: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: number
-        }
-        Update: {
-          content?: Json
-          draft_content?: Json | null
-          id?: string
-          is_published?: boolean
-          page_key?: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: number
-        }
-        Relationships: []
-      }
-      site_themes: {
-        Row: {
-          colors: Json
-          id: string
-          is_active: boolean
-          theme_key: string
-          typography: Json
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          colors?: Json
-          id?: string
-          is_active?: boolean
-          theme_key?: string
-          typography?: Json
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          colors?: Json
-          id?: string
-          is_active?: boolean
-          theme_key?: string
-          typography?: Json
-          updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -824,25 +698,6 @@ export type Database = {
       remove_admin_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
-          p_user_id: string
-        }
-        Returns: Json
-      }
-      save_page_layout: {
-        Args: {
-          p_components: Json
-          p_page_key: string
-          p_publish?: boolean
-          p_user_id: string
-        }
-        Returns: Json
-      }
-      save_site_content: {
-        Args: {
-          p_content: Json
-          p_description?: string
-          p_page_key: string
-          p_publish?: boolean
           p_user_id: string
         }
         Returns: Json

@@ -13,7 +13,6 @@ import { UserSessionsSection } from "@/components/admin/sections/UserSessionsSec
 import { UserManagementSection } from "@/components/admin/sections/UserManagementSection";
 import { SystemSettingsSection } from "@/components/admin/sections/SystemSettingsSection";
 import { EngagementAnalyticsSection } from "@/components/admin/sections/EngagementAnalyticsSection";
-import { SiteEditorSection } from "@/components/admin/sections/SiteEditorSection";
 import { RealTimeStatsPanel } from "@/components/admin/RealTimeStatsPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -78,8 +77,6 @@ export default function AdminDashboard() {
             />
           </div>
         );
-      case "site-editor":
-        return <SiteEditorSection />;
       case "engagement-analytics":
         return <EngagementAnalyticsSection />;
       case "user-activity":
