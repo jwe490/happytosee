@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Clock, Calendar, Play, Users,
@@ -84,6 +84,7 @@ interface HistoryState {
 }
 
 const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [movieStack, setMovieStack] = useState<Movie[]>([]);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
@@ -172,13 +173,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   };
 
   const handleCastClick = (member: CastMember) => {
-    // Navigate to person page with state to remember we came from a movie
-    // Don't manipulate history manually - just navigate normally
-    // The person page back button will use browser's history.back() which returns here
+    // Navigate to person page with an explicit return URL so the actor page can always
+    // go back to the exact movie state (including ?movie=...)
+    const returnTo = `${location.pathname}${location.search}`;
     navigate(`/person/${member.id}`, {
       state: { 
+        returnTo,
         fromMovie: currentMovie?.id,
-        fromMovieTitle: currentMovie?.title 
+        fromMovieTitle: currentMovie?.title,
       }
     });
   };
