@@ -6,47 +6,100 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Simple JWT implementation
-function createJWT(payload: Record<string, any>, secret: string, expiresIn: number): string {
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const exp = now + expiresIn;
+// ───────────────────────────────────────────────────────────────────────────
+// Proper HMAC-SHA256 JWT implementation using Web Crypto API
+// ───────────────────────────────────────────────────────────────────────────
 
-  const fullPayload = { ...payload, iat: now, exp };
-
-  const base64Header = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const base64Payload = btoa(JSON.stringify(fullPayload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-
-  // Create signature using HMAC-SHA256
-  const signatureInput = `${base64Header}.${base64Payload}`;
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const data = encoder.encode(signatureInput);
-
-  // Simple signature (in production, use proper HMAC)
-  let hash = 0;
-  const combined = new Uint8Array([...keyData, ...data]);
-  for (let i = 0; i < combined.length; i++) {
-    hash = (hash << 5) - hash + combined[i];
-    hash = hash & hash;
-  }
-  const signature = btoa(String(Math.abs(hash)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  return `${base64Header}.${base64Payload}.${signature}`;
+function base64UrlEncode(data: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function verifyJWT(token: string, secret: string): { valid: boolean; payload?: Record<string, any> } {
+function base64UrlDecode(str: string): Uint8Array {
+  const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+}
+
+async function hmacSign(data: string, secret: string): Promise<Uint8Array> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const msgData = encoder.encode(data);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+  return new Uint8Array(signature);
+}
+
+async function hmacVerify(data: string, signature: Uint8Array, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const msgData = encoder.encode(data);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+
+  // Copy into a fresh ArrayBuffer to satisfy Deno's type check
+  const sigBuffer = new Uint8Array(signature).buffer as ArrayBuffer;
+  return crypto.subtle.verify("HMAC", cryptoKey, sigBuffer, msgData);
+}
+
+async function createJWT(
+  payload: Record<string, unknown>,
+  secret: string,
+  expiresIn: number
+): Promise<string> {
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const fullPayload = { ...payload, iat: now, exp: now + expiresIn };
+
+  const encoder = new TextEncoder();
+  const headerB64 = base64UrlEncode(encoder.encode(JSON.stringify(header)));
+  const payloadB64 = base64UrlEncode(encoder.encode(JSON.stringify(fullPayload)));
+
+  const signatureInput = `${headerB64}.${payloadB64}`;
+  const signatureBytes = await hmacSign(signatureInput, secret);
+  const signatureB64 = base64UrlEncode(signatureBytes);
+
+  return `${headerB64}.${payloadB64}.${signatureB64}`;
+}
+
+async function verifyJWT(
+  token: string,
+  secret: string
+): Promise<{ valid: boolean; payload?: Record<string, unknown> }> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return { valid: false };
 
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const [headerB64, payloadB64, signatureB64] = parts;
+    const signatureInput = `${headerB64}.${payloadB64}`;
+    const signatureBytes = base64UrlDecode(signatureB64);
+
+    const isValid = await hmacVerify(signatureInput, signatureBytes, secret);
+    if (!isValid) {
+      console.log("[key-auth] HMAC signature verification failed");
+      return { valid: false };
+    }
+
+    const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
+    const payload = JSON.parse(payloadJson) as Record<string, unknown>;
 
     // Check expiration
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    if (typeof payload.exp === "number" && payload.exp < Math.floor(Date.now() / 1000)) {
       console.log("[key-auth] Token expired at", new Date(payload.exp * 1000).toISOString());
       return { valid: false };
     }
@@ -58,7 +111,7 @@ function verifyJWT(token: string, secret: string): { valid: boolean; payload?: R
   }
 }
 
-// Hash function for token storage
+// Hash function for token storage (SHA-256)
 async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(token);
@@ -66,6 +119,10 @@ async function hashToken(token: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Main handler
+// ───────────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -76,8 +133,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const jwtSecret = Deno.env.get("JWT_SECRET");
-    if (!jwtSecret) {
-      throw new Error("JWT_SECRET is not set");
+    if (!jwtSecret || jwtSecret.length < 32) {
+      throw new Error("JWT_SECRET must be set and at least 32 characters");
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -92,7 +149,11 @@ Deno.serve(async (req) => {
         console.log("[key-auth] Processing signup...");
 
         // Check if key hash already exists
-        const { data: existing } = await supabase.from("key_users").select("id").eq("key_hash", keyHash).single();
+        const { data: existing } = await supabase
+          .from("key_users")
+          .select("id")
+          .eq("key_hash", keyHash)
+          .single();
 
         if (existing) {
           console.log("[key-auth] Key already registered");
@@ -135,7 +196,7 @@ Deno.serve(async (req) => {
               created_at: newUser.created_at,
             },
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -165,7 +226,7 @@ Deno.serve(async (req) => {
 
         // Create JWT token
         const expiresIn = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
-        const jwtToken = createJWT({ sub: user.id, name: user.display_name }, jwtSecret, expiresIn);
+        const jwtToken = await createJWT({ sub: user.id, name: user.display_name }, jwtSecret, expiresIn);
 
         // Store session
         const tokenHash = await hashToken(jwtToken);
@@ -201,14 +262,14 @@ Deno.serve(async (req) => {
               last_login_at: new Date().toISOString(),
             },
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       case "verify": {
         console.log("[key-auth] Processing verify...");
 
-        const result = verifyJWT(token, jwtSecret);
+        const result = await verifyJWT(token, jwtSecret);
 
         if (!result.valid) {
           console.log("[key-auth] JWT verification failed");
@@ -250,7 +311,7 @@ Deno.serve(async (req) => {
       case "refresh": {
         console.log("[key-auth] Processing refresh...");
 
-        const result = verifyJWT(token, jwtSecret);
+        const result = await verifyJWT(token, jwtSecret);
         if (!result.valid || !result.payload) {
           return new Response(JSON.stringify({ error: "Invalid token" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -258,7 +319,11 @@ Deno.serve(async (req) => {
         }
 
         // Get user
-        const { data: user } = await supabase.from("key_users").select("*").eq("id", result.payload.sub).single();
+        const { data: user } = await supabase
+          .from("key_users")
+          .select("*")
+          .eq("id", result.payload.sub)
+          .single();
 
         if (!user) {
           return new Response(JSON.stringify({ error: "User not found" }), {
@@ -279,7 +344,7 @@ Deno.serve(async (req) => {
         // Create new token
         const isRemembered = oldSession?.is_remembered || false;
         const expiresIn = isRemembered ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
-        const newToken = createJWT({ sub: user.id, name: user.display_name }, jwtSecret, expiresIn);
+        const newToken = await createJWT({ sub: user.id, name: user.display_name }, jwtSecret, expiresIn);
 
         // Store new session
         const newTokenHash = await hashToken(newToken);
@@ -307,7 +372,7 @@ Deno.serve(async (req) => {
               last_login_at: user.last_login_at,
             },
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
