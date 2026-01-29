@@ -53,7 +53,7 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
       className="cursor-pointer group relative"
     >
       {/* Card container */}
-        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 relative ring-1 ring-border/60">
+      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 relative">
         {/* Skeleton loading state */}
         <div 
           className={cn(
@@ -75,20 +75,20 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
         />
 
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="absolute bottom-0 left-0 right-0 p-3">
-            <p className="text-foreground text-sm font-medium line-clamp-2">{movie.title}</p>
+            <p className="text-white text-sm font-medium line-clamp-2">{movie.title}</p>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-muted-foreground text-xs">{movie.year}</span>
-              <span className="text-muted-foreground text-xs">{movie.genre}</span>
+              <span className="text-white/70 text-xs">{movie.year}</span>
+              <span className="text-white/70 text-xs">{movie.genre}</span>
             </div>
           </div>
         </div>
 
         {/* Rating badge */}
-        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-card/75 backdrop-blur-sm flex items-center gap-1 border border-border/60">
-          <Star className="w-3 h-3 text-accent fill-accent" />
-          <span className="text-foreground text-xs font-medium">{movie.rating?.toFixed(1) || "N/A"}</span>
+        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
+          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+          <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || "N/A"}</span>
         </div>
 
         {/* Mood match badge */}
@@ -106,7 +106,7 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
           "absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200",
           inWatchlist 
             ? "bg-primary text-primary-foreground" 
-            : "bg-card/70 text-foreground hover:bg-card"
+            : "bg-black/50 text-white hover:bg-black/70"
         )}
         aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
       >

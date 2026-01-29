@@ -22,8 +22,6 @@ import {
 } from "@/components/ui/collapsible";
 import SimilarMoviesGrid from "./SimilarMoviesGrid";
 import ActorPanel from "./ActorPanel";
-import { isValidMovieData } from "@/lib/navigationGuard";
-import { toast } from "@/hooks/use-toast";
 
 interface SimilarMovie {
   id: number;
@@ -77,8 +75,6 @@ interface ExpandedMovieViewProps {
   movie: Movie | null;
   isOpen: boolean;
   onClose: () => void;
-  /** Optional: sync the currently-viewed movie into the URL (e.g. ?movie=123) */
-  onMovieIdChange?: (movieId: number) => void;
 }
 
 // Track history depth for proper back navigation
@@ -87,7 +83,7 @@ interface HistoryState {
   depth: number;
 }
 
-const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: ExpandedMovieViewProps) => {
+const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
   const [movieStack, setMovieStack] = useState<Movie[]>([]);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
@@ -104,20 +100,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [selectedActorName, setSelectedActorName] = useState<string>("");
 
-  const handleActorPanelClose = useCallback(() => {
-    setActorPanelOpen(false);
-    setSelectedActorId(null);
-    setSelectedActorName("");
-  }, []);
-
   // FIXED: Proper back navigation that follows the movie stack
   const handleBack = useCallback(() => {
-    // If an overlay (actor panel) is open, back should close the overlay first.
-    if (actorPanelOpen) {
-      handleActorPanelClose();
-      return;
-    }
-
     if (movieStack.length > 1) {
       // Go back to previous movie in stack
       const newStack = [...movieStack];
@@ -126,8 +110,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
       setMovieStack(newStack);
       setCurrentMovie(previousMovie);
       historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
-
-      onMovieIdChange?.(previousMovie.id);
       
       // Scroll to top of the modal
       const container = document.querySelector('.expanded-movie-scroll');
@@ -136,7 +118,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
       // Close the modal completely
       onClose();
     }
-  }, [movieStack, onClose, actorPanelOpen, onMovieIdChange, handleActorPanelClose]);
+  }, [movieStack, onClose]);
 
   const { handlers: swipeHandlers } = useSwipeGesture({
     onSwipeRight: handleBack,
@@ -149,11 +131,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
       setCurrentMovie(movie);
       setMovieStack([movie]);
       historyDepthRef.current = 1;
-
-      // Keep URL in sync (when used from Index modal route)
-      onMovieIdChange?.(movie.id);
     }
-  }, [movie, isOpen, onMovieIdChange]);
+  }, [movie, isOpen]);
 
   // Fetch movie details when current movie changes
   useEffect(() => {
@@ -203,12 +182,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
     setActorPanelOpen(true);
   };
 
+  const handleActorPanelClose = () => {
+    setActorPanelOpen(false);
+    setSelectedActorId(null);
+    setSelectedActorName("");
+  };
+
   const handleActorMovieClick = (movieData: { id: number; title: string; posterUrl: string; rating: number; year: number }) => {
-    // Validate movie data using navigation guard
-    if (!isValidMovieData(movieData, "ExpandedMovieView handleActorMovieClick")) {
-      return;
-    }
-    
     // Close actor panel and add movie to stack
     handleActorPanelClose();
     const newMovie: Movie = {
@@ -223,8 +203,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
-
-    onMovieIdChange?.(newMovie.id);
     
     // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
@@ -233,11 +211,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
 
   // FIXED: Navigate to similar movie by adding to stack instead of replacing
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
-    // Validate movie data using navigation guard
-    if (!isValidMovieData(similar, "ExpandedMovieView handleSimilarMovieClick")) {
-      return;
-    }
-    
     const newMovie: Movie = {
       id: similar.id,
       title: similar.title,
@@ -252,13 +225,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: Expanded
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
-
-    onMovieIdChange?.(newMovie.id);
     
     // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
     if (container) container.scrollTop = 0;
-  }, [onMovieIdChange]);
+  }, []);
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
