@@ -234,11 +234,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
             animate={{ scale: 1 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <img
-              src={details?.backdropUrl || currentMovie.posterUrl}
-              alt=""
-              className="w-full h-full object-cover opacity-15 blur-3xl scale-110"
-            />
+            {(details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
+              <img
+                src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl}
+                alt=""
+                className="w-full h-full object-cover opacity-15 blur-3xl scale-110"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
           </motion.div>
 
@@ -269,11 +271,18 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
                 transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className="relative w-44 md:w-56 lg:w-64 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
               >
-                <img
-                  src={currentMovie.posterUrl}
-                  alt={currentMovie.title}
-                  className="w-full aspect-[2/3] object-cover"
-                />
+                {/* Use details posterUrl if available (for URL restoration), fallback to currentMovie */}
+                {(details?.posterUrl || currentMovie.posterUrl) ? (
+                  <img
+                    src={details?.posterUrl || currentMovie.posterUrl}
+                    alt={details?.title || currentMovie.title}
+                    className="w-full aspect-[2/3] object-cover"
+                  />
+                ) : (
+                  <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center animate-pulse">
+                    <Film className="w-12 h-12 text-muted-foreground" />
+                  </div>
+                )}
               </motion.div>
 
               {/* Movie Info */}
