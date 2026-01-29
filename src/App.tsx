@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { KeyAuthProvider } from "@/hooks/useKeyAuth";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PageTransition } from "@/components/PageTransition";
 
 const Index = lazy(() => import("./pages/Index"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
@@ -44,26 +45,28 @@ const App = () => (
             <AuthProvider>
               <ScrollToTop />
               <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/watchlist" element={<Watchlist />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/person/:id" element={<Person />} />
-                  <Route path="/assessment" element={<Assessment />} />
-                  {/* Admin Routes */}
-                  <Route path="/admin/login" element={<AdminLogin />} />
-                  <Route
-                    path="/admin/dashboard"
-                    element={
-                      <AdminProtectedRoute>
-                        <AdminDashboard />
-                      </AdminProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <PageTransition>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/watchlist" element={<Watchlist />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/person/:id" element={<Person />} />
+                    <Route path="/assessment" element={<Assessment />} />
+                    {/* Admin Routes */}
+                    <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route
+                      path="/admin/dashboard"
+                      element={
+                        <AdminProtectedRoute>
+                          <AdminDashboard />
+                        </AdminProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </PageTransition>
               </Suspense>
             </AuthProvider>
           </KeyAuthProvider>
