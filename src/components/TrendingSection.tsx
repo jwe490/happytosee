@@ -110,7 +110,7 @@ export function TrendingSection({ onMovieSelect, language, movieType }: Trending
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute top-2 left-2 bg-background/70 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold text-foreground flex items-center gap-1 border border-border/60">
                     <Star className="w-3 h-3 fill-accent text-accent" />
                     {movie.rating}

@@ -75,6 +75,8 @@ interface ExpandedMovieViewProps {
   movie: Movie | null;
   isOpen: boolean;
   onClose: () => void;
+  /** Optional: sync the currently-viewed movie into the URL (e.g. ?movie=123) */
+  onMovieIdChange?: (movieId: number) => void;
 }
 
 // Track history depth for proper back navigation
@@ -83,7 +85,7 @@ interface HistoryState {
   depth: number;
 }
 
-const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) => {
+const ExpandedMovieView = ({ movie, isOpen, onClose, onMovieIdChange }: ExpandedMovieViewProps) => {
   const [movieStack, setMovieStack] = useState<Movie[]>([]);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [details, setDetails] = useState<MovieDetails | null>(null);
@@ -100,8 +102,20 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [selectedActorName, setSelectedActorName] = useState<string>("");
 
+  const handleActorPanelClose = useCallback(() => {
+    setActorPanelOpen(false);
+    setSelectedActorId(null);
+    setSelectedActorName("");
+  }, []);
+
   // FIXED: Proper back navigation that follows the movie stack
   const handleBack = useCallback(() => {
+    // If an overlay (actor panel) is open, back should close the overlay first.
+    if (actorPanelOpen) {
+      handleActorPanelClose();
+      return;
+    }
+
     if (movieStack.length > 1) {
       // Go back to previous movie in stack
       const newStack = [...movieStack];
@@ -110,6 +124,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       setMovieStack(newStack);
       setCurrentMovie(previousMovie);
       historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+
+      onMovieIdChange?.(previousMovie.id);
       
       // Scroll to top of the modal
       const container = document.querySelector('.expanded-movie-scroll');
@@ -118,7 +134,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       // Close the modal completely
       onClose();
     }
-  }, [movieStack, onClose]);
+  }, [movieStack, onClose, actorPanelOpen, onMovieIdChange, handleActorPanelClose]);
 
   const { handlers: swipeHandlers } = useSwipeGesture({
     onSwipeRight: handleBack,
@@ -131,8 +147,11 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
       setCurrentMovie(movie);
       setMovieStack([movie]);
       historyDepthRef.current = 1;
+
+      // Keep URL in sync (when used from Index modal route)
+      onMovieIdChange?.(movie.id);
     }
-  }, [movie, isOpen]);
+  }, [movie, isOpen, onMovieIdChange]);
 
   // Fetch movie details when current movie changes
   useEffect(() => {
@@ -182,12 +201,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     setActorPanelOpen(true);
   };
 
-  const handleActorPanelClose = () => {
-    setActorPanelOpen(false);
-    setSelectedActorId(null);
-    setSelectedActorName("");
-  };
-
   const handleActorMovieClick = (movieData: { id: number; title: string; posterUrl: string; rating: number; year: number }) => {
     // Close actor panel and add movie to stack
     handleActorPanelClose();
@@ -203,6 +216,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
+
+    onMovieIdChange?.(newMovie.id);
     
     // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
@@ -225,11 +240,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose }: ExpandedMovieViewProps) =
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
+
+    onMovieIdChange?.(newMovie.id);
     
     // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
     if (container) container.scrollTop = 0;
-  }, []);
+  }, [onMovieIdChange]);
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
