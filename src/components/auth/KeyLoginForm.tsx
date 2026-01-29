@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Key, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { VaultIllustration } from "./VaultIllustration";
+import { InteractiveLoginIllustration } from "./InteractiveLoginIllustration";
 
 interface KeyLoginFormProps {
   onSubmit: (key: string, rememberMe: boolean) => void;
@@ -19,6 +19,19 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
   const [showKey, setShowKey] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Track typing state with debounce
+  useEffect(() => {
+    if (secretKey.length > 0) {
+      setIsTyping(true);
+      const timeout = setTimeout(() => setIsTyping(false), 500);
+      return () => clearTimeout(timeout);
+    } else {
+      setIsTyping(false);
+    }
+  }, [secretKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +55,15 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      {/* Header */}
+      {/* Header with Interactive Illustration */}
       <div className="text-center mb-8">
-        <VaultIllustration isUnlocked={false} />
+        <InteractiveLoginIllustration
+          isTyping={isTyping}
+          hasError={!!(error || validationError)}
+          isSuccess={showSuccess}
+          passwordVisible={showKey}
+          characterCount={secretKey.length}
+        />
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

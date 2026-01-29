@@ -3,7 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
-import { ShareDrawer, ShareableCard } from "@/components/sharing";
+import { ShareDrawer, EnhancedShareableCard } from "@/components/sharing";
 import {
   MoodIntroSlide,
   MoodArchetypeSlide,
@@ -386,10 +386,11 @@ export const MoodBoardResults = ({ assessmentId, answers = [] }: MoodBoardResult
 
       {/* Hidden shareable card for image generation */}
       <div className="fixed -left-[9999px] -top-[9999px]">
-        <ShareableCard
+        <EnhancedShareableCard
           ref={shareCardRef}
           archetype={archetype}
           mood={preferences.mood}
+          movies={recommendedMovies.slice(0, 3)}
         />
       </div>
 

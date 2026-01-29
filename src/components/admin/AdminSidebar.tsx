@@ -6,8 +6,8 @@ import {
   Users,
   Film,
   Settings,
-  Sliders,
   Activity,
+  MousePointerClick,
   UserCog,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +43,7 @@ interface AdminSidebarProps {
 
 const navItems: NavItem[] = [
   { title: "Overview", icon: LayoutDashboard, section: "overview" },
+  { title: "Engagement", icon: MousePointerClick, section: "engagement-analytics" },
   { title: "User Activity", icon: Activity, section: "user-activity" },
   { title: "Mood Insights", icon: Smile, section: "mood-analytics" },
   { title: "Watchlist Stats", icon: Bookmark, section: "watchlist-stats" },
