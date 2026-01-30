@@ -6,14 +6,17 @@ interface HistoryStateData {
   movieId?: number;
   depth: number;
   previousPath: string;
+  returnTo?: string;
+  fromMovieTitle?: string;
 }
 
 export function useHistoryState() {
   const navigate = useNavigate();
   const location = useLocation();
   const scrollPositionRef = useRef<number>(0);
+  const scrollRestoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Save scroll position on scroll
+  // Save scroll position on scroll with debouncing
   useEffect(() => {
     const handleScroll = () => {
       scrollPositionRef.current = window.scrollY;
@@ -26,31 +29,52 @@ export function useHistoryState() {
   // Restore scroll position when navigating back
   useEffect(() => {
     const state = location.state as HistoryStateData | undefined;
-    
+
     if (state?.scrollPosition !== undefined) {
-      // Use requestAnimationFrame for smooth scroll restoration
-      requestAnimationFrame(() => {
-        window.scrollTo({
-          top: state.scrollPosition,
-          behavior: "instant",
+      // Clear any existing timeout
+      if (scrollRestoreTimeoutRef.current) {
+        clearTimeout(scrollRestoreTimeoutRef.current);
+      }
+
+      // Use multiple attempts to ensure scroll position is restored
+      const scrollToPosition = (attempt = 0) => {
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: state.scrollPosition,
+            behavior: "instant",
+          });
+
+          // Verify scroll position was set correctly (within 10px tolerance)
+          if (attempt < 3 && Math.abs(window.scrollY - state.scrollPosition) > 10) {
+            scrollRestoreTimeoutRef.current = setTimeout(() => scrollToPosition(attempt + 1), 100);
+          }
         });
-      });
+      };
+
+      scrollToPosition();
     }
+
+    return () => {
+      if (scrollRestoreTimeoutRef.current) {
+        clearTimeout(scrollRestoreTimeoutRef.current);
+      }
+    };
   }, [location.key]);
 
-  const pushState = useCallback((movieId: number, path?: string) => {
+  const pushState = useCallback((movieId: number, path?: string, additionalState?: Partial<HistoryStateData>) => {
     const currentState = location.state as HistoryStateData | undefined;
     const currentDepth = currentState?.depth ?? 0;
-    
+
     const newState: HistoryStateData = {
       scrollPosition: scrollPositionRef.current,
       movieId,
       depth: currentDepth + 1,
       previousPath: location.pathname + location.search,
+      ...additionalState,
     };
 
     const targetPath = path || `${location.pathname}?movie=${movieId}`;
-    
+
     navigate(targetPath, {
       state: newState,
       replace: false,
@@ -59,9 +83,22 @@ export function useHistoryState() {
 
   const goBack = useCallback(() => {
     const state = location.state as HistoryStateData | undefined;
-    
-    if (state?.depth && state.depth > 0) {
-      // Navigate back in history
+
+    // If we have a specific return path, use it
+    if (state?.returnTo) {
+      navigate(state.returnTo, {
+        state: {
+          scrollPosition: state.scrollPosition,
+          depth: Math.max(0, (state.depth ?? 1) - 1),
+        },
+      });
+      return;
+    }
+
+    // Check if we can go back in browser history
+    const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
+
+    if (state?.depth && state.depth > 0 && canGoBack) {
       window.history.back();
     } else {
       // No history state, go to home
@@ -69,14 +106,15 @@ export function useHistoryState() {
     }
   }, [navigate, location.state]);
 
-  const replaceState = useCallback((movieId: number) => {
+  const replaceState = useCallback((movieId: number, additionalState?: Partial<HistoryStateData>) => {
     const currentState = location.state as HistoryStateData | undefined;
-    
+
     const newState: HistoryStateData = {
       scrollPosition: currentState?.scrollPosition ?? scrollPositionRef.current,
       movieId,
       depth: currentState?.depth ?? 0,
       previousPath: currentState?.previousPath ?? location.pathname,
+      ...additionalState,
     };
 
     navigate(`${location.pathname}?movie=${movieId}`, {
@@ -85,11 +123,28 @@ export function useHistoryState() {
     });
   }, [navigate, location]);
 
+  const navigateToPersonWithReturn = useCallback((personId: number, movieTitle: string, movieId: number) => {
+    const returnTo = `${location.pathname}${location.search}`;
+    const currentState = location.state as HistoryStateData | undefined;
+
+    navigate(`/person/${personId}`, {
+      state: {
+        returnTo,
+        fromMovie: movieId,
+        fromMovieTitle: movieTitle,
+        depth: (currentState?.depth ?? 0) + 1,
+        scrollPosition: scrollPositionRef.current,
+      },
+    });
+  }, [navigate, location]);
+
   return {
     pushState,
     goBack,
     replaceState,
+    navigateToPersonWithReturn,
     currentDepth: (location.state as HistoryStateData | undefined)?.depth ?? 0,
     currentMovieId: (location.state as HistoryStateData | undefined)?.movieId,
+    returnTo: (location.state as HistoryStateData | undefined)?.returnTo,
   };
 }

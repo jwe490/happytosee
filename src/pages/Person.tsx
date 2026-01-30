@@ -711,29 +711,58 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button - slide down on scroll-down, slide up on scroll-up */}
+      {/* Floating persistent Back-to-movie button with glassmorphism */}
       {returnTo && fromMovieTitle && (
         <div
           className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-500 ease-out ${
-            showFloatingBtn 
-              ? "opacity-100 translate-y-0" 
+            showFloatingBtn
+              ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-20 pointer-events-none"
           }`}
-          style={{ 
+          style={{
             transitionTimingFunction: showFloatingBtn ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'cubic-bezier(0.4, 0, 1, 1)'
           }}
         >
           <div className="mx-auto w-full max-w-md">
-            <Button
-              onClick={handleBackToMovie}
-              className="w-full rounded-full min-h-[48px] shadow-lg gap-2 animate-in slide-in-from-bottom-4 duration-300"
-            >
-              <Film className="w-4 h-4" />
-              Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
-            </Button>
+            <div className="relative group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 rounded-full opacity-75 group-hover:opacity-100 blur-sm transition-opacity duration-300 animate-pulse" />
+              <button
+                onClick={handleBackToMovie}
+                className="relative w-full min-h-[52px] px-6 py-3 rounded-full
+                          bg-background/60 backdrop-blur-xl
+                          border border-white/20
+                          shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)]
+                          hover:bg-background/70 hover:border-white/30
+                          active:scale-[0.98]
+                          transition-all duration-200
+                          flex items-center justify-center gap-2
+                          text-foreground font-medium
+                          group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.3)]
+                          touch-manipulation"
+                style={{
+                  animation: 'floatIdle 3s ease-in-out infinite'
+                }}
+              >
+                <Film className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+                <span className="text-sm">
+                  Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes floatIdle {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+      `}</style>
 
       <ExpandedMovieView
         movie={selectedMovie}

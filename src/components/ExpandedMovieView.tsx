@@ -279,40 +279,66 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
             <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
           </motion.div>
 
-          {/* Navigation buttons: Back + Home */}
+          {/* Navigation buttons: Back + Home with glassmorphism */}
           <div className="fixed top-4 left-4 z-[60] flex items-center gap-2">
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ delay: 0.1, duration: 0.2 }}
-              onClick={handleBack}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/95 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card shadow-lg active:scale-95 transition-all duration-150 min-h-[44px] touch-manipulation"
+              className="relative group"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                {movieStack.length > 1 ? `Back (${movieStack.length - 1})` : 'Close'}
-              </span>
-            </motion.button>
-            
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/30 to-accent/30 rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300" />
+              <button
+                onClick={handleBack}
+                className="relative flex items-center gap-2 px-4 py-2.5 rounded-full
+                          bg-background/50 backdrop-blur-xl
+                          border border-white/20
+                          shadow-[0_4px_24px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.15)]
+                          hover:bg-background/60 hover:border-white/30
+                          active:scale-95
+                          transition-all duration-150
+                          text-foreground
+                          min-h-[44px] touch-manipulation"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {movieStack.length > 1 ? `Back (${movieStack.length - 1})` : 'Close'}
+                </span>
+              </button>
+            </motion.div>
+
             {/* Home button */}
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: 0.15, duration: 0.2 }}
-              onClick={() => {
-                onClose();
-                navigate("/");
-              }}
-              className="flex items-center justify-center w-11 h-11 rounded-full bg-card/95 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card shadow-lg active:scale-95 transition-all duration-150 touch-manipulation"
-              title="Go Home"
+              className="relative group"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </motion.button>
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-accent/30 to-primary/30 rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300" />
+              <button
+                onClick={() => {
+                  onClose();
+                  navigate("/");
+                }}
+                className="relative flex items-center justify-center w-11 h-11 rounded-full
+                          bg-background/50 backdrop-blur-xl
+                          border border-white/20
+                          shadow-[0_4px_24px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.15)]
+                          hover:bg-background/60 hover:border-white/30
+                          active:scale-95
+                          transition-all duration-150
+                          text-foreground
+                          touch-manipulation"
+                title="Go Home"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+              </button>
+            </motion.div>
           </div>
 
           {/* Main content */}
