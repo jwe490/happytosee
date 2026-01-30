@@ -44,7 +44,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
         </span>
       </motion.h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8 md:gap-x-8 md:gap-y-10 lg:gap-x-10 lg:gap-y-12 max-w-4xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-7 sm:gap-x-7 sm:gap-y-9 md:gap-x-9 md:gap-y-11 lg:gap-x-11 lg:gap-y-14 max-w-4xl mx-auto">
         {moods.map((mood, index) => {
           const isSelected = selectedMood === mood.id;
           const isAnimating = animatingMood === mood.id;
@@ -52,55 +52,99 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
           return (
             <motion.button
               key={mood.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
+              initial={{ opacity: 0, scale: 0.8, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{
+                delay: index * 0.06,
+                duration: 0.5,
+                ease: [0.34, 1.56, 0.64, 1]
+              }}
               onClick={() => handleMoodClick(mood.id)}
-              className="group relative flex flex-col items-center focus:outline-none"
+              className="group relative flex flex-col items-center focus:outline-none touch-manipulation"
             >
               <div className="relative w-full aspect-[4/3]">
                 <motion.div
-                  whileHover={{ scale: 1.08, y: -6 }}
-                  whileTap={{ scale: 0.95 }}
-                  animate={isAnimating ? { scale: [1, 1.12, 1], y: [0, -10, 0] } : {}}
-                  transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  whileHover={{
+                    scale: 1.1,
+                    y: -8,
+                    transition: { duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }
+                  }}
+                  whileTap={{ scale: 0.92 }}
+                  animate={isAnimating ? {
+                    scale: [1, 1.15, 1],
+                    y: [0, -12, 0],
+                    rotate: [0, -2, 2, 0]
+                  } : {}}
+                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                   className={`
-                    relative w-full h-full rounded-[20px] sm:rounded-[24px] md:rounded-[28px] lg:rounded-[32px]
-                    transition-shadow duration-300 ease-out
+                    relative w-full h-full rounded-[22px] sm:rounded-[26px] md:rounded-[30px] lg:rounded-[36px]
+                    cursor-pointer select-none
+                    transition-all duration-300 ease-out
                     ${isSelected
-                      ? "ring-4 ring-offset-2 ring-offset-background ring-foreground/70 shadow-2xl"
-                      : "shadow-lg group-hover:shadow-2xl"
+                      ? "ring-[5px] ring-offset-[3px] ring-offset-background ring-[#F26B4E]/60 shadow-[0_20px_60px_-10px_rgba(242,107,78,0.6)]"
+                      : "shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)] group-hover:shadow-[0_16px_48px_-8px_rgba(242,107,78,0.4)]"
                     }
                   `}
-                  style={{ backgroundColor: "#F26B4E" }}
+                  style={{
+                    backgroundColor: isSelected ? "#E85A3D" : "#F26B4E",
+                    transform: isSelected ? "translateY(-4px)" : undefined
+                  }}
                 >
                   <div className="absolute inset-0 overflow-visible">
                     <mood.Icon isAnimating={isAnimating} />
                   </div>
 
+                  <div
+                    className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)"
+                    }}
+                  />
+
                   <AnimatePresence>
                     {isAnimating && (
-                      <motion.div
-                        initial={{ scale: 0, opacity: 0.5 }}
-                        animate={{ scale: 3, opacity: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                        className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-white/50"
-                      />
+                      <>
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0.6 }}
+                          animate={{ scale: 3.5, opacity: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.6, ease: "easeOut" }}
+                          className="absolute inset-0 m-auto w-10 h-10 rounded-full"
+                          style={{ backgroundColor: "rgba(255,255,255,0.5)" }}
+                        />
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: [0, 1.2, 0] }}
+                          transition={{ duration: 0.5, times: [0, 0.6, 1] }}
+                          className="absolute inset-0 rounded-[inherit]"
+                          style={{
+                            border: "3px solid rgba(255,255,255,0.6)",
+                            boxShadow: "0 0 20px rgba(255,255,255,0.4)"
+                          }}
+                        />
+                      </>
                     )}
                   </AnimatePresence>
                 </motion.div>
               </div>
 
               <motion.span
-                animate={isAnimating ? { scale: [1, 1.1, 1] } : {}}
-                transition={{ duration: 0.25 }}
+                animate={isAnimating ? {
+                  scale: [1, 1.15, 1],
+                  y: [0, -3, 0]
+                } : {}}
+                transition={{ duration: 0.3 }}
                 className={`
-                  mt-2 sm:mt-3 md:mt-4 font-semibold text-sm sm:text-base md:text-lg lg:text-xl
-                  transition-all duration-200
-                  ${isSelected ? "text-foreground scale-105" : "text-foreground/90 group-hover:text-foreground"}
+                  mt-3 sm:mt-4 md:mt-5 font-bold text-sm sm:text-base md:text-lg lg:text-xl
+                  transition-all duration-300
+                  ${isSelected
+                    ? "text-foreground scale-110"
+                    : "text-foreground/85 group-hover:text-foreground group-hover:scale-105"}
                 `}
-                style={{ fontFamily: "'Poppins', sans-serif" }}
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  textShadow: isSelected ? "0 2px 8px rgba(242,107,78,0.3)" : undefined
+                }}
               >
                 {mood.label}
               </motion.span>
