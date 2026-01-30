@@ -22,9 +22,9 @@ interface CinematicCarouselProps {
 const SLIDE_WIDTH = 280;
 const SLIDE_HEIGHT = 420;
 const VISIBLE_SLIDES = 7;
-const CENTER_SCALE = 1;
-const SIDE_SCALE = 0.7;
-const FAR_SCALE = 0.5;
+const CENTER_SCALE = 1.15;
+const SIDE_SCALE = 0.8;
+const FAR_SCALE = 0.6;
 
 export const CinematicCarousel = ({
   movies,
@@ -96,35 +96,35 @@ export const CinematicCarousel = ({
         opacity: 1,
         zIndex: 50,
         filter: 'blur(0px)',
-        borderRadius: '20px',
+        borderRadius: 16,
         rotateY: 0,
       };
     } else if (absPosition === 1) {
       return {
         scale: SIDE_SCALE,
-        opacity: 0.75,
+        opacity: 0.8,
         zIndex: 40,
-        filter: 'blur(0.3px)',
-        borderRadius: '140px',
-        rotateY: position > 0 ? -15 : 15,
+        filter: 'blur(0px)',
+        borderRadius: 24,
+        rotateY: position > 0 ? -12 : 12,
       };
     } else if (absPosition === 2) {
       return {
         scale: FAR_SCALE,
-        opacity: 0.4,
+        opacity: 0.5,
         zIndex: 30,
-        filter: 'blur(1px)',
-        borderRadius: '140px',
-        rotateY: position > 0 ? -25 : 25,
+        filter: 'blur(0.5px)',
+        borderRadius: 32,
+        rotateY: position > 0 ? -20 : 20,
       };
     } else {
       return {
-        scale: FAR_SCALE * 0.8,
-        opacity: 0.2,
+        scale: FAR_SCALE * 0.85,
+        opacity: 0.25,
         zIndex: 20,
-        filter: 'blur(2px)',
-        borderRadius: '140px',
-        rotateY: position > 0 ? -30 : 30,
+        filter: 'blur(1px)',
+        borderRadius: 40,
+        rotateY: position > 0 ? -25 : 25,
       };
     }
   };
@@ -150,7 +150,7 @@ export const CinematicCarousel = ({
           <h2 className="font-display text-xl md:text-2xl font-bold text-foreground">Featured Movies</h2>
         </div>
 
-        <div className="relative h-[480px] md:h-[520px] flex items-center justify-center">
+        <div className="relative h-[500px] md:h-[560px] flex items-center justify-center">
           <motion.div
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -169,7 +169,7 @@ export const CinematicCarousel = ({
                   className="absolute"
                   initial={false}
                   animate={{
-                    x: position * (SLIDE_WIDTH * 0.85),
+                    x: position * (SLIDE_WIDTH * 0.82),
                     scale: style.scale,
                     opacity: style.opacity,
                     filter: style.filter,
@@ -178,9 +178,9 @@ export const CinematicCarousel = ({
                   }}
                   transition={{
                     type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                    mass: 0.8,
+                    stiffness: 260,
+                    damping: 35,
+                    mass: 0.9,
                   }}
                   onClick={() => {
                     if (!isDragging && position !== 0) {
@@ -193,23 +193,23 @@ export const CinematicCarousel = ({
                   style={{
                     width: SLIDE_WIDTH,
                     height: SLIDE_HEIGHT,
-                    perspective: '1000px',
+                    perspective: '1200px',
                     transformStyle: 'preserve-3d',
                   }}
                 >
                   <div className="relative w-full h-full group" style={{ transformStyle: 'preserve-3d' }}>
                     <motion.div
                       className={`relative w-full h-full overflow-hidden shadow-2xl ${
-                        isCenter ? 'ring-2 ring-primary/50' : ''
+                        isCenter ? 'ring-2 ring-primary/60' : ''
                       }`}
                       animate={{
-                        borderRadius: style.borderRadius,
+                        borderRadius: `${style.borderRadius}px`,
                       }}
                       transition={{
                         type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8,
+                        stiffness: 260,
+                        damping: 35,
+                        mass: 0.9,
                       }}
                     >
                       <img
@@ -219,13 +219,28 @@ export const CinematicCarousel = ({
                         loading="lazy"
                       />
 
-                      <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 ${
-                        isCenter ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`} />
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"
+                        animate={{
+                          opacity: isCenter ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.4,
+                          ease: "easeInOut",
+                        }}
+                      />
 
-                      <div className={`absolute bottom-0 left-0 right-0 p-4 transform transition-all duration-300 ${
-                        isCenter ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
-                      }`}>
+                      <motion.div
+                        className="absolute bottom-0 left-0 right-0 p-4"
+                        animate={{
+                          y: isCenter ? 0 : 16,
+                          opacity: isCenter ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.4,
+                          ease: "easeInOut",
+                        }}
+                      >
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background/40 backdrop-blur-md border border-white/20 shadow-lg">
@@ -256,7 +271,7 @@ export const CinematicCarousel = ({
                             </button>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
                     </motion.div>
                   </div>
                 </motion.div>
