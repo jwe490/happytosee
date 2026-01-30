@@ -23,13 +23,18 @@ import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations"
 import { supabase } from "@/integrations/supabase/client";
 
 const moodTaglines: Record<string, string> = {
-  happy: "Feeling Happy? Here's something uplifting 🎉",
-  sad: "Feeling Sad? Comfort movies for you 💙",
-  romantic: "In the mood for love? 💕",
-  excited: "Ready for action? 🔥",
-  bored: "Let's surprise you! 🎲",
-  relaxed: "Chill vibes only 🌿",
-  nostalgic: "A trip down memory lane ✨",
+  happy: "Feeling Happy? Here's something uplifting",
+  sad: "Feeling Sad? Comfort movies for you",
+  romantic: "In the mood for love?",
+  bored: "Let's surprise you!",
+  relaxed: "Chill vibes only",
+  nostalgic: "A trip down memory lane",
+  motivated: "Ready to conquer the world?",
+  angry: "Let's channel that energy",
+  anxiety: "Something calming for you",
+  tired: "Easy watching for tired minds",
+  inspired: "Fuel your creativity",
+  confused: "Let's figure this out together",
 };
 
 // Load/save mood from localStorage
