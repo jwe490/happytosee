@@ -102,6 +102,7 @@ const Person = () => {
 
   // Scroll-aware floating button state
   const [showFloatingBtn, setShowFloatingBtn] = useState(true);
+  const [isCompactBtn, setIsCompactBtn] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
@@ -165,19 +166,22 @@ const Person = () => {
     }
   }, [navigate, returnTo]);
 
-  // Scroll-aware floating button: hide on scroll-down, show on scroll-up
+  // Scroll-aware floating button: morph to circle when scrolled down, pill when at top
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          if (currentY > lastScrollY.current && currentY > 100) {
-            // Scrolling down past threshold
-            setShowFloatingBtn(false);
+          // Always show button
+          setShowFloatingBtn(true);
+
+          // Morph to circle when scrolled past 200px, pill when near top
+          if (currentY > 200) {
+            setIsCompactBtn(true);
           } else {
-            // Scrolling up or near top
-            setShowFloatingBtn(true);
+            setIsCompactBtn(false);
           }
+
           lastScrollY.current = currentY;
           ticking.current = false;
         });
@@ -714,37 +718,43 @@ const Person = () => {
       {/* Floating persistent Back-to-movie button with glassmorphism */}
       {returnTo && fromMovieTitle && (
         <div
-          className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-500 ease-out ${
+          className={`fixed ${
+            isCompactBtn ? 'bottom-6 right-6' : 'inset-x-0 bottom-3 sm:bottom-4 px-3 sm:px-4'
+          } z-[80] transition-all duration-500 ease-out ${
             showFloatingBtn
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-20 pointer-events-none"
           }`}
           style={{
-            transitionTimingFunction: showFloatingBtn ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'cubic-bezier(0.4, 0, 1, 1)'
+            transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}
         >
-          <div className="mx-auto w-full max-w-md">
+          <div className={`${isCompactBtn ? '' : 'mx-auto w-full max-w-md'}`}>
             <div className="relative group">
-              <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 rounded-full opacity-75 group-hover:opacity-100 blur-sm transition-opacity duration-300 animate-pulse" />
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 rounded-full opacity-75 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
               <button
                 onClick={handleBackToMovie}
-                className="relative w-full min-h-[52px] px-6 py-3 rounded-full
-                          bg-background/60 backdrop-blur-xl
+                className={`relative bg-background/60 backdrop-blur-xl
                           border border-white/20
                           shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)]
                           hover:bg-background/70 hover:border-white/30
                           active:scale-[0.98]
-                          transition-all duration-200
-                          flex items-center justify-center gap-2
+                          transition-all duration-500
+                          flex items-center justify-center
                           text-foreground font-medium
                           group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.3)]
-                          touch-manipulation"
-                style={{
-                  animation: 'floatIdle 3s ease-in-out infinite'
-                }}
+                          touch-manipulation rounded-full ${
+                            isCompactBtn
+                              ? 'w-14 h-14 p-0'
+                              : 'w-full min-h-[52px] px-6 py-3 gap-2'
+                          }`}
               >
-                <Film className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">
+                <Film className={`group-hover:scale-110 transition-all duration-500 ${
+                  isCompactBtn ? 'w-5 h-5' : 'w-4 h-4'
+                }`} />
+                <span className={`text-sm transition-all duration-500 ${
+                  isCompactBtn ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
+                }`}>
                   Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
                 </span>
               </button>
@@ -752,17 +762,6 @@ const Person = () => {
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes floatIdle {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
-        }
-      `}</style>
 
       <ExpandedMovieView
         movie={selectedMovie}

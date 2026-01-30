@@ -139,14 +139,43 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
     threshold: 100,
   });
 
-  // Initialize movie when opened
+  // Initialize movie when opened - preserve stack during navigation
   useEffect(() => {
-    if (movie && isOpen) {
+    if (!isOpen) {
+      // Modal closed - reset for next opening
+      wasOpenRef.current = false;
+      return;
+    }
+
+    if (movie && isOpen && !wasOpenRef.current) {
+      // Modal just opened - initialize with this movie
       setCurrentMovie(movie);
       setMovieStack([movie]);
       historyDepthRef.current = 1;
+      wasOpenRef.current = true;
+    } else if (movie && isOpen && wasOpenRef.current) {
+      // Modal is already open - movie changed via URL
+      // Only add to stack if it's a different movie than current
+      if (movie.id !== currentMovie?.id) {
+        const isInStack = movieStack.some(m => m.id === movie.id);
+        if (!isInStack) {
+          // New movie not in stack - add it
+          setMovieStack(prev => [...prev, movie]);
+          setCurrentMovie(movie);
+          historyDepthRef.current += 1;
+        } else {
+          // Movie is already in stack - user might have used browser back
+          // Find the movie in stack and navigate back to it
+          const movieIndex = movieStack.findIndex(m => m.id === movie.id);
+          if (movieIndex >= 0) {
+            setMovieStack(prev => prev.slice(0, movieIndex + 1));
+            setCurrentMovie(movie);
+            historyDepthRef.current = movieIndex + 1;
+          }
+        }
+      }
     }
-  }, [movie, isOpen]);
+  }, [movie, isOpen, currentMovie, movieStack]);
 
   // Fetch movie details when current movie changes
   useEffect(() => {

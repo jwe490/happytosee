@@ -96,27 +96,35 @@ export const CinematicCarousel = ({
         opacity: 1,
         zIndex: 50,
         filter: 'blur(0px)',
+        borderRadius: '20px',
+        rotateY: 0,
       };
     } else if (absPosition === 1) {
       return {
         scale: SIDE_SCALE,
-        opacity: 0.8,
+        opacity: 0.75,
         zIndex: 40,
-        filter: 'blur(0.5px)',
+        filter: 'blur(0.3px)',
+        borderRadius: '140px',
+        rotateY: position > 0 ? -15 : 15,
       };
     } else if (absPosition === 2) {
       return {
         scale: FAR_SCALE,
-        opacity: 0.5,
+        opacity: 0.4,
         zIndex: 30,
         filter: 'blur(1px)',
+        borderRadius: '140px',
+        rotateY: position > 0 ? -25 : 25,
       };
     } else {
       return {
         scale: FAR_SCALE * 0.8,
-        opacity: 0.3,
+        opacity: 0.2,
         zIndex: 20,
         filter: 'blur(2px)',
+        borderRadius: '140px',
+        rotateY: position > 0 ? -30 : 30,
       };
     }
   };
@@ -166,6 +174,7 @@ export const CinematicCarousel = ({
                     opacity: style.opacity,
                     filter: style.filter,
                     zIndex: style.zIndex,
+                    rotateY: style.rotateY,
                   }}
                   transition={{
                     type: "spring",
@@ -184,12 +193,25 @@ export const CinematicCarousel = ({
                   style={{
                     width: SLIDE_WIDTH,
                     height: SLIDE_HEIGHT,
+                    perspective: '1000px',
+                    transformStyle: 'preserve-3d',
                   }}
                 >
-                  <div className="relative w-full h-full group">
-                    <div className={`relative w-full h-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
-                      isCenter ? 'ring-2 ring-primary/50' : ''
-                    }`}>
+                  <div className="relative w-full h-full group" style={{ transformStyle: 'preserve-3d' }}>
+                    <motion.div
+                      className={`relative w-full h-full overflow-hidden shadow-2xl ${
+                        isCenter ? 'ring-2 ring-primary/50' : ''
+                      }`}
+                      animate={{
+                        borderRadius: style.borderRadius,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                        mass: 0.8,
+                      }}
+                    >
                       <img
                         src={movie.posterUrl}
                         alt={movie.title}
@@ -235,7 +257,7 @@ export const CinematicCarousel = ({
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
                 </motion.div>
               );
