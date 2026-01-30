@@ -110,41 +110,72 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   //   that stays within the modal.
   // - Otherwise, follow the internal movie stack.
   const handleBack = useCallback(() => {
-    if (movieStack.length > 1) {
-      // Go back to previous movie in stack
-      const newStack = [...movieStack];
-      newStack.pop(); // Remove current
-      const previousMovie = newStack[newStack.length - 1];
-      setMovieStack(newStack);
-      setCurrentMovie(previousMovie);
-      historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+    // Get current stack length to decide action
+    setMovieStack(currentStack => {
+      const stackLength = currentStack.length;
 
-      // In URL-driven mode, request URL change to keep the URL in sync,
-      // but we still rely on the internal stack for navigation.
-      if (onRequestMovieChange) {
-        onRequestMovieChange(previousMovie.id);
+      if (stackLength > 1) {
+        // Create new stack without the current movie
+        const newStack = currentStack.slice(0, -1);
+        const previousMovie = newStack[newStack.length - 1];
+
+        // Update history depth to match new stack
+        historyDepthRef.current = newStack.length;
+
+        // Update current movie to the previous one
+        setCurrentMovie(previousMovie);
+
+        // In URL-driven mode, request URL change to keep the URL in sync
+        if (onRequestMovieChange) {
+          onRequestMovieChange(previousMovie.id);
+        }
+
+        // Scroll to top of the modal
+        requestAnimationFrame(() => {
+          const container = document.querySelector('.expanded-movie-scroll');
+          if (container) container.scrollTop = 0;
+        });
+
+        return newStack;
+      } else {
+        // Close the modal completely when no history left
+        // Use setTimeout to avoid state update during render
+        setTimeout(() => onClose(), 0);
+        return currentStack;
       }
-      
-      // Scroll to top of the modal
-      const container = document.querySelector('.expanded-movie-scroll');
-      if (container) container.scrollTop = 0;
-    } else {
-      // Close the modal completely
-      onClose();
-    }
-  }, [movieStack, onClose, onRequestMovieChange]);
+    });
+  }, [onClose, onRequestMovieChange]);
 
   const { handlers: swipeHandlers } = useSwipeGesture({
     onSwipeRight: handleBack,
     threshold: 100,
   });
 
-  // Initialize movie when opened
+  // Initialize movie when opened - only reset stack when opening with a NEW base movie
   useEffect(() => {
     if (movie && isOpen) {
-      setCurrentMovie(movie);
-      setMovieStack([movie]);
-      historyDepthRef.current = 1;
+      // Only reset the stack if opening fresh (stack is empty) or if the base movie changed
+      setMovieStack(currentStack => {
+        // If stack is empty, initialize with the movie
+        if (currentStack.length === 0) {
+          historyDepthRef.current = 1;
+          setCurrentMovie(movie);
+          return [movie];
+        }
+        // If the incoming movie is different from the first item (new modal open), reset
+        if (currentStack[0].id !== movie.id) {
+          historyDepthRef.current = 1;
+          setCurrentMovie(movie);
+          return [movie];
+        }
+        // Otherwise keep the existing stack intact (user is navigating within)
+        return currentStack;
+      });
+    } else if (!isOpen) {
+      // Reset stack when closed to prevent stale data
+      setMovieStack([]);
+      setCurrentMovie(null);
+      historyDepthRef.current = 0;
     }
   }, [movie, isOpen]);
 
@@ -225,19 +256,32 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       posterUrl: similar.posterUrl,
       moodMatch: "",
     };
-    
-    // Add to movie stack for proper back navigation
-    setMovieStack(prev => [...prev, newMovie]);
+
+    // Use functional update to ensure we have the latest stack and properly track history
+    setMovieStack(currentStack => {
+      // Prevent duplicate entries at the end of the stack
+      if (currentStack.length > 0 && currentStack[currentStack.length - 1].id === similar.id) {
+        return currentStack;
+      }
+      const newStack = [...currentStack, newMovie];
+      // Update depth based on actual new stack length
+      historyDepthRef.current = newStack.length;
+      return newStack;
+    });
+
     setCurrentMovie(newMovie);
-    historyDepthRef.current += 1;
 
     if (onRequestMovieChange) {
       onRequestMovieChange(similar.id);
     }
-    
-    // Scroll to top of the modal
-    const container = document.querySelector('.expanded-movie-scroll');
-    if (container) container.scrollTop = 0;
+
+    // Scroll to top of the modal with requestAnimationFrame for smoother experience
+    requestAnimationFrame(() => {
+      const container = document.querySelector('.expanded-movie-scroll');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    });
   }, [onRequestMovieChange]);
 
   const formatRuntime = (minutes: number) => {
@@ -252,13 +296,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   if (!currentMovie) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="fixed inset-0 z-50 bg-background"
           {...swipeHandlers}
         >
@@ -322,9 +366,13 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
               {/* Hero Poster */}
               <motion.div
                 key={currentMovie.id}
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                transition={{
+                  duration: 0.35,
+                  ease: [0.25, 0.46, 0.45, 0.94],
+                  opacity: { duration: 0.25 }
+                }}
                 className="relative w-44 md:w-56 lg:w-64 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
               >
                 {/* Use details posterUrl if available (for URL restoration), fallback to currentMovie */}
@@ -332,7 +380,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
                   <img
                     src={details?.posterUrl || currentMovie.posterUrl}
                     alt={details?.title || currentMovie.title}
-                    className="w-full aspect-[2/3] object-cover"
+                    className="w-full aspect-[2/3] object-cover transition-opacity duration-300"
+                    loading="eager"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center animate-pulse">

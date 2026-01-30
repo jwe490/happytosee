@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   Star,
@@ -98,7 +99,6 @@ const Person = () => {
   const [selectedMovie, setSelectedMovie] = useState<RecommendationMovie | null>(null);
   const [isMovieViewOpen, setIsMovieViewOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
-  const [renderHeavy, setRenderHeavy] = useState(false);
 
   // Scroll-aware floating button state
   const [showFloatingBtn, setShowFloatingBtn] = useState(true);
@@ -171,10 +171,10 @@ const Person = () => {
       const currentY = window.scrollY;
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          if (currentY > lastScrollY.current && currentY > 100) {
+          if (currentY > lastScrollY.current && currentY > 150) {
             // Scrolling down past threshold
             setShowFloatingBtn(false);
-          } else {
+          } else if (currentY <= lastScrollY.current || currentY <= 100) {
             // Scrolling up or near top
             setShowFloatingBtn(true);
           }
@@ -196,13 +196,6 @@ const Person = () => {
     if (id) {
       fetchPersonDetails(parseInt(id));
     }
-  }, [id]);
-
-  // Defer heavy grids/photos by one frame to keep the open transition smooth.
-  useEffect(() => {
-    setRenderHeavy(false);
-    const raf = requestAnimationFrame(() => setRenderHeavy(true));
-    return () => cancelAnimationFrame(raf);
   }, [id]);
 
   const handleMovieSelect = (movie: Movie) => {
@@ -298,8 +291,9 @@ const Person = () => {
           <img
             src={movie.posterUrl}
             alt={movie.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-opacity duration-200"
             loading="lazy"
+            decoding="async"
             onError={() => handleImageError(movie.id)}
           />
         ) : (
@@ -583,7 +577,7 @@ const Person = () => {
               </Card>
             )}
 
-            {renderHeavy && person.additionalPhotos && person.additionalPhotos.length > 0 && (
+            {person.additionalPhotos && person.additionalPhotos.length > 0 && (
               <Card className="p-4 sm:p-6">
                 <h2 className="font-display text-lg sm:text-xl font-semibold mb-4">Photos</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -621,13 +615,7 @@ const Person = () => {
               </Card>
             )}
 
-            {!renderHeavy && (
-              <Card className="p-4 sm:p-6">
-                <div className="h-40 rounded-xl bg-muted animate-shimmer" />
-              </Card>
-            )}
-
-            {renderHeavy && (person.actingRoles || person.crewRoles) && (
+            {(person.actingRoles || person.crewRoles) && (
               <Card className="p-4 sm:p-6">
                 <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">Filmography</h2>
 
@@ -711,29 +699,34 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button - slide down on scroll-down, slide up on scroll-up */}
-      {returnTo && fromMovieTitle && (
-        <div
-          className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-500 ease-out ${
-            showFloatingBtn 
-              ? "opacity-100 translate-y-0" 
-              : "opacity-0 translate-y-20 pointer-events-none"
-          }`}
-          style={{ 
-            transitionTimingFunction: showFloatingBtn ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'cubic-bezier(0.4, 0, 1, 1)'
-          }}
-        >
-          <div className="mx-auto w-full max-w-md">
-            <Button
-              onClick={handleBackToMovie}
-              className="w-full rounded-full min-h-[48px] shadow-lg gap-2 animate-in slide-in-from-bottom-4 duration-300"
-            >
-              <Film className="w-4 h-4" />
-              Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Floating persistent Back-to-movie button with smooth animation */}
+      <AnimatePresence mode="wait">
+        {returnTo && fromMovieTitle && showFloatingBtn && (
+          <motion.div
+            key="floating-back-btn"
+            initial={{ opacity: 0, y: 80, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 80, scale: 0.9 }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 28,
+              mass: 0.8,
+            }}
+            className="fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4"
+          >
+            <div className="mx-auto w-full max-w-md">
+              <Button
+                onClick={handleBackToMovie}
+                className="w-full rounded-full min-h-[48px] shadow-xl gap-2 bg-primary hover:bg-primary/90"
+              >
+                <Film className="w-4 h-4" />
+                Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ExpandedMovieView
         movie={selectedMovie}

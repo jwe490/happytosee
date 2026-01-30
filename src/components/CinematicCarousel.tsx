@@ -204,7 +204,7 @@ export const CinematicCarousel = ({
           return (
             <motion.div
               key={`slide-${offset}`}
-              className="absolute flex items-center justify-center select-none"
+              className="absolute flex items-center justify-center select-none overflow-hidden"
               initial={false}
               animate={{
                 width: styles.width,
@@ -231,6 +231,24 @@ export const CinematicCarousel = ({
                 transformOrigin: "center center",
               }}
             >
+              {(movie.posterUrl || movie.backdropUrl) && (
+                <img
+                  key={`poster-${slideIndex}`}
+                  src={movie.posterUrl || movie.backdropUrl}
+                  alt={movie.title}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+                  loading={isMain ? "eager" : "lazy"}
+                  decoding="async"
+                  style={{
+                    opacity: isMain ? 1 : 0.7,
+                    filter: isMain ? "none" : "brightness(0.7)",
+                  }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              )}
               {isMain && (
                 <motion.div
                   key={`content-${currentIndex}`}
@@ -239,15 +257,15 @@ export const CinematicCarousel = ({
                   transition={{ duration: 0.25, delay: 0.15 }}
                   className="absolute inset-0 flex flex-col items-center justify-end p-6 text-white overflow-hidden"
                   style={{
-                    background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)",
+                    background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)",
                     borderRadius: 28,
                   }}
                 >
                   <h3 className="text-lg md:text-xl font-semibold text-center mb-1 drop-shadow-lg line-clamp-2">
                     {movie.title}
                   </h3>
-                  <p className="text-sm text-white/80">
-                    {movie.year} {movie.rating > 0 && `\u2022 ${movie.rating.toFixed(1)}`}
+                  <p className="text-sm text-white/90 drop-shadow">
+                    {movie.year} {movie.rating > 0 && `\u2022 ⭐ ${movie.rating.toFixed(1)}`}
                   </p>
                 </motion.div>
               )}
