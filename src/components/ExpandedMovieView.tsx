@@ -13,7 +13,7 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { Movie } from "@/hooks/useMovieRecommendations";
-import { ReviewSection } from "@/components/ReviewSection";
+import { EnhancedReviewSection } from "@/components/reviews/EnhancedReviewSection";
 import { MinimalShareButton } from "@/components/sharing";
 import { AddToCollectionButton } from "@/components/AddToCollectionButton";
 import {
@@ -105,32 +105,33 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const { markAsWatched, isWatched } = useWatchHistory();
 
   // Back navigation:
-  // - In URL-driven mode (home page modal), DO NOT use browser history.
-  //   Reason: if the user came from an Actor page back into a movie, browser back would
-  //   bounce them back to the Actor page (loop). Instead we keep an internal movie stack
-  //   that stays within the modal.
-  // - Otherwise, follow the internal movie stack.
+  // Maintains internal movie stack for proper navigation within the modal
+  // This prevents navigation loops and provides consistent back behavior
   const handleBack = useCallback(() => {
     if (movieStack.length > 1) {
-      // Go back to previous movie in stack
-      const newStack = [...movieStack];
-      newStack.pop(); // Remove current
+      // Create new stack without current movie
+      const newStack = movieStack.slice(0, -1);
       const previousMovie = newStack[newStack.length - 1];
+
+      // Update state
       setMovieStack(newStack);
       setCurrentMovie(previousMovie);
-      historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+      historyDepthRef.current = newStack.length;
 
-      // In URL-driven mode, request URL change to keep the URL in sync,
-      // but we still rely on the internal stack for navigation.
+      // In URL-driven mode, update URL to match
       if (onRequestMovieChange) {
         onRequestMovieChange(previousMovie.id);
       }
-      
-      // Scroll to top of the modal
-      const container = document.querySelector('.expanded-movie-scroll');
-      if (container) container.scrollTop = 0;
+
+      // Scroll to top of the modal content
+      requestAnimationFrame(() => {
+        const container = document.querySelector('.expanded-movie-scroll');
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
     } else {
-      // Close the modal completely
+      // No more movies in stack - close modal
       onClose();
     }
   }, [movieStack, onClose, onRequestMovieChange]);
@@ -145,6 +146,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
     if (!isOpen) {
       // Modal closed - reset for next opening
       wasOpenRef.current = false;
+      setMovieStack([]);
+      setCurrentMovie(null);
+      historyDepthRef.current = 0;
       return;
     }
 
@@ -155,28 +159,28 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       historyDepthRef.current = 1;
       wasOpenRef.current = true;
     } else if (movie && isOpen && wasOpenRef.current) {
-      // Modal is already open - movie changed via URL
-      // Only add to stack if it's a different movie than current
+      // Modal is already open - movie changed via URL or similar click
+      // Only update if it's a different movie than current
       if (movie.id !== currentMovie?.id) {
-        const isInStack = movieStack.some(m => m.id === movie.id);
-        if (!isInStack) {
-          // New movie not in stack - add it
+        // Check if this movie is already in the stack
+        const movieIndex = movieStack.findIndex(m => m.id === movie.id);
+
+        if (movieIndex >= 0) {
+          // Movie exists in stack - user used back button
+          // Trim stack to this position
+          const newStack = movieStack.slice(0, movieIndex + 1);
+          setMovieStack(newStack);
+          setCurrentMovie(movie);
+          historyDepthRef.current = movieIndex + 1;
+        } else {
+          // New movie - add to stack
           setMovieStack(prev => [...prev, movie]);
           setCurrentMovie(movie);
           historyDepthRef.current += 1;
-        } else {
-          // Movie is already in stack - user might have used browser back
-          // Find the movie in stack and navigate back to it
-          const movieIndex = movieStack.findIndex(m => m.id === movie.id);
-          if (movieIndex >= 0) {
-            setMovieStack(prev => prev.slice(0, movieIndex + 1));
-            setCurrentMovie(movie);
-            historyDepthRef.current = movieIndex + 1;
-          }
         }
       }
     }
-  }, [movie, isOpen, currentMovie, movieStack]);
+  }, [movie, isOpen]);
 
   // Fetch movie details when current movie changes
   useEffect(() => {
@@ -242,9 +246,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
     });
   };
 
-  // Similar movies:
-  // - URL-driven mode: request a URL change AND push to internal stack
-  // - Stack mode: push to internal stack
+  // Similar movies navigation
+  // Adds movie to stack and updates URL if in URL-driven mode
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
     const newMovie: Movie = {
       id: similar.id,
@@ -255,20 +258,31 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       posterUrl: similar.posterUrl,
       moodMatch: "",
     };
-    
+
+    // Check if movie is already in stack to prevent duplicates
+    const existsInStack = movieStack.some(m => m.id === similar.id);
+    if (existsInStack) {
+      return;
+    }
+
     // Add to movie stack for proper back navigation
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
 
+    // Update URL if in URL-driven mode
     if (onRequestMovieChange) {
       onRequestMovieChange(similar.id);
     }
-    
-    // Scroll to top of the modal
-    const container = document.querySelector('.expanded-movie-scroll');
-    if (container) container.scrollTop = 0;
-  }, [onRequestMovieChange]);
+
+    // Scroll to top smoothly
+    requestAnimationFrame(() => {
+      const container = document.querySelector('.expanded-movie-scroll');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  }, [movieStack, onRequestMovieChange]);
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -713,7 +727,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
 
                     {/* Reviews Section */}
                     {details && (
-                      <ReviewSection
+                      <EnhancedReviewSection
                         movieId={details.id}
                         movieTitle={details.title}
                         moviePoster={details.posterUrl || undefined}
