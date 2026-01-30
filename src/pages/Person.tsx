@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -100,11 +100,38 @@ const Person = () => {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [renderHeavy, setRenderHeavy] = useState(false);
 
-  // Extract state for back navigation
+  // Scroll-aware floating button state
+  const [showFloatingBtn, setShowFloatingBtn] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  // Extract state for back navigation (fallback to sessionStorage for persistence)
   const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
 
-  const fromMovieTitle = navState?.fromMovieTitle;
-  const returnTo = navState?.returnTo;
+  // Persist movie context in sessionStorage so breadcrumbs work even after modal closes
+  useEffect(() => {
+    if (navState?.returnTo && navState?.fromMovieTitle) {
+      sessionStorage.setItem(
+        "lastMovieContext",
+        JSON.stringify({ returnTo: navState.returnTo, fromMovieTitle: navState.fromMovieTitle })
+      );
+    }
+  }, [navState]);
+
+  // Read from sessionStorage if navState is empty (e.g., page refresh)
+  const movieContext = useMemo(() => {
+    if (navState?.returnTo && navState?.fromMovieTitle) {
+      return { returnTo: navState.returnTo, fromMovieTitle: navState.fromMovieTitle };
+    }
+    try {
+      const stored = sessionStorage.getItem("lastMovieContext");
+      if (stored) return JSON.parse(stored) as { returnTo: string; fromMovieTitle: string };
+    } catch {}
+    return null;
+  }, [navState]);
+
+  const fromMovieTitle = movieContext?.fromMovieTitle;
+  const returnTo = movieContext?.returnTo;
   const showMovieCrumb = !!fromMovieTitle && !!returnTo;
 
   const truncatedFromMovieTitle = useMemo(() => {
@@ -132,11 +159,34 @@ const Person = () => {
   };
 
   // Dedicated back-to-movie handler
-  const handleBackToMovie = () => {
-    if (navState?.returnTo) {
-      navigate(navState.returnTo);
+  const handleBackToMovie = useCallback(() => {
+    if (returnTo) {
+      navigate(returnTo);
     }
-  };
+  }, [navigate, returnTo]);
+
+  // Scroll-aware floating button: hide on scroll-down, show on scroll-up
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (!ticking.current) {
+        requestAnimationFrame(() => {
+          if (currentY > lastScrollY.current && currentY > 100) {
+            // Scrolling down past threshold
+            setShowFloatingBtn(false);
+          } else {
+            // Scrolling up or near top
+            setShowFloatingBtn(true);
+          }
+          lastScrollY.current = currentY;
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleImageError = (movieId: number) => {
     setImageErrors(prev => new Set([...prev, movieId]));
@@ -661,16 +711,20 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button */}
-      {navState?.returnTo && navState?.fromMovieTitle && (
-        <div className="fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4">
+      {/* Floating persistent Back-to-movie button - auto-hide on scroll-down */}
+      {returnTo && fromMovieTitle && (
+        <div
+          className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-300 ${
+            showFloatingBtn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16 pointer-events-none"
+          }`}
+        >
           <div className="mx-auto w-full max-w-md">
             <Button
               onClick={handleBackToMovie}
               className="w-full rounded-full min-h-[48px] shadow-lg"
             >
               <Film className="w-4 h-4 mr-2" />
-              Back to {navState.fromMovieTitle}
+              Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
             </Button>
           </div>
         </div>
