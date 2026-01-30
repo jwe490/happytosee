@@ -19,7 +19,6 @@ interface CinematicCarouselProps {
 }
 
 const SLIDE_COLOR = "#E89B8C";
-const ANIMATION_DURATION = 0.7;
 const VISIBLE_PILLS = 3;
 
 export const CinematicCarousel = ({
@@ -32,12 +31,12 @@ export const CinematicCarousel = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
+  const interactionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getSlideIndex = (offset: number) => {
+  const getSlideIndex = useCallback((offset: number) => {
     const len = movies.length;
     return ((currentIndex + offset) % len + len) % len;
-  };
+  }, [currentIndex, movies.length]);
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % movies.length);
@@ -59,6 +58,14 @@ export const CinematicCarousel = ({
     interactionTimeout.current = setTimeout(() => {
       setIsAutoPlaying(true);
     }, 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (interactionTimeout.current) {
+        clearTimeout(interactionTimeout.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -133,9 +140,9 @@ export const CinematicCarousel = ({
     handleInteraction();
   };
 
-  if (movies.length === 0) return null;
+  if (!movies || movies.length === 0) return null;
 
-  const slidePositions = [];
+  const slidePositions: number[] = [];
   for (let i = -VISIBLE_PILLS; i <= VISIBLE_PILLS; i++) {
     slidePositions.push(i);
   }
@@ -145,9 +152,9 @@ export const CinematicCarousel = ({
 
     if (offset === 0) {
       return {
-        width: "min(400px, 70vw)",
-        height: "min(450px, 60vh)",
-        borderRadius: "28px",
+        width: 320,
+        height: 400,
+        borderRadius: 28,
         scale: 1,
         opacity: 1,
         x: 0,
@@ -156,29 +163,29 @@ export const CinematicCarousel = ({
       };
     }
 
-    const baseWidth = 60;
-    const baseHeight = 180;
-    const scaleFactor = Math.max(0.5, 1 - absOffset * 0.25);
-    const xOffset = offset * 90;
-    const additionalOffset = offset > 0 ? 200 : -200;
+    const baseWidth = 50;
+    const baseHeight = 160;
+    const scaleFactor = Math.max(0.5, 1 - absOffset * 0.2);
+    const baseOffset = offset > 0 ? 180 : -180;
+    const additionalOffset = (absOffset - 1) * 70 * (offset > 0 ? 1 : -1);
 
     return {
-      width: `${baseWidth * scaleFactor}px`,
-      height: `${baseHeight * scaleFactor}px`,
-      borderRadius: "50%",
+      width: baseWidth * scaleFactor,
+      height: baseHeight * scaleFactor,
+      borderRadius: 100,
       scale: scaleFactor,
-      opacity: Math.max(0.3, 1 - absOffset * 0.2),
-      x: xOffset + additionalOffset,
+      opacity: Math.max(0.4, 1 - absOffset * 0.15),
+      x: baseOffset + additionalOffset,
       zIndex: 10 - absOffset,
-      scaleX: 0.6,
+      scaleX: 0.7,
     };
   };
 
   return (
-    <section className="relative w-full py-12 md:py-16 overflow-hidden bg-gradient-to-b from-slate-50 to-white">
+    <section className="relative w-full py-12 md:py-16 overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950">
       <div
         ref={containerRef}
-        className="relative flex items-center justify-center min-h-[500px] md:min-h-[550px]"
+        className="relative flex items-center justify-center h-[450px] md:h-[500px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -189,13 +196,15 @@ export const CinematicCarousel = ({
         {slidePositions.map((offset) => {
           const slideIndex = getSlideIndex(offset);
           const movie = movies[slideIndex];
+          if (!movie) return null;
+
           const styles = getSlideStyles(offset);
           const isMain = offset === 0;
 
           return (
             <motion.div
-              key={`${slideIndex}-${offset}`}
-              className="absolute flex items-center justify-center"
+              key={`slide-${offset}`}
+              className="absolute flex items-center justify-center select-none"
               initial={false}
               animate={{
                 width: styles.width,
@@ -209,37 +218,36 @@ export const CinematicCarousel = ({
               }}
               transition={{
                 type: "spring",
-                stiffness: 200,
-                damping: 25,
-                duration: ANIMATION_DURATION,
+                stiffness: 180,
+                damping: 22,
               }}
               onClick={() => handlePillClick(offset)}
               style={{
                 backgroundColor: SLIDE_COLOR,
                 boxShadow: isMain
-                  ? "0 30px 60px -20px rgba(0,0,0,0.2), 0 20px 40px -20px rgba(232, 155, 140, 0.3)"
-                  : "0 15px 30px -10px rgba(0,0,0,0.15)",
-                cursor: isMain ? "pointer" : "pointer",
+                  ? "0 25px 50px -15px rgba(0,0,0,0.2), 0 15px 30px -10px rgba(232, 155, 140, 0.25)"
+                  : "0 12px 25px -8px rgba(0,0,0,0.12)",
+                cursor: "pointer",
                 transformOrigin: "center center",
               }}
             >
               {isMain && (
                 <motion.div
+                  key={`content-${currentIndex}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="absolute inset-0 flex flex-col items-center justify-end p-6 text-white"
+                  transition={{ duration: 0.25, delay: 0.15 }}
+                  className="absolute inset-0 flex flex-col items-center justify-end p-6 text-white overflow-hidden"
                   style={{
-                    background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 40%, transparent 100%)",
-                    borderRadius: "28px",
+                    background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)",
+                    borderRadius: 28,
                   }}
                 >
-                  <h3 className="text-lg md:text-xl font-semibold text-center mb-1 drop-shadow-lg">
+                  <h3 className="text-lg md:text-xl font-semibold text-center mb-1 drop-shadow-lg line-clamp-2">
                     {movie.title}
                   </h3>
                   <p className="text-sm text-white/80">
-                    {movie.year} • {movie.rating.toFixed(1)}
+                    {movie.year} {movie.rating > 0 && `\u2022 ${movie.rating.toFixed(1)}`}
                   </p>
                 </motion.div>
               )}
@@ -248,7 +256,7 @@ export const CinematicCarousel = ({
         })}
       </div>
 
-      <div className="flex items-center justify-center gap-2 mt-8">
+      <div className="flex items-center justify-center gap-1.5 mt-6">
         {movies.map((_, index) => (
           <button
             key={index}
@@ -260,13 +268,11 @@ export const CinematicCarousel = ({
             aria-label={`Go to slide ${index + 1}`}
           >
             <motion.span
-              className="block rounded-full"
+              className="block rounded-full border-2 border-slate-600 dark:border-slate-400"
               animate={{
-                width: index === currentIndex ? 24 : 8,
-                height: 8,
-                backgroundColor: index === currentIndex ? "#374151" : "transparent",
-                borderWidth: 2,
-                borderColor: "#374151",
+                width: index === currentIndex ? 20 : 6,
+                height: 6,
+                backgroundColor: index === currentIndex ? "#475569" : "transparent",
               }}
               transition={{ duration: 0.2 }}
             />
