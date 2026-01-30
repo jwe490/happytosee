@@ -21,7 +21,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
 import { useMovieRecommendations, Movie } from "@/hooks/useMovieRecommendations";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLastMovie } from "@/lib/lastMovie";
 
 const moodTaglines: Record<string, string> = {
   happy: "Feeling Happy? Here's something uplifting 🎉",
@@ -216,13 +215,6 @@ const Index = () => {
     setSelectedMovie(movieData);
     // Use URL param to open modal - this enables proper history navigation
     setSearchParams({ movie: movieId });
-
-    // Persist last opened movie for breadcrumbs
-    saveLastMovie({
-      id: movie.id,
-      title: movie.title || "",
-      returnTo: `/?movie=${movieId}`,
-    });
     
     // Clear pending after short delay
     requestAnimationFrame(() => {

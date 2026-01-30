@@ -16,8 +16,6 @@ import { Movie } from "@/hooks/useMovieRecommendations";
 import { ReviewSection } from "@/components/ReviewSection";
 import { MinimalShareButton } from "@/components/sharing";
 import { AddToCollectionButton } from "@/components/AddToCollectionButton";
-import { ActorPanel } from "@/components/ActorPanel";
-import { saveLastMovie } from "@/lib/lastMovie";
 import {
   Collapsible,
   CollapsibleContent,
@@ -104,10 +102,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const requestSeqRef = useRef(0);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
-
-  // In-modal actor panel state
-  const [actorPanelId, setActorPanelId] = useState<number | null>(null);
-  const isActorPanelOpen = actorPanelId !== null;
 
   // Back navigation:
   // - In URL-driven mode (home page modal), prefer browser history so the URL (?movie=...) is the source of truth.
@@ -206,38 +200,18 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
     }
   };
 
-  const handleCastClick = useCallback((member: CastMember) => {
-    // Open in-modal ActorPanel instead of navigating
-    setActorPanelId(member.id);
-  }, []);
-
-  const handleActorPanelClose = useCallback(() => {
-    setActorPanelId(null);
-  }, []);
-
-  // When actor panel clicks a movie, switch to that movie and close the panel
-  const handleActorMovieSelect = useCallback((movieId: number) => {
-    setActorPanelId(null);
-    if (onRequestMovieChange) {
-      onRequestMovieChange(movieId);
-    } else {
-      // Stack mode
-      const newMovie: Movie = {
-        id: movieId,
-        title: "",
-        rating: 0,
-        year: 0,
-        genre: "",
-        posterUrl: "",
-        moodMatch: "",
-      };
-      setMovieStack((prev) => [...prev, newMovie]);
-      setCurrentMovie(newMovie);
-      historyDepthRef.current += 1;
-    }
-    const container = document.querySelector(".expanded-movie-scroll");
-    if (container) container.scrollTop = 0;
-  }, [onRequestMovieChange]);
+  const handleCastClick = (member: CastMember) => {
+    // Navigate to person page with an explicit return URL so the actor page can always
+    // go back to the exact movie state (including ?movie=...)
+    const returnTo = `${location.pathname}${location.search}`;
+    navigate(`/person/${member.id}`, {
+      state: { 
+        returnTo,
+        fromMovie: currentMovie?.id,
+        fromMovieTitle: currentMovie?.title,
+      }
+    });
+  };
 
   // Similar movies:
   // - URL-driven mode: request a URL change so the modal never desyncs from ?movie=...
@@ -679,14 +653,6 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
           </div>
         </motion.div>
       )}
-
-      {/* In-modal Actor Panel */}
-      <ActorPanel
-        personId={actorPanelId}
-        isOpen={isActorPanelOpen}
-        onClose={handleActorPanelClose}
-        onMovieSelect={handleActorMovieSelect}
-      />
     </AnimatePresence>
   );
 };
