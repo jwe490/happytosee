@@ -100,6 +100,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const [watchProvidersOpen, setWatchProvidersOpen] = useState(false);
   const historyDepthRef = useRef(0);
   const requestSeqRef = useRef(0);
+  const wasOpenRef = useRef(false);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
 
