@@ -711,19 +711,24 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button - auto-hide on scroll-down */}
+      {/* Floating persistent Back-to-movie button - slide down on scroll-down, slide up on scroll-up */}
       {returnTo && fromMovieTitle && (
         <div
-          className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-300 ${
-            showFloatingBtn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16 pointer-events-none"
+          className={`fixed inset-x-0 bottom-3 sm:bottom-4 z-[80] px-3 sm:px-4 transition-all duration-500 ease-out ${
+            showFloatingBtn 
+              ? "opacity-100 translate-y-0" 
+              : "opacity-0 translate-y-20 pointer-events-none"
           }`}
+          style={{ 
+            transitionTimingFunction: showFloatingBtn ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'cubic-bezier(0.4, 0, 1, 1)'
+          }}
         >
           <div className="mx-auto w-full max-w-md">
             <Button
               onClick={handleBackToMovie}
-              className="w-full rounded-full min-h-[48px] shadow-lg"
+              className="w-full rounded-full min-h-[48px] shadow-lg gap-2 animate-in slide-in-from-bottom-4 duration-300"
             >
-              <Film className="w-4 h-4 mr-2" />
+              <Film className="w-4 h-4" />
               Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
             </Button>
           </div>
