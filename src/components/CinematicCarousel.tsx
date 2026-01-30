@@ -38,6 +38,23 @@ export const CinematicCarousel = ({
             onMovieSelect(movie);
           }
         });
+
+        splide.on("mounted move", () => {
+          const slides = splide.Components.Elements.slides;
+          const activeIndex = splide.index;
+
+          slides.forEach((slide: HTMLElement, idx: number) => {
+            slide.classList.remove("is-active", "is-prev", "is-next");
+
+            if (idx === activeIndex) {
+              slide.classList.add("is-active");
+            } else if (idx === activeIndex - 1 || (activeIndex === 0 && idx === slides.length - 1)) {
+              slide.classList.add("is-prev");
+            } else if (idx === activeIndex + 1 || (activeIndex === slides.length - 1 && idx === 0)) {
+              slide.classList.add("is-next");
+            }
+          });
+        });
       }
     }
   }, [movies, onMovieSelect]);
@@ -65,6 +82,9 @@ export const CinematicCarousel = ({
           drag: true,
           updateOnMove: true,
           trimSpace: false,
+          classes: {
+            page: 'splide__pagination__page',
+          },
           breakpoints: {
             640: { perPage: 1, gap: "8px" },
             768: { perPage: 3, gap: "10px" },
