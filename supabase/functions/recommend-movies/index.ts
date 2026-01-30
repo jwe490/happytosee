@@ -64,15 +64,16 @@ const moodGenreMapping: Record<string, number[]> = {
   happy: [35, 10751, 16],
   sad: [18, 10749],
   romantic: [10749, 35, 18],
+  relaxed: [18, 35],
+  excited: [28, 12, 878],
   bored: [28, 12, 53],
-  relaxed: [18, 35, 10402],
-  nostalgic: [18, 10751, 36],
+  nostalgic: [18, 10751],
+  chill: [35, 18, 10402],
+  adventurous: [12, 28, 14],
+  thrilled: [53, 27, 28],
+  stressed: [35, 16, 10751],
   motivated: [18, 36, 99],
-  angry: [28, 53, 80],
-  anxiety: [35, 10751, 16],
-  tired: [35, 16, 10402],
   inspired: [18, 99, 36],
-  confused: [9648, 878, 35],
 };
 
 const moodTemplates: Record<string, string[]> = {
@@ -94,17 +95,23 @@ const moodTemplates: Record<string, string[]> = {
     "This charming tale of love will sweep you away",
     "Perfect for those seeking heartfelt romance",
   ],
-  bored: [
-    "This captivating film will grab your attention",
-    "An engaging story that breaks the monotony",
-    "Surprising twists that keep you hooked",
-    "Fresh entertainment to spark your interest",
-  ],
   relaxed: [
     "A laid-back film perfect for unwinding",
     "Easy-going entertainment for a chill evening",
     "Sit back and enjoy this comfortable watch",
     "The perfect movie for a relaxed viewing",
+  ],
+  excited: [
+    "Non-stop thrills that keep you on the edge",
+    "High-octane entertainment packed with action",
+    "An adrenaline-pumping adventure awaits",
+    "Explosive action that delivers excitement",
+  ],
+  bored: [
+    "This captivating film will grab your attention",
+    "An engaging story that breaks the monotony",
+    "Surprising twists that keep you hooked",
+    "Fresh entertainment to spark your interest",
   ],
   nostalgic: [
     "A timeless classic that brings back memories",
@@ -112,41 +119,41 @@ const moodTemplates: Record<string, string[]> = {
     "A journey back to simpler, cherished times",
     "Reminiscent of the movies you grew up loving",
   ],
+  chill: [
+    "Perfect for a relaxing, low-key evening",
+    "Easygoing vibes for your laid-back mood",
+    "A calming watch to unwind with",
+    "Smooth and soothing entertainment",
+  ],
+  adventurous: [
+    "An epic journey awaits in this adventure",
+    "Explore new worlds with this thrilling ride",
+    "For the explorer in you seeking excitement",
+    "A daring escapade that feeds your wanderlust",
+  ],
+  thrilled: [
+    "Heart-pounding suspense at its finest",
+    "Edge-of-your-seat tension throughout",
+    "A gripping thriller that won't let go",
+    "Intense moments that keep you guessing",
+  ],
+  stressed: [
+    "A light escape to help you decompress",
+    "Stress-busting entertainment to relax",
+    "Take a break with this easygoing film",
+    "Forget your worries with this comfort watch",
+  ],
   motivated: [
     "An inspiring story of triumph and success",
     "Fuel your drive with this motivational film",
     "Stories of perseverance that push you forward",
     "Get inspired by these incredible journeys",
   ],
-  angry: [
-    "Channel that energy with this intense film",
-    "Action-packed thrills to match your fire",
-    "Let it out with this gripping experience",
-    "High-stakes drama for when you need release",
-  ],
-  anxiety: [
-    "A calming watch to ease your mind",
-    "Light-hearted comfort for anxious moments",
-    "Feel-good entertainment to help you relax",
-    "A gentle story to soothe your nerves",
-  ],
-  tired: [
-    "Easy watching for when you need to unwind",
-    "A comfortable film that requires no effort",
-    "Perfect for tired eyes and weary minds",
-    "Gentle entertainment for a restful evening",
-  ],
   inspired: [
     "A thought-provoking film that sparks creativity",
     "Stories that ignite your imagination",
     "Beautiful narratives that inspire change",
     "Visionary filmmaking that opens new perspectives",
-  ],
-  confused: [
-    "A clear and engaging story to follow",
-    "Entertainment that makes perfect sense",
-    "A straightforward yet captivating watch",
-    "Simple pleasures in this well-crafted film",
   ],
 };
 
