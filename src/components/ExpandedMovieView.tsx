@@ -104,19 +104,12 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const { markAsWatched, isWatched } = useWatchHistory();
 
   // Back navigation:
-  // - In URL-driven mode (home page modal), prefer browser history so the URL (?movie=...) is the source of truth.
+  // - In URL-driven mode (home page modal), DO NOT use browser history.
+  //   Reason: if the user came from an Actor page back into a movie, browser back would
+  //   bounce them back to the Actor page (loop). Instead we keep an internal movie stack
+  //   that stays within the modal.
   // - Otherwise, follow the internal movie stack.
   const handleBack = useCallback(() => {
-    if (onRequestMovieChange) {
-      const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
-      if (canGoBack) {
-        navigate(-1);
-        return;
-      }
-      onClose();
-      return;
-    }
-
     if (movieStack.length > 1) {
       // Go back to previous movie in stack
       const newStack = [...movieStack];
@@ -125,6 +118,12 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       setMovieStack(newStack);
       setCurrentMovie(previousMovie);
       historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+
+      // In URL-driven mode, request URL change to keep the URL in sync,
+      // but we still rely on the internal stack for navigation.
+      if (onRequestMovieChange) {
+        onRequestMovieChange(previousMovie.id);
+      }
       
       // Scroll to top of the modal
       const container = document.querySelector('.expanded-movie-scroll');
@@ -133,7 +132,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       // Close the modal completely
       onClose();
     }
-  }, [movieStack, navigate, onClose, onRequestMovieChange]);
+  }, [movieStack, onClose, onRequestMovieChange]);
 
   const { handlers: swipeHandlers } = useSwipeGesture({
     onSwipeRight: handleBack,
@@ -214,16 +213,9 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   };
 
   // Similar movies:
-  // - URL-driven mode: request a URL change so the modal never desyncs from ?movie=...
-  // - Stack mode: add to internal stack
+  // - URL-driven mode: request a URL change AND push to internal stack
+  // - Stack mode: push to internal stack
   const handleSimilarMovieClick = useCallback((similar: SimilarMovie) => {
-    if (onRequestMovieChange) {
-      onRequestMovieChange(similar.id);
-      const container = document.querySelector('.expanded-movie-scroll');
-      if (container) container.scrollTop = 0;
-      return;
-    }
-
     const newMovie: Movie = {
       id: similar.id,
       title: similar.title,
@@ -238,6 +230,10 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
     setMovieStack(prev => [...prev, newMovie]);
     setCurrentMovie(newMovie);
     historyDepthRef.current += 1;
+
+    if (onRequestMovieChange) {
+      onRequestMovieChange(similar.id);
+    }
     
     // Scroll to top of the modal
     const container = document.querySelector('.expanded-movie-scroll');
