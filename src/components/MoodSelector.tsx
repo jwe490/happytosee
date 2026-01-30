@@ -2,24 +2,37 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackMoodSelection } from "@/lib/analytics";
 
+import happySvg from "@/assets/mood-happy.svg";
+import sadSvg from "@/assets/mood-sad.svg";
+import romanticSvg from "@/assets/mood-romantic.svg";
+import excitedSvg from "@/assets/mood-excited.svg";
+import chillSvg from "@/assets/mood-chill.svg";
+import adventurousSvg from "@/assets/mood-adventurous.svg";
+import nostalgicSvg from "@/assets/mood-nostalgic.svg";
+import thrilledSvg from "@/assets/mood-thrilled.svg";
+import stressedSvg from "@/assets/mood-stressed.svg";
+import motivatedSvg from "@/assets/mood-motivated.svg";
+import boredSvg from "@/assets/mood-bored.svg";
+import inspiredSvg from "@/assets/mood-inspired.svg";
+
 interface MoodSelectorProps {
   selectedMood: string | null;
   onSelectMood: (mood: string) => void;
 }
 
 const moods = [
-  { id: "happy", label: "Happy", emoji: "😊" },
-  { id: "sad", label: "Sad", emoji: "😢" },
-  { id: "romantic", label: "Romantic", emoji: "🥰" },
-  { id: "excited", label: "Excited", emoji: "🤩" },
-  { id: "chill", label: "Chill", emoji: "😌" },
-  { id: "adventurous", label: "Adventurous", emoji: "🤠" },
-  { id: "nostalgic", label: "Nostalgic", emoji: "🥹" },
-  { id: "thrilled", label: "Thrilled", emoji: "😱" },
-  { id: "stressed", label: "Stressed", emoji: "😤" },
-  { id: "motivated", label: "Motivated", emoji: "💪" },
-  { id: "bored", label: "Bored", emoji: "😑" },
-  { id: "inspired", label: "Inspired", emoji: "✨" },
+  { id: "happy", label: "Happy", icon: happySvg },
+  { id: "sad", label: "Sad", icon: sadSvg },
+  { id: "romantic", label: "Romantic", icon: romanticSvg },
+  { id: "excited", label: "Excited", icon: excitedSvg },
+  { id: "chill", label: "Chill", icon: chillSvg },
+  { id: "adventurous", label: "Adventurous", icon: adventurousSvg },
+  { id: "nostalgic", label: "Nostalgic", icon: nostalgicSvg },
+  { id: "thrilled", label: "Thrilled", icon: thrilledSvg },
+  { id: "stressed", label: "Stressed", icon: stressedSvg },
+  { id: "motivated", label: "Motivated", icon: motivatedSvg },
+  { id: "bored", label: "Bored", icon: boredSvg },
+  { id: "inspired", label: "Inspired", icon: inspiredSvg },
 ];
 
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
@@ -80,17 +93,17 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
                 )}
               </AnimatePresence>
 
-              {/* Centered Emoji */}
-              <motion.span
-                className="text-4xl md:text-5xl lg:text-5xl select-none"
+              {/* Centered Icon */}
+              <motion.img
+                src={mood.icon}
+                alt={mood.label}
+                className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 select-none object-contain"
                 animate={isAnimating ? {
                   scale: [1, 1.3, 1],
                   rotate: [0, -10, 10, 0],
                 } : {}}
                 transition={{ duration: 0.4 }}
-              >
-                {mood.emoji}
-              </motion.span>
+              />
 
               {/* Label */}
               <motion.span

@@ -3,6 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { trackMoodSelection } from "@/lib/analytics";
 
+import happySvg from "@/assets/mood-happy.svg";
+import sadSvg from "@/assets/mood-sad.svg";
+import romanticSvg from "@/assets/mood-romantic.svg";
+import excitedSvg from "@/assets/mood-excited.svg";
+import chillSvg from "@/assets/mood-chill.svg";
+import adventurousSvg from "@/assets/mood-adventurous.svg";
+import nostalgicSvg from "@/assets/mood-nostalgic.svg";
+import thrilledSvg from "@/assets/mood-thrilled.svg";
+import stressedSvg from "@/assets/mood-stressed.svg";
+import motivatedSvg from "@/assets/mood-motivated.svg";
+import boredSvg from "@/assets/mood-bored.svg";
+import inspiredSvg from "@/assets/mood-inspired.svg";
+
 interface FloatingMoodSelectorProps {
   selectedMood: string | null;
   onSelectMood: (mood: string) => void;
@@ -10,13 +23,13 @@ interface FloatingMoodSelectorProps {
 }
 
 const moods = [
-  { id: "happy", emoji: "😀", label: "Happy", tagline: "Something uplifting 🎉" },
-  { id: "sad", emoji: "😢", label: "Sad", tagline: "Comfort movies for you 💙" },
-  { id: "romantic", emoji: "❤️", label: "Romantic", tagline: "Love is in the air 💕" },
-  { id: "excited", emoji: "⚡", label: "Excited", tagline: "Action-packed thrills! 🔥" },
-  { id: "bored", emoji: "😴", label: "Bored", tagline: "Something surprising 🎲" },
-  { id: "relaxed", emoji: "😌", label: "Relaxed", tagline: "Chill vibes only 🌿" },
-  { id: "nostalgic", emoji: "🥹", label: "Nostalgic", tagline: "A trip down memory lane ✨" },
+  { id: "happy", icon: happySvg, label: "Happy", tagline: "Something uplifting 🎉" },
+  { id: "sad", icon: sadSvg, label: "Sad", tagline: "Comfort movies for you 💙" },
+  { id: "romantic", icon: romanticSvg, label: "Romantic", tagline: "Love is in the air 💕" },
+  { id: "excited", icon: excitedSvg, label: "Excited", tagline: "Action-packed thrills! 🔥" },
+  { id: "bored", icon: boredSvg, label: "Bored", tagline: "Something surprising 🎲" },
+  { id: "chill", icon: chillSvg, label: "Chill", tagline: "Chill vibes only 🌿" },
+  { id: "nostalgic", icon: nostalgicSvg, label: "Nostalgic", tagline: "A trip down memory lane ✨" },
 ];
 
 const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: FloatingMoodSelectorProps) => {
@@ -102,16 +115,18 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
                       disabled={isLoading}
                       className={`
                         relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200
-                        ${isSelected 
-                          ? "bg-foreground/10 ring-2 ring-foreground scale-110 shadow-lg" 
+                        ${isSelected
+                          ? "bg-foreground/10 ring-2 ring-foreground scale-110 shadow-lg"
                           : "hover:bg-secondary hover:scale-105"
                         }
                         ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                       `}
                     >
-                      <span className="text-2xl sm:text-3xl transition-transform hover:scale-110">
-                        {mood.emoji}
-                      </span>
+                      <img
+                        src={mood.icon}
+                        alt={mood.label}
+                        className="w-8 h-8 sm:w-10 sm:h-10 object-contain transition-transform hover:scale-110"
+                      />
                       <span className="text-[10px] font-medium text-muted-foreground">
                         {mood.label}
                       </span>
@@ -151,9 +166,11 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
                 ${isLoading ? "animate-pulse" : ""}
               `}
             >
-              <span className="text-2xl">
-                {currentMood?.emoji || "🎬"}
-              </span>
+              {currentMood ? (
+                <img src={currentMood.icon} alt={currentMood.label} className="w-7 h-7 object-contain" />
+              ) : (
+                <span className="text-2xl">🎬</span>
+              )}
               <span className="font-medium text-sm text-foreground hidden sm:inline">
                 {currentMood?.label || "Pick Mood"}
               </span>
