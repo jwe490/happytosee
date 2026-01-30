@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { Star, Play } from "lucide-react";
 
 interface Movie {
@@ -35,11 +35,6 @@ export const CinematicCarousel = ({
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const x = useMotionValue(0);
-
-  const extendedMovies = movies.length < VISIBLE_SLIDES
-    ? [...movies, ...movies, ...movies]
-    : movies;
 
   const goToSlide = useCallback((index: number) => {
     const targetIndex = ((index % movies.length) + movies.length) % movies.length;
@@ -155,7 +150,6 @@ export const CinematicCarousel = ({
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
-            style={{ x }}
           >
             {getVisibleSlides().map(({ movie, position, index }) => {
               const style = getSlideStyle(position);
