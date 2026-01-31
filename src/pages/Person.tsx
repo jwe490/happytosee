@@ -100,16 +100,16 @@ const Person = () => {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [renderHeavy, setRenderHeavy] = useState(false);
 
-  // Scroll-aware floating button state
-  const [showFloatingBtn, setShowFloatingBtn] = useState(true);
+  // Scroll-aware floating button: morphs from pill to circle
   const [isCompactBtn, setIsCompactBtn] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
+  const morphProgress = useRef(0);
 
-  // Extract state for back navigation (fallback to sessionStorage for persistence)
+  // Extract state for back navigation
   const navState = location.state as { returnTo?: string; fromMovieTitle?: string; fromMovie?: number } | null;
 
-  // Persist movie context in sessionStorage so breadcrumbs work even after modal closes
+  // Persist movie context in sessionStorage
   useEffect(() => {
     if (navState?.returnTo && navState?.fromMovieTitle) {
       sessionStorage.setItem(
@@ -119,7 +119,7 @@ const Person = () => {
     }
   }, [navState]);
 
-  // Read from sessionStorage if navState is empty (e.g., page refresh)
+  // Read from sessionStorage if navState is empty
   const movieContext = useMemo(() => {
     if (navState?.returnTo && navState?.fromMovieTitle) {
       return { returnTo: navState.returnTo, fromMovieTitle: navState.fromMovieTitle };
@@ -140,48 +140,38 @@ const Person = () => {
     return fromMovieTitle.length > 26 ? `${fromMovieTitle.slice(0, 26)}...` : fromMovieTitle;
   }, [fromMovieTitle]);
 
-  // Robust back navigation:
-  // 1) Prefer explicit returnTo (sent from the movie modal)
-  // 2) Otherwise, only navigate(-1) when browser history has entries
-  // 3) Else go home
   const handleGoBack = () => {
     if (navState?.returnTo) {
       navigate(navState.returnTo);
       return;
     }
-
     const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
     if (canGoBack) {
       navigate(-1);
       return;
     }
-
     navigate("/");
   };
 
-  // Dedicated back-to-movie handler
   const handleBackToMovie = useCallback(() => {
     if (returnTo) {
       navigate(returnTo);
     }
   }, [navigate, returnTo]);
 
-  // Scroll-aware floating button: morph to circle when scrolled down, pill when at top
+  // Smooth morphing animation based on scroll position
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          // Always show button
-          setShowFloatingBtn(true);
-
-          // Morph to circle when scrolled past 200px, pill when near top
-          if (currentY > 200) {
-            setIsCompactBtn(true);
-          } else {
-            setIsCompactBtn(false);
-          }
-
+          // Calculate morph progress (0 = pill, 1 = circle)
+          const threshold = 150;
+          const newProgress = Math.min(1, Math.max(0, currentY / threshold));
+          morphProgress.current = newProgress;
+          
+          setIsCompactBtn(newProgress > 0.5);
+          
           lastScrollY.current = currentY;
           ticking.current = false;
         });
@@ -202,7 +192,6 @@ const Person = () => {
     }
   }, [id]);
 
-  // Defer heavy grids/photos by one frame to keep the open transition smooth.
   useEffect(() => {
     setRenderHeavy(false);
     const raf = requestAnimationFrame(() => setRenderHeavy(true));
@@ -210,7 +199,6 @@ const Person = () => {
   }, [id]);
 
   const handleMovieSelect = (movie: Movie) => {
-    // Convert to format expected by ExpandedMovieView
     const convertedMovie: RecommendationMovie = {
       id: movie.id,
       title: movie.title,
@@ -281,7 +269,7 @@ const Person = () => {
           <Film className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-2xl font-bold mb-2">Person Not Found</h2>
           <p className="text-muted-foreground mb-6">
-            {error || "We couldn't find this person. They might not exist or there was an error loading their details."}
+            {error || "We couldn't find this person."}
           </p>
           <Button onClick={handleGoBack} className="gap-2">
             <ChevronLeft className="w-4 h-4" />
@@ -351,7 +339,7 @@ const Person = () => {
       <Header />
 
       <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 pb-24 space-y-6 sm:space-y-8 animate-fade-up">
-        {/* Breadcrumbs (symmetric + consistent) */}
+        {/* Breadcrumbs */}
         <div className="w-full flex items-center justify-center">
           <Breadcrumb>
             <BreadcrumbList>
@@ -417,9 +405,7 @@ const Person = () => {
                 {person.birthday && (
                   <div>
                     <p className="text-muted-foreground text-xs mb-1">Birthday</p>
-                    <p className="font-medium text-sm">
-                      {formatDate(person.birthday)}
-                    </p>
+                    <p className="font-medium text-sm">{formatDate(person.birthday)}</p>
                     <p className="text-muted-foreground text-xs mt-0.5">
                       ({calculateAge(person.birthday, person.deathday)} years old)
                     </p>
@@ -456,68 +442,32 @@ const Person = () => {
                 <h3 className="font-semibold text-base">Social</h3>
                 <div className="flex flex-wrap gap-2">
                   {person.externalIds.imdb && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="gap-2 flex-1 min-w-[100px]"
-                    >
-                      <a
-                        href={`https://www.imdb.com/name/${person.externalIds.imdb}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                    <Button variant="outline" size="sm" asChild className="gap-2 flex-1 min-w-[100px]">
+                      <a href={`https://www.imdb.com/name/${person.externalIds.imdb}`} target="_blank" rel="noopener noreferrer">
                         <Film className="w-4 h-4" />
                         IMDb
                       </a>
                     </Button>
                   )}
                   {person.externalIds.instagram && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="gap-2 flex-1 min-w-[100px]"
-                    >
-                      <a
-                        href={`https://www.instagram.com/${person.externalIds.instagram}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                    <Button variant="outline" size="sm" asChild className="gap-2 flex-1 min-w-[100px]">
+                      <a href={`https://www.instagram.com/${person.externalIds.instagram}`} target="_blank" rel="noopener noreferrer">
                         <Instagram className="w-4 h-4" />
                         Instagram
                       </a>
                     </Button>
                   )}
                   {person.externalIds.twitter && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="gap-2 flex-1 min-w-[100px]"
-                    >
-                      <a
-                        href={`https://twitter.com/${person.externalIds.twitter}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                    <Button variant="outline" size="sm" asChild className="gap-2 flex-1 min-w-[100px]">
+                      <a href={`https://twitter.com/${person.externalIds.twitter}`} target="_blank" rel="noopener noreferrer">
                         <Twitter className="w-4 h-4" />
                         Twitter
                       </a>
                     </Button>
                   )}
                   {person.externalIds.facebook && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="gap-2 flex-1 min-w-[100px]"
-                    >
-                      <a
-                        href={`https://www.facebook.com/${person.externalIds.facebook}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                    <Button variant="outline" size="sm" asChild className="gap-2 flex-1 min-w-[100px]">
+                      <a href={`https://www.facebook.com/${person.externalIds.facebook}`} target="_blank" rel="noopener noreferrer">
                         <Facebook className="w-4 h-4" />
                         Facebook
                       </a>
@@ -528,180 +478,107 @@ const Person = () => {
             )}
           </div>
 
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6">
             <div>
-              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
                 {person.name}
               </h1>
-              {person.alsoKnownAs && person.alsoKnownAs.length > 0 && (
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Also known as: {person.alsoKnownAs.slice(0, 3).join(", ")}
-                </p>
-              )}
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4" />
+                  Popularity: {person.popularity.toFixed(0)}
+                </span>
+                {person.stats && (
+                  <>
+                    <span>•</span>
+                    <span>{person.stats.totalMovies} Movies</span>
+                  </>
+                )}
+              </div>
             </div>
 
-            {person.stats && (
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                <Card className="p-3 sm:p-4 text-center space-y-1">
-                  <Film className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
-                  <p className="text-xl sm:text-2xl font-bold">{person.stats.totalMovies || 0}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Movies</p>
-                </Card>
-                <Card className="p-3 sm:p-4 text-center space-y-1">
-                  <Clapperboard className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
-                  <p className="text-xl sm:text-2xl font-bold">{person.stats.asActor || 0}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Acting Roles</p>
-                </Card>
-                <Card className="p-3 sm:p-4 text-center space-y-1">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mx-auto text-primary" />
-                  <p className="text-xl sm:text-2xl font-bold">{person.popularity ? person.popularity.toFixed(1) : 0}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Popularity</p>
-                </Card>
-              </div>
-            )}
-
             {person.biography && (
-              <Card className="p-4 sm:p-6">
-                <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Biography</h2>
-                <p className={`text-muted-foreground leading-relaxed text-sm ${!showFullBio ? "line-clamp-6" : ""}`}>
-                  {person.biography}
-                </p>
-                {person.biography.length > 400 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFullBio(!showFullBio)}
-                    className="mt-3 gap-2"
-                  >
-                    {showFullBio ? (
-                      <>
-                        Show less <ChevronUp className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        Read more <ChevronDown className="w-4 h-4" />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </Card>
-            )}
-
-            {renderHeavy && person.additionalPhotos && person.additionalPhotos.length > 0 && (
-              <Card className="p-4 sm:p-6">
-                <h2 className="font-display text-lg sm:text-xl font-semibold mb-4">Photos</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {(showAllPhotos ? person.additionalPhotos : person.additionalPhotos.slice(0, 6)).map(
-                    (photo, index) => (
-                      <img
-                        key={index}
-                        src={photo}
-                        alt={`${person.name} photo ${index + 1}`}
-                        className="w-full aspect-[2/3] object-cover rounded-xl hover:scale-105 transition-transform cursor-pointer ring-1 ring-border/50"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    )
+              <Card className="p-4 sm:p-5">
+                <h3 className="font-semibold text-base mb-3">Biography</h3>
+                <div className="relative">
+                  <p className={`text-sm text-muted-foreground leading-relaxed whitespace-pre-line ${
+                    !showFullBio && person.biography.length > 500 ? "line-clamp-6" : ""
+                  }`}>
+                    {person.biography}
+                  </p>
+                  {person.biography.length > 500 && (
+                    <button
+                      onClick={() => setShowFullBio(!showFullBio)}
+                      className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
+                    >
+                      {showFullBio ? (
+                        <>Show Less <ChevronUp className="w-4 h-4" /></>
+                      ) : (
+                        <>Read More <ChevronDown className="w-4 h-4" /></>
+                      )}
+                    </button>
                   )}
                 </div>
-                {person.additionalPhotos.length > 6 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAllPhotos(!showAllPhotos)}
-                    className="mt-4 gap-2 w-full sm:w-auto"
-                  >
-                    {showAllPhotos ? (
-                      <>
-                        Show less <ChevronUp className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        View all {person.additionalPhotos.length} photos <ChevronDown className="w-4 h-4" />
-                      </>
-                    )}
-                  </Button>
-                )}
               </Card>
             )}
 
-            {!renderHeavy && (
-              <Card className="p-4 sm:p-6">
-                <div className="h-40 rounded-xl bg-muted animate-shimmer" />
+            {person.additionalPhotos && person.additionalPhotos.length > 0 && renderHeavy && (
+              <Card className="p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    <Clapperboard className="w-4 h-4 text-primary" />
+                    Photos
+                  </h3>
+                  {person.additionalPhotos.length > 6 && (
+                    <button
+                      onClick={() => setShowAllPhotos(!showAllPhotos)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {showAllPhotos ? "Show Less" : `View All (${person.additionalPhotos.length})`}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {(showAllPhotos ? person.additionalPhotos : person.additionalPhotos.slice(0, 6)).map((photo, index) => (
+                    <div key={index} className="aspect-[2/3] rounded-lg overflow-hidden bg-muted">
+                      <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 
-            {renderHeavy && (person.actingRoles || person.crewRoles) && (
-              <Card className="p-4 sm:p-6">
-                <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">Filmography</h2>
-
+            {renderHeavy && person.actingRoles && person.actingRoles.length > 0 && (
+              <Card className="p-4 sm:p-5">
                 <Tabs defaultValue="acting" className="w-full">
-                  <TabsList className="w-full justify-start flex-wrap h-auto gap-2 bg-transparent p-0">
-                    {person.actingRoles && person.actingRoles.length > 0 && (
-                      <TabsTrigger value="acting" className="flex-shrink-0">
+                  <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0 mb-4">
+                    {person.actingRoles.length > 0 && (
+                      <TabsTrigger value="acting" className="flex-1 min-w-[80px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full text-xs sm:text-sm">
                         Acting ({person.actingRoles.length})
                       </TabsTrigger>
                     )}
-                    {person.crewRoles && Object.keys(person.crewRoles).map((category) => (
-                      <TabsTrigger key={category} value={category} className="flex-shrink-0">
-                        {category} ({person.crewRoles[category].length})
+                    {Object.entries(person.crewRoles || {}).map(([category, movies]) => (
+                      <TabsTrigger key={category} value={category} className="flex-1 min-w-[80px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full text-xs sm:text-sm">
+                        {category} ({movies.length})
                       </TabsTrigger>
                     ))}
                   </TabsList>
 
-                  {person.actingRoles && person.actingRoles.length > 0 && (
-                    <TabsContent value="acting" className="mt-6">
-                      <button
-                        onClick={() => toggleSection("acting")}
-                        className="flex items-center justify-between w-full mb-4 text-left group"
-                      >
-                        <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
-                          <Clapperboard className="w-5 h-5 text-primary" />
-                          Acting Roles ({person.actingRoles.length})
-                        </h3>
-                        {expandedSections.acting ? (
-                          <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        )}
-                      </button>
+                  <TabsContent value="acting">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                      {person.actingRoles.map((movie, index) => (
+                        <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
+                      ))}
+                    </div>
+                  </TabsContent>
 
-                      {expandedSections.acting && (
-                        <div className="overflow-hidden animate-fade-in">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                            {person.actingRoles.map((movie, index) => (
-                              <MovieCard key={movie.id} movie={movie} index={index} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  )}
-
-                  {person.crewRoles && Object.entries(person.crewRoles).map(([category, movies]) => (
-                    <TabsContent key={category} value={category} className="mt-6">
-                      <button
-                        onClick={() => toggleSection(category)}
-                        className="flex items-center justify-between w-full mb-4 text-left group"
-                      >
-                        <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
-                          <Film className="w-5 h-5 text-primary" />
-                          {category} ({movies.length})
-                        </h3>
-                        {expandedSections[category] ? (
-                          <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        )}
-                      </button>
-
-                      {expandedSections[category] && (
-                        <div className="overflow-hidden animate-fade-in">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                            {movies.map((movie, index) => (
-                              <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
-                            ))}
-                          </div>
+                  {Object.entries(person.crewRoles || {}).map(([category, movies]) => (
+                    <TabsContent key={category} value={category}>
+                      {movies.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                          {movies.map((movie, index) => (
+                            <MovieCard key={`${movie.id}-${index}`} movie={movie} index={index} />
+                          ))}
                         </div>
                       )}
                     </TabsContent>
@@ -715,15 +592,13 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating persistent Back-to-movie button with glassmorphism */}
+      {/* Floating Back-to-movie button with smooth pill-to-circle morph */}
       {returnTo && fromMovieTitle && (
         <div
-          className={`fixed ${
-            isCompactBtn ? 'bottom-6 right-6' : 'inset-x-0 bottom-3 sm:bottom-4 px-3 sm:px-4'
-          } z-[80] transition-all duration-500 ease-out ${
-            showFloatingBtn
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-20 pointer-events-none"
+          className={`fixed z-[80] transition-all ease-out ${
+            isCompactBtn 
+              ? 'bottom-6 right-6 duration-300' 
+              : 'inset-x-0 bottom-4 px-4 duration-500'
           }`}
           style={{
             transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -731,31 +606,48 @@ const Person = () => {
         >
           <div className={`${isCompactBtn ? '' : 'mx-auto w-full max-w-md'}`}>
             <div className="relative group">
-              <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 rounded-full opacity-75 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
+              {/* Glow effect */}
+              <div 
+                className={`absolute -inset-[2px] bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-full blur-md transition-all duration-500 ${
+                  isCompactBtn ? 'opacity-60' : 'opacity-40 group-hover:opacity-70'
+                }`} 
+              />
+              
               <button
                 onClick={handleBackToMovie}
-                className={`relative bg-background/60 backdrop-blur-xl
-                          border border-white/20
-                          shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)]
-                          hover:bg-background/70 hover:border-white/30
-                          active:scale-[0.98]
-                          transition-all duration-500
+                className={`relative bg-background/80 backdrop-blur-2xl
+                          border border-white/25
+                          shadow-[0_8px_40px_rgba(0,0,0,0.25),inset_0_1px_2px_rgba(255,255,255,0.2)]
+                          hover:bg-background/90 hover:border-white/35
+                          active:scale-[0.97]
+                          transition-all duration-500 ease-out
                           flex items-center justify-center
                           text-foreground font-medium
-                          group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.3)]
-                          touch-manipulation rounded-full ${
-                            isCompactBtn
-                              ? 'w-14 h-14 p-0'
-                              : 'w-full min-h-[52px] px-6 py-3 gap-2'
+                          touch-manipulation rounded-full
+                          overflow-hidden
+                          ${isCompactBtn
+                            ? 'w-14 h-14 p-0'
+                            : 'w-full min-h-[56px] px-6 py-3.5 gap-3'
                           }`}
+                style={{
+                  transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
               >
-                <Film className={`group-hover:scale-110 transition-all duration-500 ${
+                <Film className={`shrink-0 transition-all duration-500 ease-out ${
                   isCompactBtn ? 'w-5 h-5' : 'w-4 h-4'
                 }`} />
-                <span className={`text-sm transition-all duration-500 ${
-                  isCompactBtn ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
-                }`}>
-                  Back to {fromMovieTitle.length > 30 ? `${fromMovieTitle.slice(0, 30)}...` : fromMovieTitle}
+                
+                <span 
+                  className={`text-sm font-medium whitespace-nowrap transition-all duration-500 ease-out ${
+                    isCompactBtn 
+                      ? 'w-0 opacity-0 scale-90' 
+                      : 'w-auto opacity-100 scale-100'
+                  }`}
+                  style={{ 
+                    transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+                >
+                  Back to {fromMovieTitle.length > 28 ? `${fromMovieTitle.slice(0, 28)}...` : fromMovieTitle}
                 </span>
               </button>
             </div>

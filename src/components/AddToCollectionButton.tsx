@@ -50,7 +50,7 @@ export function AddToCollectionButton({ movie, variant = "outline", size = "lg" 
 
   const handleCreateAndAdd = async () => {
     if (!newName.trim()) return;
-    const newCollection = await createCollection(newName);
+    const newCollection = await createCollection({ name: newName });
     if (newCollection) {
       await addMovieToCollection(newCollection.id, {
         id: movie.id,
