@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Folder, Share2, Trash2, Edit2, Check, Grid } from "lucide-react";
+import { Plus, Folder, Share2, Check, Grid } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -68,7 +68,6 @@ export function CollectionManagerDialog({
     const newCollection = await createCollection({
       name: newCollectionName,
       description: newCollectionDescription,
-      color_theme: selectedColor,
     });
 
     setNewCollectionName("");
@@ -134,15 +133,14 @@ export function CollectionManagerDialog({
                     disabled={!movieToAdd || isAdded}
                     className="w-full p-3 rounded-lg border border-border hover:border-foreground/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      borderLeft: `4px solid ${collection.color_theme}`,
+                      borderLeft: `4px solid ${selectedColor}`,
                     }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <Folder
-                            className="w-4 h-4 flex-shrink-0"
-                            style={{ color: collection.color_theme }}
+                            className="w-4 h-4 flex-shrink-0 text-primary"
                           />
                           <h4 className="font-semibold text-sm truncate">{collection.name}</h4>
                         </div>
@@ -154,7 +152,7 @@ export function CollectionManagerDialog({
                         <div className="flex items-center gap-2 mt-2">
                           <Badge variant="secondary" className="text-xs">
                             <Grid className="w-3 h-3 mr-1" />
-                            {movieCounts[collection.id] || collection.movie_count || 0} movies
+                            {movieCounts[collection.id] || 0} movies
                           </Badge>
                           {collection.is_public && (
                             <Badge variant="outline" className="text-xs">
