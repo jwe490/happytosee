@@ -2,11 +2,6 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackMoodSelection } from "@/lib/analytics";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import happySvg from "@/assets/mood-happy.svg";
 import sadSvg from "@/assets/mood-sad.svg";
@@ -45,8 +40,6 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
   const [hoveredMood, setHoveredMood] = useState<string | null>(null);
   const [pressedMood, setPressedMood] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  // Treat anything under 1024px as needing labels (mobile + tablet)
-  const showLabels = typeof window !== "undefined" && window.innerWidth < 1024;
 
   const handleMoodClick = useCallback(
     (moodId: string) => {
@@ -54,10 +47,10 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
       setTimeout(() => {
         onSelectMood(moodId);
         trackMoodSelection(moodId);
-      }, 100);
+      }, 80);
       setTimeout(() => {
         setPressedMood(null);
-      }, 300);
+      }, 250);
     },
     [onSelectMood]
   );
@@ -66,15 +59,22 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
     const isSelected = selectedMood === mood.id;
     const isHovered = hoveredMood === mood.id;
     const isPressed = pressedMood === mood.id;
+    
+    // Animation states for the 4-step sequence
+    // Step 1: Base state (icon with label below)
+    // Step 2: Hover starts (same as 1)
+    // Step 3: Background fades, border appears (rapid)
+    // Step 4: Label squeezes up into box (snappy)
+    const showLabelInside = isHovered || isPressed || isSelected;
 
-    const button = (
+    return (
       <motion.button
         type="button"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{
-          delay: index * 0.025,
-          duration: 0.35,
+          delay: index * 0.02,
+          duration: 0.3,
           ease: [0.23, 1, 0.32, 1],
         }}
         onClick={() => handleMoodClick(mood.id)}
@@ -82,110 +82,150 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
         onMouseLeave={() => setHoveredMood(null)}
         onMouseDown={() => setPressedMood(mood.id)}
         onMouseUp={() => setPressedMood(null)}
-        className="relative flex flex-col items-center justify-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-2xl"
+        onTouchStart={() => setHoveredMood(mood.id)}
+        onTouchEnd={() => {
+          setTimeout(() => setHoveredMood(null), 200);
+        }}
+        className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[20px]"
       >
-        {/* Icon container with border wrapper and zoom depth animation */}
+        {/* Main button container - unified rounded-rect shape */}
         <motion.div
-          className={`
-            relative flex items-center justify-center
-            w-20 h-20 sm:w-24 sm:h-24
-            rounded-2xl
-            border-2 transition-colors duration-200
-            ${isSelected 
-              ? "border-primary bg-primary/10 shadow-lg shadow-primary/20" 
-              : isHovered 
-                ? "border-foreground/30 bg-muted/50" 
-                : "border-border bg-card"
-            }
-          `}
+          className="relative flex items-center justify-center overflow-hidden"
+          style={{
+            width: isMobile ? 100 : 120,
+            height: isMobile ? 72 : 84,
+            borderRadius: 20,
+          }}
           animate={{
-            scale: isPressed ? 1.08 : isHovered ? 1.04 : 1,
-            y: isPressed ? 2 : isHovered ? -2 : 0,
+            scale: isPressed ? 0.95 : isHovered ? 1.02 : 1,
+            y: isPressed ? 1 : isHovered ? -2 : 0,
           }}
           transition={{
             type: "spring",
-            stiffness: 400,
-            damping: 20,
-            mass: 0.8,
-          }}
-          style={{
-            boxShadow: isPressed
-              ? "0 4px 20px -4px hsl(var(--primary) / 0.3)"
-              : isHovered
-              ? "0 8px 30px -8px hsl(var(--foreground) / 0.15)"
-              : "0 2px 8px -2px hsl(var(--foreground) / 0.05)",
+            stiffness: 500,
+            damping: 25,
+            mass: 0.6,
           }}
         >
-          {/* Selection indicator ring */}
-          <AnimatePresence>
-            {isSelected && (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="absolute inset-0 rounded-2xl border-2 border-primary"
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Icon */}
-          <motion.img
-            src={mood.icon}
-            alt={mood.label}
-            className="w-10 h-10 sm:w-12 sm:h-12 select-none object-contain"
-            draggable={false}
+          {/* Background layer - solid when not hovered, fades on hover */}
+          <motion.div
+            className="absolute inset-0 rounded-[20px]"
+            initial={false}
             animate={{
+              backgroundColor: showLabelInside 
+                ? "transparent" 
+                : isSelected 
+                  ? "hsl(var(--primary) / 0.15)" 
+                  : "hsl(var(--muted))",
+              borderWidth: 2,
+              borderColor: showLabelInside 
+                ? isSelected 
+                  ? "hsl(var(--primary))" 
+                  : "hsl(var(--foreground) / 0.4)"
+                : isSelected
+                  ? "hsl(var(--primary) / 0.5)"
+                  : "transparent",
+            }}
+            transition={{
+              duration: 0.15,
+              ease: "easeOut",
+            }}
+            style={{
+              borderStyle: "solid",
+            }}
+          />
+
+          {/* Icon - always visible, scales slightly on hover */}
+          <motion.div
+            className="relative z-10 flex flex-col items-center justify-center"
+            animate={{
+              y: showLabelInside ? -8 : 0,
               scale: isPressed ? 0.9 : 1,
-              filter: isSelected
-                ? "drop-shadow(0 0 12px hsl(var(--primary) / 0.5))"
-                : "none",
             }}
             transition={{
               type: "spring",
-              stiffness: 500,
-              damping: 25,
+              stiffness: 600,
+              damping: 30,
+              mass: 0.5,
             }}
-          />
+          >
+            <motion.img
+              src={mood.icon}
+              alt={mood.label}
+              className="select-none object-contain"
+              style={{
+                width: isMobile ? 36 : 44,
+                height: isMobile ? 36 : 44,
+              }}
+              draggable={false}
+              animate={{
+                filter: isSelected
+                  ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.6))"
+                  : "none",
+              }}
+            />
+          </motion.div>
+
+          {/* Label inside box - slides up on hover (Step 4) */}
+          <AnimatePresence>
+            {showLabelInside && (
+              <motion.span
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 700,
+                  damping: 35,
+                  mass: 0.4,
+                  delay: 0.02,
+                }}
+                className={`
+                  absolute bottom-2 font-semibold text-xs tracking-tight
+                  ${isSelected ? "text-primary" : "text-foreground"}
+                `}
+              >
+                {mood.label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          {/* Selection glow effect */}
+          <AnimatePresence>
+            {isSelected && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="absolute inset-0 rounded-[20px] ring-2 ring-primary ring-offset-2 ring-offset-background"
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Label - visible on mobile/tablet, hidden on desktop (tooltip instead) */}
+        {/* External label - visible only when NOT hovered */}
         <motion.span
-          className={`
-            mt-2.5 font-medium text-xs sm:text-sm tracking-tight text-center
-            transition-colors duration-200
-            ${isSelected ? "text-primary" : "text-muted-foreground"}
-            lg:hidden
-          `}
+          className="mt-2 font-medium text-xs sm:text-sm tracking-tight text-center text-muted-foreground"
+          animate={{
+            opacity: showLabelInside ? 0 : 1,
+            y: showLabelInside ? -8 : 0,
+            scale: showLabelInside ? 0.9 : 1,
+          }}
+          transition={{
+            duration: 0.12,
+            ease: "easeOut",
+          }}
         >
           {mood.label}
         </motion.span>
       </motion.button>
     );
-
-    // On desktop (lg+), wrap with tooltip
-    if (!showLabels) {
-      return (
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="bottom" className="font-medium">
-            {mood.label}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return button;
   };
 
   return (
     <div id="mood-selector" className="w-full max-w-5xl mx-auto px-4 sm:px-6">
-      {/* 
-        Grid: 
-        - Small devices (< 640px): 2 columns x 6 rows
-        - Medium devices (640px - 1024px): 3 columns x 4 rows  
-        - Large devices (1024px+): 4 columns x 3 rows
-      */}
+      {/* Grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 justify-items-center">
         {moods.map((mood, index) => (
           <MoodButton key={mood.id} mood={mood} index={index} />

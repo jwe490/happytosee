@@ -10,11 +10,11 @@ interface ReviewReactionButtonsProps {
 }
 
 const reactions = [
-  { type: 'helpful' as const, icon: ThumbsUp, label: 'Helpful', color: 'text-blue-500' },
-  { type: 'insightful' as const, icon: Lightbulb, label: 'Insightful', color: 'text-yellow-500' },
-  { type: 'funny' as const, icon: Laugh, label: 'Funny', color: 'text-green-500' },
-  { type: 'agree' as const, icon: Check, label: 'Agree', color: 'text-emerald-500' },
-  { type: 'disagree' as const, icon: X, label: 'Disagree', color: 'text-red-500' },
+  { type: 'helpful' as const, icon: ThumbsUp, label: 'Helpful', activeColor: 'text-blue-500' },
+  { type: 'insightful' as const, icon: Lightbulb, label: 'Insightful', activeColor: 'text-yellow-500' },
+  { type: 'funny' as const, icon: Laugh, label: 'Funny', activeColor: 'text-green-500' },
+  { type: 'agree' as const, icon: Check, label: 'Agree', activeColor: 'text-emerald-500' },
+  { type: 'disagree' as const, icon: X, label: 'Disagree', activeColor: 'text-red-500' },
 ];
 
 export function ReviewReactionButtons({
@@ -24,26 +24,32 @@ export function ReviewReactionButtons({
   compact = false,
 }: ReviewReactionButtonsProps) {
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       {reactions.map((reaction) => {
         const Icon = reaction.icon;
         const isActive = userReaction === reaction.type;
         const count = reaction.type === 'helpful' ? helpfulCount : 0;
 
         return (
-          <motion.div key={reaction.type} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <motion.div 
+            key={reaction.type} 
+            whileHover={{ scale: 1.05 }} 
+            whileTap={{ scale: 0.95 }}
+          >
             <Button
               variant={isActive ? "default" : "ghost"}
               size="sm"
               onClick={() => onToggleReaction(reaction.type)}
-              className={`gap-1.5 h-7 text-xs ${
-                isActive ? reaction.color : 'text-muted-foreground'
-              } ${compact ? 'px-2' : 'px-3'}`}
+              className={`
+                gap-1.5 h-8 text-xs rounded-xl
+                ${isActive ? reaction.activeColor : 'text-muted-foreground hover:text-foreground'}
+                ${compact ? 'px-2.5' : 'px-3'}
+              `}
             >
               <Icon className="w-3.5 h-3.5" />
               {!compact && <span>{reaction.label}</span>}
               {count > 0 && reaction.type === 'helpful' && (
-                <span className="font-semibold">{count}</span>
+                <span className="font-semibold ml-0.5">{count}</span>
               )}
             </Button>
           </motion.div>
