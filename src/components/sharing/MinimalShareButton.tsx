@@ -22,12 +22,12 @@ export const MinimalShareButton = ({
 }: MinimalShareButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const baseStyles = "flex items-center gap-2 transition-all duration-200 active:scale-95";
+  const baseStyles = "flex items-center justify-center gap-2 transition-all duration-200 active:scale-95";
   
   const variantStyles = {
-    default: "px-5 py-2.5 rounded-full bg-accent text-accent-foreground font-medium hover:bg-accent/90",
-    outline: "px-5 py-2.5 rounded-full border border-border bg-transparent hover:bg-muted font-medium",
-    minimal: "p-2.5 rounded-full hover:bg-muted/80",
+    default: "px-5 py-2.5 rounded-full bg-accent text-accent-foreground font-medium hover:bg-accent/90 min-h-[48px]",
+    outline: "px-5 py-2.5 rounded-full border border-border bg-transparent hover:bg-muted font-medium min-h-[48px]",
+    minimal: "p-2.5 rounded-full hover:bg-muted/80 min-h-[44px] min-w-[44px]",
   };
 
   return (

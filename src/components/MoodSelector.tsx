@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackMoodSelection } from "@/lib/analytics";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import happySvg from "@/assets/mood-happy.svg";
 import sadSvg from "@/assets/mood-sad.svg";
@@ -38,26 +39,32 @@ const moods = [
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
   const [hoveredMood, setHoveredMood] = useState<string | null>(null);
   const [clickedMood, setClickedMood] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const handleMoodClick = useCallback((moodId: string) => {
     setClickedMood(moodId);
     
-    // Short delay for animation feedback before selection
+    // Trigger selection after satisfying squash animation
     setTimeout(() => {
       onSelectMood(moodId);
       trackMoodSelection(moodId);
-    }, 120);
+    }, 80);
     
     // Reset clicked state
     setTimeout(() => {
       setClickedMood(null);
-    }, 400);
+    }, 350);
   }, [onSelectMood]);
 
   return (
-    <div id="mood-selector" className="w-full max-w-4xl mx-auto px-3 sm:px-4">
-      {/* Responsive Grid: 3 cols mobile, 4 cols tablet, 6 cols desktop */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+    <div id="mood-selector" className="w-full max-w-5xl mx-auto px-4 sm:px-6">
+      {/* 
+        Grid: 
+        - Small devices (< 640px): 2 columns x 6 rows
+        - Medium devices (640px - 1024px): 3 columns x 4 rows  
+        - Large devices (1024px+): 4 columns x 3 rows
+      */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
         {moods.map((mood, index) => {
           const isSelected = selectedMood === mood.id;
           const isHovered = hoveredMood === mood.id;
@@ -67,117 +74,109 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             <motion.button
               key={mood.id}
               type="button"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ 
                 delay: index * 0.03, 
-                duration: 0.3,
-                type: "spring",
-                stiffness: 300,
-                damping: 20,
+                duration: 0.4,
+                ease: [0.23, 1, 0.32, 1],
               }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
               onClick={() => handleMoodClick(mood.id)}
               onMouseEnter={() => setHoveredMood(mood.id)}
               onMouseLeave={() => setHoveredMood(null)}
-              className="relative flex flex-col items-center justify-center group cursor-pointer touch-manipulation focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-4 sm:py-5 group cursor-pointer touch-manipulation focus:outline-none"
             >
-              {/* Icon container - main button, no outer box */}
+              {/* Icon container with squash-stretch animation */}
               <motion.div
-                className="relative"
+                className="relative flex items-center justify-center"
                 animate={{
-                  scale: isClicked ? 1.25 : isSelected ? 1.1 : 1,
-                  rotate: isClicked ? [0, -8, 8, -4, 0] : 0,
+                  // Squash on click: compress Y, expand X
+                  scaleX: isClicked ? 1.2 : isSelected ? 1.05 : 1,
+                  scaleY: isClicked ? 0.8 : isSelected ? 1.05 : 1,
                 }}
                 transition={{
-                  scale: { type: "spring", stiffness: 400, damping: 15 },
-                  rotate: { duration: 0.4, ease: "easeOut" },
+                  type: "spring",
+                  stiffness: 600,
+                  damping: 15,
+                  mass: 0.5,
                 }}
               >
-                {/* Selection ring */}
+                {/* Selection glow ring - elegant and minimal */}
                 <AnimatePresence>
                   {isSelected && (
                     <motion.div
-                      initial={{ scale: 0.5, opacity: 0 }}
+                      initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.5, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className="absolute -inset-2 rounded-full border-2 border-primary"
+                      exit={{ scale: 0.6, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="absolute inset-0 -m-3 rounded-full"
+                      style={{
+                        background: "radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
+                      }}
                     />
                   )}
                 </AnimatePresence>
                 
-                {/* Click ripple effect */}
-                <AnimatePresence>
-                  {isClicked && (
-                    <motion.div
-                      initial={{ scale: 0.3, opacity: 0.6 }}
-                      animate={{ scale: 2.5, opacity: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                      className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-primary/30"
-                    />
-                  )}
-                </AnimatePresence>
+                {/* Hover glow effect */}
+                <motion.div
+                  className="absolute inset-0 -m-4 rounded-full pointer-events-none"
+                  initial={false}
+                  animate={{ 
+                    opacity: isHovered && !isSelected ? 0.6 : 0,
+                    scale: isHovered ? 1.1 : 0.8,
+                  }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    background: "radial-gradient(circle, hsl(var(--foreground) / 0.05) 0%, transparent 70%)",
+                  }}
+                />
                 
-                {/* The icon itself */}
+                {/* The icon itself - LARGE and prominent */}
                 <motion.img
                   src={mood.icon}
                   alt={mood.label}
-                  className={`
-                    w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 
-                    select-none object-contain relative z-10
-                    transition-all duration-200
-                    ${isSelected ? "drop-shadow-[0_0_12px_hsl(var(--primary)/0.5)]" : ""}
-                  `}
+                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 select-none object-contain relative z-10"
                   draggable={false}
-                />
-                
-                {/* Subtle glow on hover */}
-                <motion.div
-                  className="absolute inset-0 rounded-full bg-primary/10 blur-xl -z-10"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ 
-                    opacity: isHovered || isSelected ? 0.8 : 0,
-                    scale: isHovered || isSelected ? 1.2 : 0.5,
+                  animate={{
+                    filter: isSelected 
+                      ? "drop-shadow(0 0 16px hsl(var(--primary) / 0.4))" 
+                      : "drop-shadow(0 0 0px transparent)",
                   }}
                   transition={{ duration: 0.2 }}
                 />
               </motion.div>
 
-              {/* Label - visible on mobile/tablet, hover-only on desktop */}
+              {/* Label - always visible on mobile/tablet, hover-only on desktop */}
               <motion.span
                 className={`
-                  mt-2 font-medium text-xs sm:text-sm tracking-tight
-                  transition-all duration-200
-                  ${isSelected ? "text-primary" : "text-foreground/70"}
+                  mt-3 font-medium text-sm sm:text-base tracking-tight
+                  transition-colors duration-200
+                  ${isSelected ? "text-primary" : "text-foreground/60 group-hover:text-foreground/90"}
                   
-                  /* Mobile/tablet: always visible */
-                  lg:opacity-0 lg:translate-y-1
-                  
-                  /* Desktop: show on hover */
+                  /* Always visible on mobile/tablet */
+                  lg:opacity-0 lg:translate-y-2
                   lg:group-hover:opacity-100 lg:group-hover:translate-y-0
+                  lg:transition-all lg:duration-200
                 `}
                 animate={{
-                  scale: isClicked ? 1.1 : 1,
+                  scale: isClicked ? 0.95 : 1,
                 }}
                 transition={{ duration: 0.15 }}
               >
                 {mood.label}
               </motion.span>
 
-              {/* Desktop hover tooltip (alternative to inline label) */}
+              {/* Desktop-only tooltip on hover (appears below label position) */}
               <AnimatePresence>
-                {isHovered && (
+                {isHovered && !isMobile && (
                   <motion.div
-                    initial={{ opacity: 0, y: 4, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
                     transition={{ duration: 0.15 }}
-                    className="hidden lg:block absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap"
+                    className="hidden lg:block absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20"
                   >
-                    <span className="px-2 py-1 text-xs font-medium bg-popover text-popover-foreground rounded-md shadow-lg border border-border">
+                    <span className="px-3 py-1.5 text-xs font-medium bg-popover text-popover-foreground rounded-lg shadow-xl border border-border/50">
                       {mood.label}
                     </span>
                   </motion.div>

@@ -68,6 +68,8 @@ export function useCollections() {
       return null;
     }
 
+    console.log('[Collections] Creating collection for user:', user.id);
+
     try {
       const { data, error } = await supabase
         .from('collections')

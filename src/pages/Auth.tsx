@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Sparkles, KeyRound, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
@@ -92,7 +91,6 @@ const Auth = () => {
       const { error } = await signIn(key, rememberMe);
       
       if (error) {
-        // Provide clearer guidance when account doesn't exist
         if (error.message.toLowerCase().includes("invalid")) {
           setLoginError("No account found with this key. Try creating a new vault first.");
         } else {
@@ -129,68 +127,61 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col overflow-hidden relative">
-      {/* Noir cinema background */}
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col overflow-hidden relative">
+      {/* Artistic textured background - subtle paper grain */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Film grain overlay */}
+        {/* Base subtle noise texture */}
         <div 
-          className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
+          className="absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           }}
         />
         
-        {/* Dramatic spotlight from top */}
+        {/* Elegant single spotlight - cinematic */}
         <div 
-          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[600px]"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[900px]"
           style={{
-            background: "radial-gradient(ellipse at center, hsl(var(--primary) / 0.12) 0%, transparent 60%)",
+            background: "radial-gradient(ellipse 50% 40% at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 100%)",
           }}
         />
         
-        {/* Secondary ambient glow */}
-        <div 
-          className="absolute bottom-0 left-0 w-full h-1/2"
-          style={{
-            background: "linear-gradient(to top, hsl(var(--primary) / 0.03) 0%, transparent 100%)",
-          }}
-        />
-        
-        {/* Subtle vignette */}
+        {/* Subtle edge vignette for depth */}
         <div 
           className="absolute inset-0"
           style={{
-            background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)",
+            background: "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 0%, rgba(0,0,0,0.4) 100%)",
           }}
         />
       </div>
       
       <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12 relative z-10">
-        <div className="w-full max-w-md">
-          {/* Logo & Brand */}
+        <div className="w-full max-w-sm">
+          {/* Logo & Brand - Ultra minimal */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8 sm:mb-10"
+            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+            className="text-center mb-12"
           >
             <motion.div 
-              className="inline-flex items-center justify-center mb-5"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center justify-center mb-6"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
             >
               <img 
                 src={logo} 
                 alt="MoodFlix" 
-                className="h-16 sm:h-20 md:h-24 w-auto invert opacity-90"
+                className="h-12 sm:h-14 w-auto invert opacity-80"
               />
             </motion.div>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-neutral-400 text-sm sm:text-base font-light tracking-wide"
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="text-neutral-500 text-sm font-light tracking-[0.2em] uppercase"
             >
-              Your personal movie vault awaits
+              Cinema for your mood
             </motion.p>
           </motion.div>
 
@@ -198,92 +189,63 @@ const Auth = () => {
             {step === "choice" && (
               <motion.div
                 key="choice"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-6"
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                className="space-y-8"
               >
-                {/* Main auth card - noir glass style */}
-                <div 
-                  className="relative rounded-2xl p-6 sm:p-8 border border-neutral-800/60 shadow-2xl"
-                  style={{
-                    background: "linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)",
-                    backdropFilter: "blur(20px)",
-                  }}
-                >
-                  {/* Subtle inner glow */}
-                  <div 
-                    className="absolute inset-0 rounded-2xl pointer-events-none"
-                    style={{
-                      background: "radial-gradient(ellipse at top, hsl(var(--primary) / 0.06) 0%, transparent 50%)",
-                    }}
-                  />
+                {/* Ultra-minimal auth buttons */}
+                <div className="space-y-3">
+                  <motion.button 
+                    onClick={() => setStep("signup-persona")} 
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full h-14 rounded-xl text-base font-medium bg-white text-black 
+                              hover:bg-neutral-100 transition-colors duration-200
+                              flex items-center justify-center gap-3"
+                  >
+                    <span className="text-lg">✦</span>
+                    Create Your Vault
+                  </motion.button>
                   
-                  <div className="relative z-10">
-                    <div className="text-center mb-6">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-neutral-800/80 flex items-center justify-center mx-auto mb-4 border border-neutral-700/50">
-                        <KeyRound className="w-7 h-7 sm:w-8 sm:h-8 text-neutral-300" />
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-semibold text-neutral-100 mb-2 tracking-tight">
-                        Key-Based Auth
-                      </h2>
-                      <p className="text-neutral-500 text-sm">
-                        No email, no password. Just one secret key.
-                      </p>
-                    </div>
+                  <motion.button 
+                    onClick={() => setStep("login")} 
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full h-14 rounded-xl text-base font-medium 
+                              bg-transparent text-neutral-400 
+                              border border-neutral-800 hover:border-neutral-600
+                              hover:text-neutral-200 transition-all duration-200
+                              flex items-center justify-center gap-3"
+                  >
+                    <span className="text-lg opacity-60">⚿</span>
+                    Enter With Key
+                  </motion.button>
+                </div>
 
-                    <div className="space-y-3">
-                      <Button 
-                        onClick={() => setStep("signup-persona")} 
-                        className="w-full h-12 sm:h-14 gap-2 rounded-xl text-base font-medium bg-neutral-100 text-neutral-900 hover:bg-white transition-all duration-200"
-                        size="lg"
-                      >
-                        <Sparkles className="w-5 h-5" />
-                        Create New Vault
-                      </Button>
-                      <Button 
-                        onClick={() => setStep("login")} 
-                        variant="outline" 
-                        className="w-full h-12 sm:h-14 gap-2 rounded-xl text-base font-medium border-neutral-700 bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 hover:border-neutral-600 transition-all duration-200"
-                        size="lg"
-                      >
-                        <Shield className="w-5 h-5" />
-                        I Have a Key
-                      </Button>
-                    </div>
-
-                    {/* Features grid */}
-                    <div className="mt-6 pt-6 border-t border-neutral-800/80">
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        {[
-                          { icon: "🔐", label: "Secure" },
-                          { icon: "🎭", label: "Anonymous" },
-                          { icon: "⚡", label: "Fast" },
-                        ].map((feature) => (
-                          <div key={feature.label} className="py-2">
-                            <div className="text-xl sm:text-2xl mb-1 grayscale opacity-80">{feature.icon}</div>
-                            <div className="text-xs text-neutral-500 uppercase tracking-wider">{feature.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                {/* Minimal feature indicators */}
+                <div className="flex justify-center gap-8 text-neutral-600 text-xs tracking-wider uppercase">
+                  <span>Private</span>
+                  <span className="text-neutral-700">•</span>
+                  <span>Secure</span>
+                  <span className="text-neutral-700">•</span>
+                  <span>Instant</span>
                 </div>
 
                 {/* Guest option */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-center"
+                  transition={{ delay: 0.4 }}
+                  className="text-center pt-4"
                 >
-                  <Button 
-                    variant="ghost" 
+                  <button 
                     onClick={() => navigate("/")} 
-                    className="text-neutral-500 hover:text-neutral-300 hover:bg-neutral-900/50"
+                    className="text-neutral-600 hover:text-neutral-400 transition-colors text-sm"
                   >
-                    Continue as Guest
-                  </Button>
+                    Continue as guest →
+                  </button>
                 </motion.div>
               </motion.div>
             )}
@@ -322,20 +284,21 @@ const Auth = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="mt-6 text-center"
+              className="mt-8 text-center"
             >
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setStep("choice")}
-                className="text-neutral-500 hover:text-neutral-300"
+                className="text-neutral-600 hover:text-neutral-400 transition-colors text-sm"
               >
-                ← Back to options
-              </Button>
+                ← Back
+              </button>
             </motion.div>
           )}
         </div>
       </div>
+      
+      {/* Bottom decorative line */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neutral-800 to-transparent" />
     </div>
   );
 };
