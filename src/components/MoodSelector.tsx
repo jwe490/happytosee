@@ -36,6 +36,9 @@ const moods = [
   { id: "inspired", label: "Inspired", icon: inspiredSvg },
 ];
 
+// Orange color from prototype
+const MOOD_COLOR = "#f15e3d";
+
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
   const [hoveredMood, setHoveredMood] = useState<string | null>(null);
   const [pressedMood, setPressedMood] = useState<string | null>(null);
@@ -50,7 +53,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
       }, 100);
       setTimeout(() => {
         setPressedMood(null);
-      }, 300);
+      }, 400);
     },
     [onSelectMood]
   );
@@ -60,7 +63,7 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
     const isHovered = hoveredMood === mood.id;
     const isPressed = pressedMood === mood.id;
     
-    // Animation trigger: hover OR press OR selected
+    // Animation phases based on interaction
     const isActive = isHovered || isPressed || isSelected;
     
     // Dimensions
@@ -83,8 +86,8 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
         onMouseEnter={() => setHoveredMood(mood.id)}
         onMouseLeave={() => setHoveredMood(null)}
         onTouchStart={() => setHoveredMood(mood.id)}
-        onTouchEnd={() => setTimeout(() => setHoveredMood(null), 250)}
-        className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        onTouchEnd={() => setTimeout(() => setHoveredMood(null), 300)}
+        className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         style={{ borderRadius }}
       >
         {/* Main button container */}
@@ -96,23 +99,33 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             borderRadius,
           }}
           animate={{
-            scale: isPressed ? 0.96 : isHovered ? 1.02 : 1,
+            scale: isPressed ? 0.97 : 1,
           }}
           transition={{
             type: "spring",
             stiffness: 500,
-            damping: 28,
+            damping: 30,
           }}
         >
-          {/* Step 1 & 2: Solid filled background */}
+          {/* Solid orange background - always visible */}
           <motion.div
             className="absolute inset-0"
             style={{
               borderRadius,
-              backgroundColor: "hsl(var(--muted))",
+              backgroundColor: MOOD_COLOR,
             }}
+          />
+
+          {/* Step 3 & 4: Dark border appears on hover/active */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              borderRadius,
+              border: "3px solid #333",
+            }}
+            initial={{ opacity: 0 }}
             animate={{
-              opacity: isActive ? 0 : 1,
+              opacity: isActive ? 1 : 0,
             }}
             transition={{
               duration: 0.15,
@@ -120,40 +133,19 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             }}
           />
 
-          {/* Step 3: Border appears when active */}
+          {/* Step 1: Icon - visible only when NOT active */}
           <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              borderRadius,
-              border: "2.5px solid",
-              borderColor: isSelected 
-                ? "hsl(var(--primary))" 
-                : "hsl(var(--foreground) / 0.5)",
-            }}
+            className="absolute inset-0 flex items-center justify-center z-10"
             animate={{
-              opacity: isActive ? 1 : 0,
-              scale: isActive ? 1 : 0.97,
+              opacity: isActive ? 0 : 1,
+              scale: isActive ? 0.8 : 1,
             }}
             transition={{
-              duration: 0.12,
+              duration: 0.2,
               ease: "easeOut",
             }}
-          />
-
-          {/* Icon container - shifts up when label enters */}
-          <motion.div
-            className="relative z-10 flex items-center justify-center"
-            animate={{
-              y: isActive ? -10 : 0,
-              scale: isPressed ? 0.92 : 1,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 600,
-              damping: 32,
-            }}
           >
-            <motion.img
+            <img
               src={mood.icon}
               alt={mood.label}
               className="select-none object-contain"
@@ -162,46 +154,36 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
                 height: iconSize,
               }}
               draggable={false}
-              animate={{
-                filter: isSelected
-                  ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.5))"
-                  : "none",
-              }}
             />
           </motion.div>
 
-          {/* Step 4: Label squeezes up into the box */}
+          {/* Step 4: Label inside button - appears on hover/active */}
           <AnimatePresence>
             {isActive && (
               <motion.span
                 initial={{ 
                   opacity: 0, 
-                  y: 24, 
-                  scaleX: 0.85,
-                  scaleY: 0.7,
+                  y: 30, 
+                  scale: 0.7,
                 }}
                 animate={{ 
                   opacity: 1, 
                   y: 0, 
-                  scaleX: 1,
-                  scaleY: 1,
+                  scale: 1,
                 }}
                 exit={{ 
                   opacity: 0, 
-                  y: 16, 
-                  scaleX: 0.9,
-                  scaleY: 0.8,
+                  y: 20, 
+                  scale: 0.8,
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 650,
-                  damping: 30,
-                  mass: 0.5,
+                  stiffness: 600,
+                  damping: 28,
+                  mass: 0.6,
+                  delay: 0.05,
                 }}
-                className={`
-                  absolute bottom-2 font-bold text-xs tracking-tight
-                  ${isSelected ? "text-primary" : "text-foreground"}
-                `}
+                className="absolute inset-0 flex items-center justify-center font-bold text-sm tracking-tight text-white z-20"
                 style={{
                   transformOrigin: "center bottom",
                 }}
@@ -210,31 +192,18 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
               </motion.span>
             )}
           </AnimatePresence>
-
-          {/* Selection ring glow */}
-          {isSelected && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                borderRadius,
-                boxShadow: "0 0 0 3px hsl(var(--primary) / 0.3)",
-              }}
-            />
-          )}
         </motion.div>
 
-        {/* External label - Step 1: visible when NOT active */}
+        {/* External label - Step 1 & 2: visible when NOT active */}
         <motion.span
-          className="mt-2 font-medium text-xs sm:text-sm tracking-tight text-center text-muted-foreground"
+          className="mt-2 font-semibold text-xs sm:text-sm tracking-tight text-center text-foreground"
           animate={{
             opacity: isActive ? 0 : 1,
-            y: isActive ? -10 : 0,
+            y: isActive ? -12 : 0,
             scale: isActive ? 0.85 : 1,
           }}
           transition={{
-            duration: 0.15,
+            duration: 0.2,
             ease: "easeOut",
           }}
         >
