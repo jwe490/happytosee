@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
-import HeroSection from "@/components/HeroSection";
 import MoodSelector from "@/components/MoodSelector";
 // FloatingMoodSelector removed per user request
 import PreferencesForm from "@/components/PreferencesForm";
@@ -10,7 +9,7 @@ import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
 import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
-import { CinematicCarousel } from "@/components/CinematicCarousel";
+import { CinematicHeroCarousel } from "@/components/CinematicHeroCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
@@ -389,12 +388,9 @@ const Index = () => {
       </AnimatePresence>
 
       <main className="pb-16">
-        {/* Hero Section */}
-        <HeroSection />
-
-        {/* Cinematic Carousel */}
+        {/* Cinematic Hero Carousel - Combined hero + featured movies */}
         {trendingMovies.length > 0 && (
-          <CinematicCarousel
+          <CinematicHeroCarousel
             movies={trendingMovies}
             onMovieSelect={handleMovieSelect}
             autoPlayInterval={6000}

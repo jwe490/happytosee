@@ -279,116 +279,93 @@ transition={{
 
 ---
 
-## 3. Cinematic Carousel
+## 3. Cinematic Hero Carousel
 
 ### Location
-- `src/components/CinematicCarousel.tsx`
+- `src/components/CinematicHeroCarousel.tsx` (NEW - combined hero + carousel)
+- Old files kept for reference: `src/components/CinematicCarousel.tsx`, `src/components/HeroSection.tsx`
 
 ### Feature Overview
-Featured movie carousel with pill-to-poster morphing animation, responsive sizing, and auto-play functionality.
+Full-screen cinematic hero section with backdrop-based movie showcase, thumbnail navigation, and auto-play. Combines the hero and carousel into a single immersive experience inspired by premium streaming services.
 
 ### Design Specifications
 
-**Responsive Dimensions:**
+**Layout:**
+- Full viewport height: `min-h-[70vh] md:min-h-[80vh]`
+- Backdrop image with multiple gradient overlays
+- Content positioned at bottom with max-width container
+- Thumbnail strip for navigation
+
+**Background System:**
 ```tsx
-// Center card
-const getCenterDimensions = () => {
-  if (isMobile) return { width: 200, height: 280 };
-  return { width: 300, height: 420 };
-};
-
-// Pill dimensions (scale down with distance)
-const getPillDimensions = (position: number) => {
-  const basePillWidth = isMobile ? 32 : 48;
-  const basePillHeight = isMobile ? 100 : 160;
-  const scaleFactor = 1 - position * 0.2;
-  return {
-    width: Math.round(basePillWidth * scaleFactor),
-    height: Math.round(basePillHeight * scaleFactor),
-  };
-};
-```
-
-**Position Calculation:**
-```tsx
-const getSlidePosition = (offset: number) => {
-  const direction = offset > 0 ? 1 : -1;
-  const baseGap = isMobile ? 20 : 40;
-  
-  let position = centerWidth / 2 + baseGap;
-  for (let i = 1; i < absOffset; i++) {
-    const { width: pillWidth } = getPillDimensions(i);
-    position += pillWidth + (isMobile ? 8 : 16);
-  }
-  return direction * position;
-};
-```
-
-**Spring Configuration:**
-```tsx
-const springConfig = {
-  type: "spring",
-  stiffness: 200,
-  damping: 28,
-  mass: 1,
-};
-```
-
-**Border Radius Morphing:**
-```tsx
-// Morphs from pill to rounded rectangle
-const borderRadius = isCenter ? 24 : dimensions.width / 2;
-
-<motion.div
-  animate={{ borderRadius }}
-  transition={springConfig}
-/>
-```
-
-**Visual Effects:**
-```tsx
-// Center card shadow
-boxShadow: isCenter
-  ? "0 30px 60px -15px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)"
-  : "0 10px 30px -10px rgba(0,0,0,0.3)"
-
-// Ambient glow behind center
-<motion.div
-  style={{
-    width: centerWidth * 0.8,
-    height: centerHeight * 0.6,
-    background: `linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.3))`,
-    filter: "blur(60px)",
+// Backdrop with dimming
+<div 
+  style={{ 
+    backgroundImage: `url(${backdropUrl})`,
+    filter: "brightness(0.4) saturate(1.2)",
   }}
-  animate={{ scale: [1, 1.05, 1] }}
-  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
 />
 
-// Filter on side pills
-filter: isCenter ? "none" : "brightness(0.7) saturate(0.8)"
+// Multiple gradient overlays for depth
+<div className="bg-gradient-to-t from-background via-background/60 to-transparent" />
+<div className="bg-gradient-to-r from-background via-background/40 to-transparent" />
+<div className="bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background)/0.8)_100%)]" />
+```
+
+**Content Animation:**
+```tsx
+// Movie info slides in/out on change
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, y: -20 }}
+  transition={{ duration: 0.5, ease: "easeOut" }}
+>
+```
+
+**Thumbnail Navigation:**
+```tsx
+// Poster thumbnails: 16×24px mobile, 20×28px desktop
+<div className="w-16 h-24 md:w-20 md:h-28 rounded-lg">
+
+// Active state
+className={`
+  ${isActive 
+    ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg shadow-primary/20" 
+    : "hover:ring-1 hover:ring-white/30"
+  }
+`}
+
+// Hover/tap animations
+whileHover={{ scale: 1.05 }}
+whileTap={{ scale: 0.98 }}
+```
+
+**Progress Indicator:**
+```tsx
+// Animated progress bar within active dot
+{index === currentIndex && isAutoPlaying && (
+  <motion.div
+    initial={{ width: "0%" }}
+    animate={{ width: "100%" }}
+    transition={{ duration: autoPlayInterval / 1000, ease: "linear" }}
+    className="h-full bg-white/50"
+  />
+)}
 ```
 
 **Auto-play & Navigation:**
-- Auto-play interval: 5000ms (5 seconds)
-- Pause on interaction: 10 seconds
-- Visible slides: Mobile ±2, Desktop ±3
+- Auto-play interval: 6000ms (6 seconds)
+- Pause on interaction: 15 seconds
+- Progress indicator shows remaining time
 
-**Progress Dots:**
-```tsx
-<motion.div
-  animate={{
-    width: index === currentIndex ? 28 : 8,
-    height: 8,
-    backgroundColor: index === currentIndex 
-      ? "hsl(var(--primary))" 
-      : "hsl(var(--muted-foreground) / 0.25)",
-  }}
-  transition={springConfig}
-/>
-```
+**Performance Optimizations:**
+- Components wrapped with `memo()` for re-render prevention
+- Background and thumbnails are separate memoized components
+- Spring animations use consistent config for GPU optimization
 
 ### Prompt for AI Recreation
-> "Create a cinematic movie carousel with pill-to-poster morphing. Center card: 300×420px desktop, 200×280px mobile. Side pills: 48×160px base, scaling down 20% per position from center. Use spring animation (stiffness 200, damping 28, mass 1) for smooth morphing. Border radius transitions from width/2 (pill) to 24px (center). Add ambient glow behind center (60px blur, primary/accent gradient). Side pills have brightness(0.7) saturate(0.8) filter. Auto-play every 5s with 10s pause on interaction. Show ±2 slides on mobile, ±3 on desktop. Progress dots expand from 8px to 28px width when active."
+> "Create a full-screen cinematic hero carousel combining hero section and movie showcase. Full viewport height (70-80vh). Active movie's backdrop fills background with brightness(0.4) saturate(1.2) filter. Layer 3 gradient overlays: vertical from-background via-60% to-transparent, horizontal from-background via-40% to-transparent, and radial vignette. Content at bottom: badges (rating, year, genre) in glassmorphism pills, large title, 2-3 line overview, and 'View Details' + 'More Info' buttons. Below content: horizontal thumbnail strip (20×28px posters) with ring-2 primary accent on active. Progress dots with animated fill showing autoplay timing. Auto-advance every 6s, pause 15s on interaction. Use React.memo on subcomponents for performance."
 
 ---
 
@@ -604,6 +581,48 @@ Comprehensive library system with watchlist management, collections, search, sor
 
 ---
 
+## 6. Data Layer Architecture
+
+### Overview
+All user data (watchlist, collections, reviews) flows through a secure backend edge function (`user-data`) to bypass RLS restrictions caused by the custom key-auth system.
+
+### Files
+- `src/hooks/useWatchlist.ts` - Watchlist state management via API
+- `src/hooks/useCollections.ts` - Collections state management via API  
+- `src/lib/userDataApi.ts` - API wrapper functions
+- `supabase/functions/user-data/index.ts` - Edge function handling all operations
+
+### Supported Actions
+```typescript
+// GET operations
+"get_watchlist"       // Fetch user's watchlist
+"get_collections"     // Fetch collections with movies
+"get_collection_movies" // Fetch movies in specific collection
+
+// WATCHLIST operations
+"add_to_watchlist"    // Add movie to watchlist
+"remove_from_watchlist" // Remove movie from watchlist
+
+// COLLECTION operations
+"create_collection"   // Create new collection
+"update_collection"   // Update collection metadata
+"delete_collection"   // Delete collection and its movies
+"add_to_collection"   // Add movie to collection
+"remove_from_collection" // Remove movie from collection
+
+// REVIEW operations
+"add_review"          // Create or update review
+"delete_review"       // Delete review
+```
+
+### Key Implementation Details
+1. All operations require valid JWT token from key-auth
+2. Service role key bypasses RLS in edge function
+3. Hooks use optimistic updates for responsive UI
+4. Automatic refetch after mutations ensures data consistency
+
+---
+
 ## Quick Reference Prompts
 
 ### For Mood Buttons Only
@@ -612,8 +631,8 @@ Comprehensive library system with watchlist management, collections, search, sor
 ### For Auth Page Only
 > "Cinematic auth: 6 animated orbs (blur 40px), 20 floating particles, glass cards (blur 20px), gallery strip auto-rotating 3.5s, spring transitions (300/30), feature pills with staggered fade."
 
-### For Carousel Only
-> "Pill-to-poster carousel: center 300×420px, pills 48×160px scaling 20% per position, spring (200/28/1), border radius morphs from pill to 24px, ambient glow behind center, 5s autoplay."
+### For Hero Carousel Only
+> "Full-screen hero carousel: backdrop fills viewport with brightness(0.4) filter, 3 gradient overlays, content at bottom with glassmorphism badges, thumbnail strip (20×28px) with ring-2 primary on active, progress dots with animated fill, 6s autoplay with 15s pause on interaction."
 
 ### For Reviews Only
 > "10-star rating with scale hover, animated number display, sliding form, primary-tinted user card, staggered reviews list."

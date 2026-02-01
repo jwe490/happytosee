@@ -2,7 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { createCollectionApi, addToCollectionApi, deleteCollectionApi, removeFromCollectionApi } from '@/lib/userDataApi';
+import { 
+  createCollectionApi, 
+  addToCollectionApi, 
+  deleteCollectionApi, 
+  removeFromCollectionApi 
+} from '@/lib/userDataApi';
+import { getStoredSession } from '@/lib/keyAuth';
 
 export interface CollectionMovie {
   id: string;
@@ -30,6 +36,7 @@ export function useCollections() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch collections via edge function (bypasses RLS issues)
   const fetchCollections = useCallback(async () => {
     if (!user) {
       setCollections([]);
@@ -37,19 +44,34 @@ export function useCollections() {
       return;
     }
 
+    const session = getStoredSession();
+    if (!session?.token) {
+      setCollections([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke("user-data", {
+        body: {
+          action: "get_collections",
+          token: session.token,
+          data: {},
+        },
+      });
 
-      if (error) throw error;
-
-      setCollections(data || []);
-    } catch (error) {
-      console.error('Error fetching collections:', error);
-      toast.error('Failed to load collections');
+      if (error) {
+        console.error('[Collections] Fetch error:', error);
+        setCollections([]);
+      } else if (data?.collections) {
+        setCollections(data.collections);
+      } else {
+        setCollections([]);
+      }
+    } catch (err) {
+      console.error('[Collections] Exception:', err);
+      setCollections([]);
     } finally {
       setIsLoading(false);
     }
@@ -94,15 +116,20 @@ export function useCollections() {
   ) => {
     if (!user) return;
 
+    const session = getStoredSession();
+    if (!session?.token) return;
+
     try {
-      const { error } = await supabase
-        .from('collections')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', collectionId)
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.functions.invoke("user-data", {
+        body: {
+          action: "update_collection",
+          token: session.token,
+          data: {
+            collection_id: collectionId,
+            ...updates,
+          },
+        },
+      });
 
       if (error) throw error;
 
@@ -183,17 +210,21 @@ export function useCollections() {
     toast.success('Movie removed from collection');
   };
 
-  const getCollectionMovies = async (collectionId: string) => {
+  const getCollectionMovies = async (collectionId: string): Promise<CollectionMovie[]> => {
+    const session = getStoredSession();
+    if (!session?.token) return [];
+
     try {
-      const { data, error } = await supabase
-        .from('collection_movies')
-        .select('*')
-        .eq('collection_id', collectionId)
-        .order('added_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke("user-data", {
+        body: {
+          action: "get_collection_movies",
+          token: session.token,
+          data: { collection_id: collectionId },
+        },
+      });
 
       if (error) throw error;
-
-      return data || [];
+      return data?.movies || [];
     } catch (error) {
       console.error('Error fetching collection movies:', error);
       return [];
