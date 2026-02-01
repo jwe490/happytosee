@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, PanInfo, AnimatePresence } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { Star, Play } from "lucide-react";
 
 interface Movie {
@@ -81,10 +81,10 @@ export const CinematicCarousel = ({
     }
   };
 
-  // Get 5 visible slides: 2 left, center, 2 right
+  // Get 7 visible slides: 3 left, center, 3 right (matching prototype)
   const getVisibleSlides = () => {
     const slides = [];
-    for (let offset = -2; offset <= 2; offset++) {
+    for (let offset = -3; offset <= 3; offset++) {
       const index = ((currentIndex + offset) % movies.length + movies.length) % movies.length;
       slides.push({ movie: movies[index], offset, index });
     }
@@ -102,7 +102,7 @@ export const CinematicCarousel = ({
           </h2>
         </div>
 
-        <div className="relative h-[420px] md:h-[480px] flex items-center justify-center">
+        <div className="relative h-[380px] md:h-[440px] flex items-center justify-center">
           <motion.div
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -115,42 +115,62 @@ export const CinematicCarousel = ({
               const isCenter = offset === 0;
               const absOffset = Math.abs(offset);
 
-              // Calculate dimensions and positions
-              // Center: full poster, pills: vertical capsules
-              const centerWidth = 260;
-              const centerHeight = 390;
-              const pillWidth = 50;
-              const pillHeight = 90;
+              // Dimensions matching prototype:
+              // Center: large rounded rectangle (poster aspect)
+              // Pills: vertical ellipses that get smaller further from center
+              const centerWidth = 280;
+              const centerHeight = 360;
+              
+              // Pill dimensions - vertical ellipses (taller than wide)
+              const pillWidths = [70, 50, 35]; // closer to center = bigger
+              const pillHeights = [140, 110, 80];
+              
+              const pillWidth = pillWidths[absOffset - 1] || 35;
+              const pillHeight = pillHeights[absOffset - 1] || 80;
 
-              // Position calculation
-              const spacing = absOffset === 1 ? 180 : 260;
-              const xPos = offset * spacing;
+              // Spacing - tighter grouping like prototype
+              const getXPosition = () => {
+                if (isCenter) return 0;
+                const direction = offset > 0 ? 1 : -1;
+                // Base spacing from center
+                const baseSpacing = centerWidth / 2 + 30;
+                // Cumulative spacing for each pill position
+                const pillSpacings = [0, 60, 105, 140];
+                return direction * (baseSpacing + pillSpacings[absOffset]);
+              };
+
+              const xPos = getXPosition();
 
               // Properties based on position
               const width = isCenter ? centerWidth : pillWidth;
               const height = isCenter ? centerHeight : pillHeight;
-              const borderRadius = isCenter ? 16 : pillHeight / 2; // Full pill shape for sides
-              const scale = isCenter ? 1 : absOffset === 1 ? 0.95 : 0.85;
-              const opacity = isCenter ? 1 : absOffset === 1 ? 0.7 : 0.4;
+              
+              // Border radius: center is rounded rect, pills are full ellipse
+              const borderRadiusX = isCenter ? 24 : pillWidth / 2;
+              const borderRadiusY = isCenter ? 24 : pillHeight / 2;
+              
+              const opacity = isCenter ? 1 : absOffset === 1 ? 0.85 : absOffset === 2 ? 0.6 : 0.4;
               const zIndex = isCenter ? 50 : 40 - absOffset * 10;
+              const scale = isCenter ? 1 : 1;
 
               return (
                 <motion.div
                   key={`${movie.id}-${index}`}
-                  className="absolute"
+                  className="absolute flex items-center justify-center"
+                  initial={false}
                   animate={{
                     x: xPos,
                     width,
                     height,
-                    scale,
                     opacity,
                     zIndex,
+                    scale,
                   }}
                   transition={{
                     type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                    mass: 0.9,
+                    stiffness: 400,
+                    damping: 40,
+                    mass: 0.8,
                   }}
                   onClick={() => {
                     if (!isDragging && offset !== 0) {
@@ -160,24 +180,24 @@ export const CinematicCarousel = ({
                       onMovieSelect(movie);
                     }
                   }}
-                  style={{
-                    cursor: "pointer",
-                  }}
+                  style={{ cursor: "pointer" }}
                 >
                   <motion.div
-                    className="relative w-full h-full overflow-hidden shadow-2xl"
+                    className="relative w-full h-full overflow-hidden"
+                    initial={false}
                     animate={{
-                      borderRadius,
+                      borderRadius: `${borderRadiusX}px / ${borderRadiusY}px`,
                     }}
                     transition={{
                       type: "spring",
-                      stiffness: 300,
-                      damping: 30,
+                      stiffness: 400,
+                      damping: 40,
+                      mass: 0.8,
                     }}
                     style={{
                       boxShadow: isCenter
-                        ? "0 25px 60px -15px rgba(0,0,0,0.4)"
-                        : "0 10px 30px -10px rgba(0,0,0,0.3)",
+                        ? "0 30px 60px -20px rgba(0,0,0,0.5)"
+                        : "0 15px 35px -15px rgba(0,0,0,0.3)",
                     }}
                   >
                     <img
@@ -185,38 +205,41 @@ export const CinematicCarousel = ({
                       alt={movie.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      draggable={false}
                     />
 
                     {/* Gradient overlay - only on center */}
                     <motion.div
-                      className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"
+                      className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"
+                      initial={false}
                       animate={{ opacity: isCenter ? 1 : 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.25 }}
                     />
 
                     {/* Content - only on center */}
                     <motion.div
                       className="absolute bottom-0 left-0 right-0 p-4"
+                      initial={false}
                       animate={{
-                        y: isCenter ? 0 : 30,
+                        y: isCenter ? 0 : 20,
                         opacity: isCenter ? 1 : 0,
                       }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
                     >
-                      <div className="space-y-2.5">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
                             <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                             <span className="text-xs font-semibold text-white">
                               {movie.rating.toFixed(1)}
                             </span>
                           </div>
-                          <span className="text-xs text-white/70 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+                          <span className="text-xs text-white/80 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
                             {movie.year}
                           </span>
                         </div>
 
-                        <h3 className="font-bold text-white text-base leading-tight line-clamp-2">
+                        <h3 className="font-bold text-white text-sm leading-tight line-clamp-2">
                           {movie.title}
                         </h3>
 
@@ -225,7 +248,7 @@ export const CinematicCarousel = ({
                             e.stopPropagation();
                             onMovieSelect(movie);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 text-black text-xs font-semibold hover:bg-white transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors"
                         >
                           <Play className="w-3 h-3 fill-current" />
                           View Details
@@ -248,23 +271,24 @@ export const CinematicCarousel = ({
                 goToSlide(index);
                 pauseAutoPlay();
               }}
-              className="group p-1 -m-0.5"
+              className="group p-1"
               aria-label={`Go to slide ${index + 1}`}
             >
               <motion.span
                 className="block rounded-full"
+                initial={false}
                 animate={{
                   width: index === currentIndex ? 24 : 6,
                   height: 6,
                   backgroundColor:
                     index === currentIndex
-                      ? "hsl(var(--primary))"
+                      ? "hsl(var(--foreground))"
                       : "hsl(var(--muted-foreground) / 0.3)",
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 400,
-                  damping: 25,
+                  stiffness: 500,
+                  damping: 30,
                 }}
               />
             </button>
