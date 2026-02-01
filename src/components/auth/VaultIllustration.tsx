@@ -6,21 +6,21 @@ interface VaultIllustrationProps {
 
 export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps) {
   return (
-    <div className="relative w-40 h-40 mx-auto">
+    <div className="relative w-32 h-32 mx-auto">
       {/* Outer glow */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
           background: isUnlocked 
-            ? 'radial-gradient(circle, hsl(var(--accent) / 0.3) 0%, transparent 70%)'
-            : 'radial-gradient(circle, hsl(var(--primary) / 0.1) 0%, transparent 70%)',
+            ? 'radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%)'
+            : 'radial-gradient(circle, hsl(var(--primary) / 0.08) 0%, transparent 70%)',
         }}
         animate={{
-          scale: isUnlocked ? [1, 1.2, 1] : 1,
-          opacity: isUnlocked ? [0.5, 0.8, 0.5] : 0.3,
+          scale: isUnlocked ? [1, 1.3, 1] : [1, 1.1, 1],
+          opacity: isUnlocked ? [0.6, 0.9, 0.6] : [0.3, 0.5, 0.3],
         }}
         transition={{
-          duration: 2,
+          duration: 2.5,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -28,36 +28,39 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
       
       {/* Vault body */}
       <motion.div
-        className="absolute inset-4 rounded-2xl border-4 glass"
+        className="absolute inset-4 rounded-2xl border-2 bg-card/50 backdrop-blur-sm"
         style={{
-          borderColor: isUnlocked ? 'hsl(var(--accent))' : 'hsl(var(--border))',
+          borderColor: isUnlocked ? 'hsl(var(--primary))' : 'hsl(var(--border))',
         }}
         animate={{
-          borderColor: isUnlocked ? 'hsl(var(--accent))' : 'hsl(var(--border))',
+          borderColor: isUnlocked ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+          boxShadow: isUnlocked 
+            ? '0 0 30px hsl(var(--primary) / 0.2)' 
+            : '0 4px 20px hsl(0 0% 0% / 0.1)',
         }}
         transition={{ duration: 0.5 }}
       >
         {/* Vault door lines */}
-        <div className="absolute inset-2 flex flex-col justify-center gap-2">
+        <div className="absolute inset-2 flex flex-col justify-center gap-1.5 px-2">
           <motion.div 
-            className="h-0.5 bg-border rounded"
+            className="h-0.5 rounded bg-border"
             animate={{ 
               scaleX: isUnlocked ? 0.8 : 1,
-              opacity: isUnlocked ? 0.5 : 1,
+              opacity: isUnlocked ? 0.4 : 0.6,
             }}
           />
           <motion.div 
-            className="h-0.5 bg-border rounded mx-4"
+            className="h-0.5 rounded bg-border mx-3"
             animate={{ 
               scaleX: isUnlocked ? 0.6 : 1,
-              opacity: isUnlocked ? 0.5 : 1,
+              opacity: isUnlocked ? 0.4 : 0.6,
             }}
           />
           <motion.div 
-            className="h-0.5 bg-border rounded mx-2"
+            className="h-0.5 rounded bg-border mx-1"
             animate={{ 
               scaleX: isUnlocked ? 0.7 : 1,
-              opacity: isUnlocked ? 0.5 : 1,
+              opacity: isUnlocked ? 0.4 : 0.6,
             }}
           />
         </div>
@@ -67,20 +70,20 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
           className="absolute inset-0 flex items-center justify-center"
           initial={false}
           animate={{
-            scale: isUnlocked ? 1 : 0.9,
+            scale: isUnlocked ? 1.1 : 1,
           }}
         >
           {isUnlocked ? (
             <motion.svg
-              width="32"
-              height="32"
+              width="28"
+              height="28"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-accent"
+              className="text-foreground"
               initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -96,7 +99,7 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
             <motion.div
               className="relative"
               animate={{
-                rotate: [0, -5, 5, 0],
+                rotate: [0, -3, 3, 0],
               }}
               transition={{
                 duration: 4,
@@ -106,8 +109,8 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
             >
               {/* Key icon */}
               <svg
-                width="32"
-                height="32"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -125,10 +128,10 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
       
       {/* Handle */}
       <motion.div
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-8 rounded-full border-2"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-2.5 h-6 rounded-full border-2"
         style={{
-          borderColor: isUnlocked ? 'hsl(var(--accent))' : 'hsl(var(--border))',
-          background: isUnlocked ? 'hsl(var(--accent) / 0.2)' : 'transparent',
+          borderColor: isUnlocked ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+          background: isUnlocked ? 'hsl(var(--primary) / 0.15)' : 'transparent',
         }}
         animate={{
           rotate: isUnlocked ? 90 : 0,
@@ -143,7 +146,7 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
           {[...Array(6)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-2 h-2 rounded-full bg-accent"
+              className="absolute w-2 h-2 rounded-full bg-foreground"
               style={{
                 left: '50%',
                 top: '50%',
@@ -151,12 +154,12 @@ export function VaultIllustration({ isUnlocked = false }: VaultIllustrationProps
               initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
               animate={{
                 scale: [0, 1, 0],
-                x: Math.cos((i * Math.PI * 2) / 6) * 60,
-                y: Math.sin((i * Math.PI * 2) / 6) * 60,
-                opacity: [0, 1, 0],
+                x: Math.cos((i * Math.PI * 2) / 6) * 50,
+                y: Math.sin((i * Math.PI * 2) / 6) * 50,
+                opacity: [0, 0.8, 0],
               }}
               transition={{
-                duration: 1,
+                duration: 0.8,
                 delay: 0.1 * i,
                 ease: "easeOut",
               }}

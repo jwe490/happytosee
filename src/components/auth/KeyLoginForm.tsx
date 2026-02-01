@@ -44,19 +44,18 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
       return;
     }
 
-    // No client-side format validation - let backend verify the key
     onSubmit(cleanedKey, rememberMe);
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="w-full"
     >
       {/* Header with Interactive Illustration */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 px-6 pt-6">
         <InteractiveLoginIllustration
           isTyping={isTyping}
           hasError={!!(error || validationError)}
@@ -68,7 +67,7 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-2xl font-semibold mt-4 text-neutral-100 tracking-tight"
+          className="text-2xl font-semibold mt-4 text-foreground tracking-tight"
         >
           Welcome Back
         </motion.h2>
@@ -76,127 +75,107 @@ export function KeyLoginForm({ onSubmit, onSwitchToSignup, isLoading, error }: K
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-neutral-500 mt-2 text-sm"
+          className="text-muted-foreground mt-2 text-sm"
         >
           Enter your secret key to unlock your vault
         </motion.p>
       </div>
 
-      {/* Form - noir glass style */}
-      <motion.form
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        onSubmit={handleSubmit}
-        className="relative rounded-2xl p-6 space-y-5 border border-neutral-800/60"
-        style={{
-          background: "linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)",
-          backdropFilter: "blur(20px)",
-        }}
-      >
-        {/* Subtle inner glow */}
-        <div 
-          className="absolute inset-0 rounded-2xl pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse at top, hsl(var(--primary) / 0.04) 0%, transparent 50%)",
-          }}
-        />
-        
-        <div className="relative z-10 space-y-5">
-          {/* Secret Key Input */}
-          <div className="space-y-2">
-            <Label htmlFor="secretKey" className="flex items-center gap-2 text-neutral-400">
-              <Key className="w-4 h-4" />
-              Secret Access Key
-            </Label>
-            <div className="relative">
-              <Input
-                id="secretKey"
-                type={showKey ? "text" : "password"}
-                value={secretKey}
-                onChange={(e) => setSecretKey(e.target.value)}
-                placeholder="Enter your secret key"
-                className="h-12 font-mono tracking-wider pr-12 bg-neutral-900/50 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-500 focus:ring-neutral-500"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors p-1"
-                aria-label={showKey ? "Hide key" : "Show key"}
-              >
-                {showKey ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Remember Me */}
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id="remember-me"
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-              className="border-neutral-600 data-[state=checked]:bg-neutral-100 data-[state=checked]:border-neutral-100"
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-5">
+        {/* Secret Key Input */}
+        <div className="space-y-2">
+          <Label htmlFor="secretKey" className="flex items-center gap-2 text-muted-foreground">
+            <Key className="w-4 h-4" />
+            Secret Access Key
+          </Label>
+          <div className="relative">
+            <Input
+              id="secretKey"
+              type={showKey ? "text" : "password"}
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              placeholder="Enter your secret key"
+              className="h-12 font-mono tracking-wider pr-12 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground focus:border-foreground/30 focus:ring-foreground/20"
+              autoComplete="off"
+              spellCheck={false}
+              disabled={isLoading}
             />
-            <label
-              htmlFor="remember-me"
-              className="text-sm text-neutral-500 cursor-pointer"
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+              aria-label={showKey ? "Hide key" : "Show key"}
             >
-              Remember me for 30 days
-            </label>
+              {showKey ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
-
-          {/* Error */}
-          {(error || validationError) && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-sm"
-            >
-              {error || validationError}
-            </motion.div>
-          )}
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 gap-2 text-base font-medium bg-neutral-100 text-neutral-900 hover:bg-white transition-all duration-200"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Unlocking Vault...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Unlock My Vault
-              </>
-            )}
-          </Button>
         </div>
-      </motion.form>
+
+        {/* Remember Me */}
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="remember-me"
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+            className="border-border data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
+          />
+          <label
+            htmlFor="remember-me"
+            className="text-sm text-muted-foreground cursor-pointer"
+          >
+            Remember me for 30 days
+          </label>
+        </div>
+
+        {/* Error */}
+        {(error || validationError) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+          >
+            {error || validationError}
+          </motion.div>
+        )}
+
+        {/* Submit */}
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-12 gap-2 text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-all duration-200"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Unlocking Vault...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              Unlock My Vault
+            </>
+          )}
+        </Button>
+      </form>
 
       {/* Switch to Signup */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="mt-6 text-center"
+        transition={{ delay: 0.4 }}
+        className="px-6 pb-6 text-center"
       >
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Don't have a key yet?{" "}
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="text-neutral-300 hover:text-white hover:underline font-medium transition-colors"
+            className="text-foreground hover:underline font-medium transition-colors"
           >
             Create Your Vault
           </button>

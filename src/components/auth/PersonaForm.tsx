@@ -91,25 +91,27 @@ export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
     });
   };
 
-  // Noir-styled input classes
-  const inputClasses = "h-11 bg-neutral-900/50 border-neutral-700 text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-500 focus:ring-neutral-500";
-  const labelClasses = "flex items-center gap-2 text-neutral-400";
+  // Styled input classes using design tokens
+  const inputClasses = "h-11 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground focus:border-foreground/30 focus:ring-foreground/20";
+  const labelClasses = "flex items-center gap-2 text-muted-foreground";
+  const selectContentClasses = "bg-popover border-border";
+  const selectItemClasses = "text-foreground focus:bg-accent focus:text-accent-foreground";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="w-full"
     >
       {/* Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 px-6 pt-6">
         <VaultIllustration isUnlocked={false} />
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-2xl font-semibold mt-4 text-neutral-100 tracking-tight"
+          className="text-2xl font-semibold mt-4 text-foreground tracking-tight"
         >
           Create Your Persona
         </motion.h2>
@@ -117,172 +119,152 @@ export function PersonaForm({ onSubmit, isLoading }: PersonaFormProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-neutral-500 mt-2 text-sm"
+          className="text-muted-foreground mt-2 text-sm"
         >
           Tell us a bit about yourself to unlock your vault
         </motion.p>
       </div>
 
-      {/* Form - noir glass style */}
-      <motion.form
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        onSubmit={handleSubmit}
-        className="relative rounded-2xl p-6 space-y-5 border border-neutral-800/60"
-        style={{
-          background: "linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)",
-          backdropFilter: "blur(20px)",
-        }}
-      >
-        {/* Subtle inner glow */}
-        <div 
-          className="absolute inset-0 rounded-2xl pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse at top, hsl(var(--primary) / 0.04) 0%, transparent 50%)",
-          }}
-        />
-        
-        <div className="relative z-10 space-y-5">
-          {/* Display Name */}
-          <div className="space-y-2">
-            <Label htmlFor="displayName" className={labelClasses}>
-              <User className="w-4 h-4" />
-              Display Name *
-            </Label>
-            <Input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="How should we call you?"
-              className={inputClasses}
-              maxLength={30}
-            />
-          </div>
-
-          {/* Movie Type - Required */}
-          <div className="space-y-2">
-            <Label className={labelClasses}>
-              <Film className="w-4 h-4" />
-              Movie Type *
-            </Label>
-            <Select value={movieType} onValueChange={setMovieType}>
-              <SelectTrigger className={inputClasses}>
-                <SelectValue placeholder="Select movie type" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-700">
-                {movieTypeOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="text-neutral-200 focus:bg-neutral-800 focus:text-neutral-100"
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date of Birth */}
-          <div className="space-y-2">
-            <Label htmlFor="dateOfBirth" className={labelClasses}>
-              <Calendar className="w-4 h-4" />
-              Date of Birth
-              <span className="text-xs text-neutral-600">(optional)</span>
-            </Label>
-            <Input
-              id="dateOfBirth"
-              type="date"
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              className={inputClasses}
-              max={new Date().toISOString().split('T')[0]}
-            />
-          </div>
-
-          {/* Gender */}
-          <div className="space-y-2">
-            <Label className={labelClasses}>
-              <Smile className="w-4 h-4" />
-              Gender
-              <span className="text-xs text-neutral-600">(optional)</span>
-            </Label>
-            <Select value={gender} onValueChange={setGender}>
-              <SelectTrigger className={inputClasses}>
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-700">
-                {genderOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="text-neutral-200 focus:bg-neutral-800 focus:text-neutral-100"
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Purpose */}
-          <div className="space-y-2">
-            <Label className={labelClasses}>
-              <Target className="w-4 h-4" />
-              What brings you here?
-              <span className="text-xs text-neutral-600">(optional)</span>
-            </Label>
-            <Select value={purpose} onValueChange={setPurpose}>
-              <SelectTrigger className={inputClasses}>
-                <SelectValue placeholder="Select purpose" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-700">
-                {purposeOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="text-neutral-200 focus:bg-neutral-800 focus:text-neutral-100"
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-sm"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={isLoading || !displayName.trim() || !movieType}
-            className="w-full h-12 gap-2 text-base font-medium bg-neutral-100 text-neutral-900 hover:bg-white transition-all duration-200 disabled:bg-neutral-700 disabled:text-neutral-400"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Generating Vault...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Generate My Vault
-              </>
-            )}
-          </Button>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-5">
+        {/* Display Name */}
+        <div className="space-y-2">
+          <Label htmlFor="displayName" className={labelClasses}>
+            <User className="w-4 h-4" />
+            Display Name *
+          </Label>
+          <Input
+            id="displayName"
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="How should we call you?"
+            className={inputClasses}
+            maxLength={30}
+          />
         </div>
-      </motion.form>
+
+        {/* Movie Type - Required */}
+        <div className="space-y-2">
+          <Label className={labelClasses}>
+            <Film className="w-4 h-4" />
+            Movie Type *
+          </Label>
+          <Select value={movieType} onValueChange={setMovieType}>
+            <SelectTrigger className={inputClasses}>
+              <SelectValue placeholder="Select movie type" />
+            </SelectTrigger>
+            <SelectContent className={selectContentClasses}>
+              {movieTypeOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                  className={selectItemClasses}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Date of Birth */}
+        <div className="space-y-2">
+          <Label htmlFor="dateOfBirth" className={labelClasses}>
+            <Calendar className="w-4 h-4" />
+            Date of Birth
+            <span className="text-xs text-muted-foreground/60">(optional)</span>
+          </Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            className={inputClasses}
+            max={new Date().toISOString().split('T')[0]}
+          />
+        </div>
+
+        {/* Gender */}
+        <div className="space-y-2">
+          <Label className={labelClasses}>
+            <Smile className="w-4 h-4" />
+            Gender
+            <span className="text-xs text-muted-foreground/60">(optional)</span>
+          </Label>
+          <Select value={gender} onValueChange={setGender}>
+            <SelectTrigger className={inputClasses}>
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent className={selectContentClasses}>
+              {genderOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                  className={selectItemClasses}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Purpose */}
+        <div className="space-y-2">
+          <Label className={labelClasses}>
+            <Target className="w-4 h-4" />
+            What brings you here?
+            <span className="text-xs text-muted-foreground/60">(optional)</span>
+          </Label>
+          <Select value={purpose} onValueChange={setPurpose}>
+            <SelectTrigger className={inputClasses}>
+              <SelectValue placeholder="Select purpose" />
+            </SelectTrigger>
+            <SelectContent className={selectContentClasses}>
+              {purposeOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                  className={selectItemClasses}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {/* Submit */}
+        <Button
+          type="submit"
+          disabled={isLoading || !displayName.trim() || !movieType}
+          className="w-full h-12 gap-2 text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-all duration-200"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generating Vault...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              Generate My Vault
+            </>
+          )}
+        </Button>
+      </form>
     </motion.div>
   );
 }
