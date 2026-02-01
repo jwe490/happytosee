@@ -82,6 +82,105 @@ Deno.serve(async (req) => {
     const userId = result.userId;
 
     switch (action) {
+      // ==================== GET DATA ====================
+      case "get_watchlist": {
+        const { data: watchlist, error } = await supabase
+          .from("watchlist")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ watchlist: watchlist || [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get_collections": {
+        // Get collections with their movies
+        const { data: collections, error } = await supabase
+          .from("collections")
+          .select("*")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false });
+
+        if (error) throw error;
+
+        // Get movies for each collection
+        const collectionsWithMovies = await Promise.all(
+          (collections || []).map(async (collection) => {
+            const { data: movies } = await supabase
+              .from("collection_movies")
+              .select("*")
+              .eq("collection_id", collection.id)
+              .order("added_at", { ascending: false });
+
+            return { ...collection, movies: movies || [] };
+          })
+        );
+
+        return new Response(JSON.stringify({ collections: collectionsWithMovies }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get_collection_movies": {
+        const { collection_id } = data;
+
+        // Verify collection belongs to user
+        const { data: collection } = await supabase
+          .from("collections")
+          .select("id")
+          .eq("id", collection_id)
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!collection) {
+          return new Response(JSON.stringify({ error: "Collection not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: movies, error } = await supabase
+          .from("collection_movies")
+          .select("*")
+          .eq("collection_id", collection_id)
+          .order("added_at", { ascending: false });
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ movies: movies || [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "update_collection": {
+        const { collection_id, name, description, is_public, mood } = data;
+
+        const updateData: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+        if (is_public !== undefined) updateData.is_public = is_public;
+        if (mood !== undefined) updateData.mood = mood;
+
+        const { error } = await supabase
+          .from("collections")
+          .update(updateData)
+          .eq("id", collection_id)
+          .eq("user_id", userId);
+
+        if (error) throw error;
+        console.log("[user-data] Collection updated:", collection_id);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // ==================== REVIEWS ====================
       case "add_review": {
         const { movie_id, movie_title, movie_poster, rating, review_text } = data;
@@ -217,6 +316,12 @@ Deno.serve(async (req) => {
 
       case "delete_collection": {
         const { collection_id } = data;
+
+        // First delete all movies in the collection
+        await supabase
+          .from("collection_movies")
+          .delete()
+          .eq("collection_id", collection_id);
 
         const { error } = await supabase
           .from("collections")
