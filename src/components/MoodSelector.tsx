@@ -96,35 +96,45 @@ const MoodButton = ({
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+      initial={{ opacity: 0, scale: 0.85, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
-        delay: index * 0.03,
-        duration: 0.4,
+        delay: index * 0.05,
+        duration: 0.5,
         ease: [0.23, 1, 0.32, 1],
       }}
       onClick={() => onSelect(mood.id)}
       onMouseEnter={() => onHover(mood.id)}
       onMouseLeave={() => onHover(null)}
-      className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 group"
     >
       {/* Container matching exact SVG viewBox ratio: 384x384 */}
       <motion.div
         className="relative"
         style={{
-          // Match exact SVG viewBox proportions
-          width: 120,
-          height: 120, // Same aspect as viewBox 384x384
+          // Larger size for more presence
+          width: 140,
+          height: 140,
+          filter: isHovered 
+            ? "drop-shadow(0 12px 24px rgba(241, 94, 61, 0.4)) drop-shadow(0 4px 8px rgba(0,0,0,0.15))" 
+            : isSelected 
+              ? "drop-shadow(0 8px 20px rgba(241, 94, 61, 0.35)) drop-shadow(0 3px 6px rgba(0,0,0,0.1))"
+              : "drop-shadow(0 4px 12px rgba(0,0,0,0.08)) drop-shadow(0 2px 4px rgba(0,0,0,0.05))",
         }}
         animate={{
-          scale: isPressed ? 0.92 : isHovered ? 1.06 : 1,
-          y: isPressed ? 2 : isHovered ? -3 : 0,
+          scale: isPressed ? 0.9 : isHovered ? 1.08 : isSelected ? 1.02 : 1,
+          y: isPressed ? 4 : isHovered ? -6 : 0,
+          rotate: isHovered ? [0, -1, 1, 0] : 0,
         }}
         transition={{
           type: "spring",
-          stiffness: 400,
-          damping: 25,
-          mass: 0.8,
+          stiffness: 350,
+          damping: 22,
+          mass: 0.9,
+          rotate: {
+            duration: 0.4,
+            ease: "easeInOut",
+          },
         }}
       >
         {/* State 1: Default - Your actual SVG button (full button with emoji + label) */}
