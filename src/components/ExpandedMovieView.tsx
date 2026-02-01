@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Clock, Calendar, Play, Users,
   Film, Bookmark, BookmarkCheck,
-  ChevronLeft, Eye, EyeOff, Tv, ChevronDown, MessageCircle
+  ChevronLeft, Eye, EyeOff, Tv, ChevronDown
 } from "lucide-react";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,14 +101,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const historyDepthRef = useRef(0);
   const requestSeqRef = useRef(0);
   const wasOpenRef = useRef(false);
-  const reviewsRef = useRef<HTMLDivElement>(null);
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
   const { markAsWatched, isWatched } = useWatchHistory();
-
-  // Scroll to reviews section
-  const scrollToReviews = useCallback(() => {
-    reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
 
   // Back navigation:
   // Maintains internal movie stack for proper navigation within the modal
@@ -556,27 +550,14 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
                                 poster_path: details.posterUrl,
                               }}
                             />
+
+                            <MinimalShareButton
+                              title={details.title}
+                              text={`Check out ${details.title} on MoodFlix!`}
+                              variant="outline"
+                            />
                           </>
                         )}
-
-                        {details && (
-                          <MinimalShareButton
-                            title={details.title}
-                            text={`Check out ${details.title} on MoodFlix!`}
-                            variant="outline"
-                          />
-                        )}
-
-                        {/* Jump to Reviews Button */}
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          onClick={scrollToReviews}
-                          className="gap-2 rounded-full min-h-[48px] touch-manipulation"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          Reviews
-                        </Button>
                       </div>
                     </div>
 
@@ -743,7 +724,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
                     )}
 
                     {/* Reviews Section */}
-                    <div ref={reviewsRef} className="scroll-mt-6">
+                    <div className="scroll-mt-6">
                       {details && (
                         <EnhancedReviewSection
                           movieId={details.id}
