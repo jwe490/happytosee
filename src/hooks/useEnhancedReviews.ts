@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyUser } from '@/lib/keyAuth';
+import { addReviewApi, deleteReviewApi } from '@/lib/userDataApi';
 
 export interface ReviewReply {
   id: string;
@@ -128,82 +128,46 @@ export function useEnhancedReviews(movieId?: number) {
       return;
     }
 
-    console.log('[Reviews] Adding review for user:', user.id, 'movie:', review.movie_id);
+    console.log('[Reviews] Adding review via API for user:', user.id, 'movie:', review.movie_id);
 
-    try {
-      // Check if user already has a review for this movie
-      const { data: existingReview } = await supabase
-        .from('reviews')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('movie_id', review.movie_id)
-        .maybeSingle();
+    const result = await addReviewApi({
+      movie_id: review.movie_id,
+      movie_title: review.movie_title,
+      movie_poster: review.movie_poster,
+      rating: review.rating,
+      review_text: review.review_text,
+    });
 
-      if (existingReview) {
-        // Update existing review
-        const { error } = await supabase
-          .from('reviews')
-          .update({
-            rating: review.rating,
-            review_text: review.review_text || null,
-            movie_poster: review.movie_poster || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingReview.id);
-
-        if (error) {
-          console.error('[Reviews] Insert error:', error);
-          throw error;
-        }
-        console.log('[Reviews] Review inserted successfully');
-      } else {
-        // Insert new review
-        const { error } = await supabase
-          .from('reviews')
-          .insert({
-            user_id: user.id,
-            movie_id: review.movie_id,
-            movie_title: review.movie_title,
-            movie_poster: review.movie_poster || null,
-            rating: review.rating,
-            review_text: review.review_text || null,
-          });
-
-        if (error) throw error;
-      }
-
-      await fetchReviews();
-      toast({ title: 'Review submitted successfully' });
-    } catch (error: any) {
+    if (result.error) {
       toast({
         title: 'Error submitting review',
-        description: error.message,
+        description: result.error,
         variant: 'destructive',
       });
+      return;
     }
+
+    await fetchReviews();
+    toast({ title: 'Review submitted successfully' });
   };
 
   const deleteReview = async () => {
     if (!user || !userReview) return;
 
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', userReview.id);
+    const result = await deleteReviewApi(userReview.id);
 
-      if (error) throw error;
-
-      setUserReview(null);
-      await fetchReviews();
-      toast({ title: 'Review deleted' });
-    } catch (error: any) {
+    if (result.error) {
       toast({
         title: 'Error deleting review',
-        description: error.message,
+        description: result.error,
         variant: 'destructive',
       });
+      return;
     }
+
+    setUserReview(null);
+    await fetchReviews();
+    toast({ title: 'Review deleted' });
   };
 
   const addReply = async (reviewId: string, replyText: string, parentReplyId?: string) => {

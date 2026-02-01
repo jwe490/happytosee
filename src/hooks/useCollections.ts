@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { createCollectionApi, addToCollectionApi, deleteCollectionApi, removeFromCollectionApi } from '@/lib/userDataApi';
 
 export interface CollectionMovie {
   id: string;
@@ -68,30 +69,23 @@ export function useCollections() {
       return null;
     }
 
-    console.log('[Collections] Creating collection for user:', user.id);
+    console.log('[Collections] Creating collection via API for user:', user.id);
 
-    try {
-      const { data, error } = await supabase
-        .from('collections')
-        .insert({
-          user_id: user.id,
-          name: collection.name,
-          description: collection.description || null,
-          is_public: collection.is_public || false,
-        })
-        .select()
-        .single();
+    const result = await createCollectionApi({
+      name: collection.name,
+      description: collection.description,
+      is_public: collection.is_public,
+    });
 
-      if (error) throw error;
-
-      await fetchCollections();
-      toast.success(`Collection "${collection.name}" created`);
-      return data;
-    } catch (error: any) {
+    if (result.error) {
       toast.error('Failed to create collection');
-      console.error(error);
+      console.error(result.error);
       return null;
     }
+
+    await fetchCollections();
+    toast.success(`Collection "${collection.name}" created`);
+    return (result.data as { collection: Collection })?.collection || null;
   };
 
   const updateCollection = async (
@@ -123,21 +117,16 @@ export function useCollections() {
   const deleteCollection = async (collectionId: string) => {
     if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from('collections')
-        .delete()
-        .eq('id', collectionId)
-        .eq('user_id', user.id);
+    const result = await deleteCollectionApi(collectionId);
 
-      if (error) throw error;
-
-      await fetchCollections();
-      toast.success('Collection deleted');
-    } catch (error: any) {
+    if (result.error) {
       toast.error('Failed to delete collection');
-      console.error(error);
+      console.error(result.error);
+      return;
     }
+
+    await fetchCollections();
+    toast.success('Collection deleted');
   };
 
   const addMovieToCollection = async (
@@ -153,36 +142,27 @@ export function useCollections() {
       return false;
     }
 
-    try {
-      const { data: existingMovie } = await supabase
-        .from('collection_movies')
-        .select('id')
-        .eq('collection_id', collectionId)
-        .eq('movie_id', movie.id)
-        .maybeSingle();
+    const result = await addToCollectionApi(collectionId, {
+      id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path,
+    });
 
-      if (existingMovie) {
-        toast.info('Movie already in this collection');
-        return false;
-      }
-
-      const { error } = await supabase.from('collection_movies').insert({
-        collection_id: collectionId,
-        movie_id: movie.id,
-        title: movie.title,
-        poster_path: movie.poster_path || null,
-      });
-
-      if (error) throw error;
-
-      await fetchCollections();
-      toast.success(`Added "${movie.title}" to collection`);
-      return true;
-    } catch (error: any) {
+    if (result.error) {
       toast.error('Failed to add movie');
-      console.error(error);
+      console.error(result.error);
       return false;
     }
+
+    const data = result.data as { alreadyExists?: boolean } | undefined;
+    if (data?.alreadyExists) {
+      toast.info('Movie already in this collection');
+      return false;
+    }
+
+    await fetchCollections();
+    toast.success(`Added "${movie.title}" to collection`);
+    return true;
   };
 
   const removeMovieFromCollection = async (
@@ -191,21 +171,16 @@ export function useCollections() {
   ) => {
     if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from('collection_movies')
-        .delete()
-        .eq('collection_id', collectionId)
-        .eq('movie_id', movieId);
+    const result = await removeFromCollectionApi(collectionId, movieId);
 
-      if (error) throw error;
-
-      await fetchCollections();
-      toast.success('Movie removed from collection');
-    } catch (error: any) {
+    if (result.error) {
       toast.error('Failed to remove movie');
-      console.error(error);
+      console.error(result.error);
+      return;
     }
+
+    await fetchCollections();
+    toast.success('Movie removed from collection');
   };
 
   const getCollectionMovies = async (collectionId: string) => {
