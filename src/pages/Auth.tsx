@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Sparkles, KeyRound, ArrowRight } from "lucide-react";
+import { Loader2, X, ArrowRight } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
-import { AuthBackground } from "@/components/auth/AuthBackground";
-import { FloatingParticles } from "@/components/auth/FloatingParticles";
-import { GlassCard } from "@/components/auth/GlassCard";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { generateSecretKey, hashKey } from "@/lib/keyAuth";
 import { toast } from "sonner";
@@ -15,35 +12,16 @@ import logo from "@/assets/logo.svg";
 
 type AuthStep = "choice" | "signup-persona" | "signup-key" | "login";
 
-// Curated movie stills for the gallery
-const GALLERY_STILLS = [
-  "https://image.tmdb.org/t/p/w300/hek3koDUyRQq7gkV2Fj0hMhiWtI.jpg",
-  "https://image.tmdb.org/t/p/w300/jOzrELAzFxtMx2I4uDGHOotdfsS.jpg",
-  "https://image.tmdb.org/t/p/w300/kXfqcdQKsToO0OUXHcrrNCHDBzO.jpg",
-  "https://image.tmdb.org/t/p/w300/9gk7adHYeDvHkCSEqAvQNLV5Ber.jpg",
-  "https://image.tmdb.org/t/p/w300/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-  "https://image.tmdb.org/t/p/w300/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",
-];
-
 const Auth = () => {
   const [step, setStep] = useState<AuthStep>("choice");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [generatedKey, setGeneratedKey] = useState("");
   const [personaData, setPersonaData] = useState<PersonaData | null>(null);
-  const [currentStill, setCurrentStill] = useState(0);
 
   const { signUp, signIn, isAuthenticated, isLoading } = useKeyAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Gallery rotation with smooth timing
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStill((prev) => (prev + 1) % GALLERY_STILLS.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -129,291 +107,271 @@ const Auth = () => {
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-10 h-10 animate-spin text-foreground/60" />
-          <p className="text-sm text-muted-foreground font-medium">Loading...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
         </motion.div>
       </div>
     );
   }
 
+  // Already authenticated
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-10 h-10 animate-spin text-foreground/60" />
-          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+          <p className="text-sm text-white/50">Redirecting...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-hidden relative">
-      {/* Animated background layers */}
-      <AuthBackground />
-      <FloatingParticles />
+    <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">
+      {/* Close button */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        onClick={() => navigate("/")}
+        className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all"
+      >
+        <X className="w-5 h-5" />
+      </motion.button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 relative z-10">
-        {/* Cinematic Gallery Strip */}
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-          className="mb-10 sm:mb-12"
-        >
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            {GALLERY_STILLS.map((still, index) => {
-              const isActive = index === currentStill;
-              const distance = Math.abs(index - currentStill);
-              const wrappedDistance = Math.min(distance, GALLERY_STILLS.length - distance);
-              const isNear = wrappedDistance <= 2;
-
-              return (
-                <motion.div
-                  key={index}
-                  className="relative overflow-hidden rounded-xl"
-                  animate={{
-                    width: isActive ? 80 : 40,
-                    height: isActive ? 56 : 36,
-                    opacity: isNear ? (isActive ? 1 : 0.5) : 0.2,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                  style={{
-                    boxShadow: isActive 
-                      ? "0 8px 32px -8px hsl(var(--primary) / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.2)" 
-                      : "none",
-                  }}
-                >
-                  <img
-                    src={still}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  {isActive && (
-                    <motion.div 
-                      className="absolute inset-0 ring-2 ring-foreground/20 rounded-xl"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
-
+      {/* Main content - centered vertically */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
-          {/* Logo & Brand */}
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
-            className="text-center mb-10"
-          >
-            <motion.div
-              className="inline-flex items-center justify-center mb-6"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >
-              <motion.img
-                src={logo}
-                alt="MoodFlix"
-                className="h-14 sm:h-16 w-auto dark:invert"
-                initial={{ filter: "blur(10px)" }}
-                animate={{ filter: "blur(0px)" }}
-                transition={{ duration: 0.6 }}
-              />
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="text-muted-foreground text-sm font-medium tracking-[0.2em] uppercase"
-            >
-              Cinema for your mood
-            </motion.p>
-          </motion.div>
-
           <AnimatePresence mode="wait">
             {step === "choice" && (
               <motion.div
                 key="choice"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15, scale: 0.98 }}
-                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                className="space-y-6"
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-8"
               >
-                {/* Auth Buttons */}
-                <div className="space-y-3">
-                  {/* Create Vault Button */}
-                  <motion.button
-                    onClick={() => setStep("signup-persona")}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group relative w-full h-16 rounded-2xl overflow-hidden"
-                    style={{
-                      boxShadow: "0 8px 32px -8px hsl(var(--primary) / 0.25), 0 4px 12px -4px hsl(0 0% 0% / 0.1)",
-                    }}
+                {/* Logo */}
+                <div className="text-center">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="inline-block mb-8"
                   >
-                    {/* Button gradient background */}
-                    <div className="absolute inset-0 bg-foreground" />
-                    <div 
-                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{
-                        background: "linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, transparent 50%)",
-                      }}
+                    <img
+                      src={logo}
+                      alt="MoodFlix"
+                      className="h-16 w-auto mx-auto invert opacity-60"
                     />
-                    
-                    <div className="relative z-10 flex items-center justify-center gap-3 text-background">
-                      <Sparkles className="w-5 h-5" />
-                      <span className="text-base font-semibold tracking-tight">Create Your Vault</span>
-                      <motion.div
-                        className="ml-1"
-                        animate={{ x: [0, 4, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </motion.div>
-                    </div>
-                  </motion.button>
+                  </motion.div>
 
-                  {/* Enter With Key Button */}
-                  <motion.button
-                    onClick={() => setStep("login")}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group relative w-full h-16 rounded-2xl border-2 border-border hover:border-foreground/30 transition-colors duration-300 bg-card/50 backdrop-blur-sm"
+                  {/* Title */}
+                  <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-2xl font-semibold text-white tracking-tight"
                   >
-                    <div className="flex items-center justify-center gap-3">
-                      <KeyRound className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      <span className="text-base font-medium text-foreground/80 group-hover:text-foreground transition-colors">
-                        Enter With Key
-                      </span>
-                    </div>
-                  </motion.button>
+                    Sign In or Sign Up
+                  </motion.h1>
+
+                  {/* Subtitle */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-white/50 mt-3 text-base"
+                  >
+                    Enter your secret key or create a new vault to get started.
+                  </motion.p>
                 </div>
 
-                {/* Feature Pills */}
+                {/* Action Buttons */}
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex justify-center gap-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-3 pt-4"
                 >
-                  {["Private", "Secure", "Instant"].map((feature, i) => (
-                    <motion.span
-                      key={feature}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.6 + i * 0.1 }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 text-muted-foreground text-xs font-medium tracking-wide"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-foreground/30" />
-                      {feature}
-                    </motion.span>
-                  ))}
-                </motion.div>
-
-                {/* Guest Option */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                  className="text-center pt-4"
-                >
+                  {/* Primary: Login with Key */}
                   <button
-                    onClick={() => navigate("/")}
-                    className="group text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
+                    onClick={() => setStep("login")}
+                    className="w-full py-4 px-6 rounded-xl bg-white/[0.08] border border-white/10 text-white/70 text-left transition-all hover:bg-white/[0.12] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
-                    <span>Continue as guest</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    <span className="text-base">Enter with Secret Key</span>
+                  </button>
+
+                  {/* Secondary: Create Vault */}
+                  <button
+                    onClick={() => setStep("signup-persona")}
+                    className="w-full py-4 px-6 rounded-xl bg-white/[0.08] border border-white/10 text-white/70 text-left transition-all hover:bg-white/[0.12] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <span className="text-base">Create New Vault</span>
                   </button>
                 </motion.div>
               </motion.div>
             )}
 
             {step === "signup-persona" && (
-              <GlassCard delay={0.1}>
-                <PersonaForm
-                  key="persona"
-                  onSubmit={handlePersonaSubmit}
-                  isLoading={isSubmitting}
-                />
-              </GlassCard>
+              <motion.div
+                key="signup-persona"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6"
+              >
+                {/* Logo */}
+                <div className="text-center mb-8">
+                  <img
+                    src={logo}
+                    alt="MoodFlix"
+                    className="h-12 w-auto mx-auto invert opacity-60"
+                  />
+                </div>
+
+                <h1 className="text-xl font-semibold text-white text-center">
+                  Create Your Profile
+                </h1>
+
+                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                  <PersonaForm
+                    onSubmit={handlePersonaSubmit}
+                    isLoading={isSubmitting}
+                  />
+                </div>
+              </motion.div>
             )}
 
             {step === "signup-key" && generatedKey && personaData && (
-              <GlassCard delay={0.1}>
-                <KeyRevealCard
-                  key="reveal"
-                  secretKey={generatedKey}
-                  displayName={personaData.displayName}
-                  onConfirm={handleKeyConfirm}
-                  isLoading={isSubmitting}
-                />
-              </GlassCard>
+              <motion.div
+                key="signup-key"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6"
+              >
+                {/* Logo */}
+                <div className="text-center mb-8">
+                  <img
+                    src={logo}
+                    alt="MoodFlix"
+                    className="h-12 w-auto mx-auto invert opacity-60"
+                  />
+                </div>
+
+                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                  <KeyRevealCard
+                    secretKey={generatedKey}
+                    displayName={personaData.displayName}
+                    onConfirm={handleKeyConfirm}
+                    isLoading={isSubmitting}
+                  />
+                </div>
+              </motion.div>
             )}
 
             {step === "login" && (
-              <GlassCard delay={0.1}>
-                <KeyLoginForm
-                  key="login"
-                  onSubmit={handleLogin}
-                  onSwitchToSignup={() => setStep("signup-persona")}
-                  isLoading={isSubmitting}
-                  error={loginError}
-                />
-              </GlassCard>
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6"
+              >
+                {/* Logo */}
+                <div className="text-center mb-8">
+                  <img
+                    src={logo}
+                    alt="MoodFlix"
+                    className="h-12 w-auto mx-auto invert opacity-60"
+                  />
+                </div>
+
+                <h1 className="text-xl font-semibold text-white text-center">
+                  Enter Your Key
+                </h1>
+
+                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                  <KeyLoginForm
+                    onSubmit={handleLogin}
+                    onSwitchToSignup={() => setStep("signup-persona")}
+                    isLoading={isSubmitting}
+                    error={loginError}
+                  />
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
 
           {/* Back button for sub-steps */}
           {step !== "choice" && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="mt-8 text-center"
             >
               <button
                 onClick={() => setStep("choice")}
-                className="group text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
+                className="text-white/40 hover:text-white/70 transition-colors text-sm inline-flex items-center gap-2"
               >
-                <motion.span
-                  className="inline-block"
-                  animate={{ x: [0, -3, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  ←
-                </motion.span>
-                <span>Back to options</span>
+                <ArrowRight className="w-4 h-4 rotate-180" />
+                <span>Back</span>
               </button>
             </motion.div>
           )}
         </div>
       </div>
 
-      {/* Bottom accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+      {/* Bottom info section */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="px-6 pb-8 text-center"
+      >
+        <div className="flex justify-center mb-4">
+          <svg className="w-10 h-10 text-primary" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+        </div>
+        <p className="text-white/40 text-xs leading-relaxed max-w-xs mx-auto">
+          Your data is encrypted and stored securely. 
+          We never share your information with third parties.
+          <br />
+          <button className="text-primary/80 hover:text-primary mt-1">
+            Learn more about privacy...
+          </button>
+        </p>
+
+        {/* Continue as Guest */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          onClick={() => navigate("/")}
+          className="mt-6 w-full py-4 rounded-full bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 transition-colors"
+        >
+          Continue as Guest
+        </motion.button>
+      </motion.div>
     </div>
   );
 };
