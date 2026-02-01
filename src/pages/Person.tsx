@@ -141,23 +141,44 @@ const Person = () => {
     return fromMovieTitle.length > 26 ? `${fromMovieTitle.slice(0, 26)}...` : fromMovieTitle;
   }, [fromMovieTitle]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
+    // First priority: use returnTo from navigation state
     if (navState?.returnTo) {
       navigate(navState.returnTo);
       return;
     }
+    
+    // Second priority: use sessionStorage context
+    if (movieContext?.returnTo) {
+      navigate(movieContext.returnTo);
+      return;
+    }
+    
+    // Third priority: browser history if available
     const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
     if (canGoBack) {
       navigate(-1);
       return;
     }
+    
+    // Fallback: go home
     navigate("/");
-  };
+  }, [navState, movieContext, navigate]);
 
   const handleBackToMovie = useCallback(() => {
-    if (returnTo) {
-      navigate(returnTo);
+    if (!returnTo) {
+      // No return path available - go home
+      navigate("/");
+      return;
     }
+    
+    // Clear the session context after navigation to prevent stale data
+    try {
+      sessionStorage.removeItem("lastMovieContext");
+    } catch {}
+    
+    // Navigate to the movie
+    navigate(returnTo);
   }, [navigate, returnTo]);
 
   // Smooth morphing animation based on scroll position with interpolation
@@ -600,66 +621,76 @@ const Person = () => {
 
       <Footer />
 
-      {/* Floating Back-to-movie button with smooth pill-to-circle morph */}
+      {/* Floating Back-to-movie button with seamless pill-to-circle morph animation */}
       {returnTo && fromMovieTitle && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 24, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 400, 
+            damping: 25,
+            delay: 0.2 
+          }}
           className="fixed z-[80] bottom-6 right-6"
         >
           <div className="relative group">
-            {/* Glow effect */}
+            {/* Animated glow effect that intensifies with morph */}
             <motion.div 
-              className="absolute -inset-[2px] bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-full blur-md"
-              animate={{
-                opacity: isCompactBtn ? 0.6 : 0.4,
+              className="absolute -inset-[3px] bg-gradient-to-r from-primary/60 via-accent/60 to-primary/60 rounded-full"
+              style={{
+                filter: `blur(${8 + morphValue * 4}px)`,
+                opacity: 0.4 + morphValue * 0.3,
               }}
-              transition={{ duration: 0.3 }}
+              animate={{
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
             />
             
             <motion.button
               onClick={handleBackToMovie}
-              className="relative bg-background/80 backdrop-blur-2xl border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),inset_0_1px_2px_rgba(255,255,255,0.2)] hover:bg-background/90 hover:border-white/35 active:scale-[0.97] flex items-center justify-center text-foreground font-medium touch-manipulation rounded-full overflow-hidden"
-              animate={{
-                width: isCompactBtn ? 56 : 'auto',
+              className="relative bg-background/85 backdrop-blur-2xl border border-white/30 shadow-[0_8px_40px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.25)] hover:bg-background/95 hover:border-white/40 hover:shadow-[0_12px_50px_rgba(0,0,0,0.35)] active:scale-[0.96] flex items-center justify-center text-foreground font-medium touch-manipulation overflow-hidden"
+              style={{
+                // Smooth interpolated width based on morphValue
+                width: `${56 + (1 - morphValue) * 160}px`,
                 height: 56,
-                paddingLeft: isCompactBtn ? 0 : 24,
-                paddingRight: isCompactBtn ? 0 : 24,
+                borderRadius: 28,
+                paddingLeft: `${(1 - morphValue) * 20}px`,
+                paddingRight: `${(1 - morphValue) * 20}px`,
               }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
               transition={{
-                type: "spring",
-                stiffness: 350,
-                damping: 28,
-                mass: 0.8,
+                scale: { type: "spring", stiffness: 400, damping: 20 },
               }}
             >
+              {/* Icon with smooth scale transition */}
               <motion.div
-                animate={{
-                  scale: isCompactBtn ? 1.2 : 1,
+                style={{
+                  scale: 1 + morphValue * 0.15,
+                  x: morphValue * 1, // Slight centering adjustment
                 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 350,
-                  damping: 28,
-                }}
+                className="flex items-center justify-center"
               >
                 <Film className="w-5 h-5 shrink-0" />
               </motion.div>
               
+              {/* Text with smooth fade and collapse */}
               <motion.span 
-                className="text-sm font-medium whitespace-nowrap ml-3 origin-left"
-                animate={{
-                  width: isCompactBtn ? 0 : 'auto',
-                  opacity: isCompactBtn ? 0 : 1,
-                  marginLeft: isCompactBtn ? 0 : 12,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 350,
-                  damping: 28,
+                className="text-sm font-medium whitespace-nowrap origin-left overflow-hidden"
+                style={{
+                  width: `${(1 - morphValue) * 140}px`,
+                  opacity: Math.max(0, 1 - morphValue * 1.5), // Fade out faster than collapse
+                  marginLeft: `${(1 - morphValue) * 10}px`,
+                  transform: `translateX(${morphValue * -5}px)`,
                 }}
               >
-                Back to {fromMovieTitle.length > 22 ? `${fromMovieTitle.slice(0, 22)}...` : fromMovieTitle}
+                Back to {fromMovieTitle.length > 18 ? `${fromMovieTitle.slice(0, 18)}...` : fromMovieTitle}
               </motion.span>
             </motion.button>
           </div>

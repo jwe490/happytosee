@@ -84,26 +84,39 @@ export function useHistoryState() {
   const goBack = useCallback(() => {
     const state = location.state as HistoryStateData | undefined;
 
-    // If we have a specific return path, use it
+    // Priority 1: Explicit return path
     if (state?.returnTo) {
       navigate(state.returnTo, {
         state: {
           scrollPosition: state.scrollPosition,
           depth: Math.max(0, (state.depth ?? 1) - 1),
         },
+        replace: false, // Don't replace - allow forward navigation
       });
       return;
     }
 
-    // Check if we can go back in browser history
-    const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
+    // Priority 2: Previous path from state
+    if (state?.previousPath && state.depth && state.depth > 0) {
+      navigate(state.previousPath, {
+        state: {
+          scrollPosition: state.scrollPosition,
+          depth: Math.max(0, state.depth - 1),
+        },
+        replace: false,
+      });
+      return;
+    }
 
+    // Priority 3: Browser history if available and has depth
+    const canGoBack = typeof window !== "undefined" && (window.history.state?.idx ?? 0) > 0;
     if (state?.depth && state.depth > 0 && canGoBack) {
       window.history.back();
-    } else {
-      // No history state, go to home
-      navigate("/", { replace: true });
+      return;
     }
+    
+    // Fallback: go to home
+    navigate("/", { replace: true });
   }, [navigate, location.state]);
 
   const replaceState = useCallback((movieId: number, additionalState?: Partial<HistoryStateData>) => {
