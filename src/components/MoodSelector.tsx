@@ -22,77 +22,70 @@ interface MoodSelectorProps {
 }
 
 const moods = [
-  { id: "happy", label: "Happy", icon: happySvg, color: "hsl(14, 89%, 55%)" },
-  { id: "sad", label: "Sad", icon: sadSvg, color: "hsl(210, 70%, 55%)" },
-  { id: "romantic", label: "Romantic", icon: romanticSvg, color: "hsl(340, 75%, 55%)" },
-  { id: "excited", label: "Excited", icon: excitedSvg, color: "hsl(45, 90%, 50%)" },
-  { id: "chill", label: "Chill", icon: chillSvg, color: "hsl(180, 60%, 45%)" },
-  { id: "adventurous", label: "Adventurous", icon: adventurousSvg, color: "hsl(25, 85%, 55%)" },
-  { id: "nostalgic", label: "Nostalgic", icon: nostalgicSvg, color: "hsl(280, 50%, 55%)" },
-  { id: "thrilled", label: "Thrilled", icon: thrilledSvg, color: "hsl(0, 80%, 55%)" },
-  { id: "stressed", label: "Stressed", icon: stressedSvg, color: "hsl(0, 0%, 45%)" },
-  { id: "motivated", label: "Motivated", icon: motivatedSvg, color: "hsl(120, 60%, 45%)" },
-  { id: "bored", label: "Bored", icon: boredSvg, color: "hsl(200, 20%, 50%)" },
-  { id: "inspired", label: "Inspired", icon: inspiredSvg, color: "hsl(50, 85%, 50%)" },
+  { id: "happy", label: "Happy", icon: happySvg },
+  { id: "sad", label: "Sad", icon: sadSvg },
+  { id: "romantic", label: "Romantic", icon: romanticSvg },
+  { id: "excited", label: "Excited", icon: excitedSvg },
+  { id: "chill", label: "Chill", icon: chillSvg },
+  { id: "adventurous", label: "Adventurous", icon: adventurousSvg },
+  { id: "nostalgic", label: "Nostalgic", icon: nostalgicSvg },
+  { id: "thrilled", label: "Thrilled", icon: thrilledSvg },
+  { id: "stressed", label: "Stressed", icon: stressedSvg },
+  { id: "motivated", label: "Motivated", icon: motivatedSvg },
+  { id: "bored", label: "Bored", icon: boredSvg },
+  { id: "inspired", label: "Inspired", icon: inspiredSvg },
 ];
 
-// Animation states: 0 = solid blob + label, 1 = label morphing up, 2 = outline only
-type AnimationState = 0 | 1 | 2;
-
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
-  const [activeStates, setActiveStates] = useState<Record<string, AnimationState>>({});
+  const [hoveredMood, setHoveredMood] = useState<string | null>(null);
+  const [pressedMood, setPressedMood] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const handleMoodClick = useCallback(
     (moodId: string) => {
-      const currentState = activeStates[moodId] || 0;
-      
-      // Cycle through states: 0 -> 1 -> 2 -> 0
-      const nextState = ((currentState + 1) % 3) as AnimationState;
-      
-      setActiveStates(prev => ({
-        ...prev,
-        [moodId]: nextState
-      }));
-
-      // Select mood when reaching state 2 (outline)
-      if (nextState === 2) {
+      setPressedMood(moodId);
+      setTimeout(() => {
         onSelectMood(moodId);
         trackMoodSelection(moodId);
-      }
+      }, 100);
+      setTimeout(() => {
+        setPressedMood(null);
+      }, 300);
     },
-    [activeStates, onSelectMood]
+    [onSelectMood]
   );
 
   const MoodButton = ({ mood, index }: { mood: typeof moods[0]; index: number }) => {
-    const animState = activeStates[mood.id] || 0;
     const isSelected = selectedMood === mood.id;
+    const isHovered = hoveredMood === mood.id;
+    const isPressed = pressedMood === mood.id;
     
-    // Button dimensions
+    // Animation trigger: hover OR press OR selected
+    const isActive = isHovered || isPressed || isSelected;
+    
+    // Dimensions
     const buttonWidth = isMobile ? 100 : 120;
     const buttonHeight = isMobile ? 72 : 84;
     const borderRadius = 20;
-
-    // State-based values
-    const isState0 = animState === 0; // Solid blob + label below
-    const isState1 = animState === 1; // Label morphing up
-    const isState2 = animState === 2; // Outline only with label inside
+    const iconSize = isMobile ? 36 : 44;
 
     return (
       <motion.button
         type="button"
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          delay: index * 0.025,
-          duration: 0.4,
+          delay: index * 0.03,
+          duration: 0.35,
           ease: [0.23, 1, 0.32, 1],
         }}
         onClick={() => handleMoodClick(mood.id)}
-        className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        style={{ 
-          borderRadius: `${borderRadius}px`,
-        }}
+        onMouseEnter={() => setHoveredMood(mood.id)}
+        onMouseLeave={() => setHoveredMood(null)}
+        onTouchStart={() => setHoveredMood(mood.id)}
+        onTouchEnd={() => setTimeout(() => setHoveredMood(null), 250)}
+        className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        style={{ borderRadius }}
       >
         {/* Main button container */}
         <motion.div
@@ -100,173 +93,149 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
           style={{
             width: buttonWidth,
             height: buttonHeight,
-            borderRadius: `${borderRadius}px`,
+            borderRadius,
           }}
           animate={{
-            scale: isState1 ? 1.02 : 1,
+            scale: isPressed ? 0.96 : isHovered ? 1.02 : 1,
           }}
           transition={{
-            duration: 0.8,
-            ease: [0.4, 0, 0.2, 1],
+            type: "spring",
+            stiffness: 500,
+            damping: 28,
           }}
         >
-          {/* State 1: Solid blob background */}
+          {/* Step 1 & 2: Solid filled background */}
           <motion.div
             className="absolute inset-0"
             style={{
-              borderRadius: `${borderRadius}px`,
-              backgroundColor: mood.color,
+              borderRadius,
+              backgroundColor: "hsl(var(--muted))",
             }}
             animate={{
-              opacity: isState2 ? 0 : 1,
-              scale: isState1 ? 1.05 : 1,
+              opacity: isActive ? 0 : 1,
             }}
             transition={{
-              duration: 0.8,
-              ease: [0.4, 0, 0.2, 1],
+              duration: 0.15,
+              ease: "easeOut",
             }}
           />
 
-          {/* State 3: Outline border */}
+          {/* Step 3: Border appears when active */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
             style={{
-              borderRadius: `${borderRadius}px`,
-              border: `3px solid ${mood.color}`,
+              borderRadius,
+              border: "2.5px solid",
+              borderColor: isSelected 
+                ? "hsl(var(--primary))" 
+                : "hsl(var(--foreground) / 0.5)",
             }}
-            initial={{ opacity: 0, scale: 0.9 }}
             animate={{
-              opacity: isState2 ? 1 : 0,
-              scale: isState2 ? 1 : 0.95,
+              opacity: isActive ? 1 : 0,
+              scale: isActive ? 1 : 0.97,
             }}
             transition={{
-              duration: 0.8,
-              ease: [0.4, 0, 0.2, 1],
-              delay: isState2 ? 0.2 : 0,
+              duration: 0.12,
+              ease: "easeOut",
             }}
           />
 
-          {/* Icon - visible in states 0 and 1 */}
+          {/* Icon container - shifts up when label enters */}
           <motion.div
             className="relative z-10 flex items-center justify-center"
             animate={{
-              opacity: isState2 ? 0 : 1,
-              scale: isState1 ? 0.85 : 1,
-              y: isState1 ? -8 : 0,
+              y: isActive ? -10 : 0,
+              scale: isPressed ? 0.92 : 1,
             }}
             transition={{
-              duration: 0.8,
-              ease: [0.4, 0, 0.2, 1],
+              type: "spring",
+              stiffness: 600,
+              damping: 32,
             }}
           >
-            <img
+            <motion.img
               src={mood.icon}
               alt={mood.label}
               className="select-none object-contain"
               style={{
-                width: isMobile ? 32 : 40,
-                height: isMobile ? 32 : 40,
-                filter: "brightness(0) invert(1)",
+                width: iconSize,
+                height: iconSize,
               }}
               draggable={false}
+              animate={{
+                filter: isSelected
+                  ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.5))"
+                  : "none",
+              }}
             />
           </motion.div>
 
-          {/* Label inside button - State 2 */}
+          {/* Step 4: Label squeezes up into the box */}
           <AnimatePresence>
-            {isState2 && (
+            {isActive && (
               <motion.span
-                initial={{ opacity: 0, y: 30, scale: 0.7 }}
+                initial={{ 
+                  opacity: 0, 
+                  y: 24, 
+                  scaleX: 0.85,
+                  scaleY: 0.7,
+                }}
                 animate={{ 
                   opacity: 1, 
                   y: 0, 
-                  scale: 1,
+                  scaleX: 1,
+                  scaleY: 1,
                 }}
                 exit={{ 
                   opacity: 0, 
-                  y: 20, 
-                  scale: 0.8,
+                  y: 16, 
+                  scaleX: 0.9,
+                  scaleY: 0.8,
                 }}
                 transition={{
-                  duration: 0.8,
-                  ease: [0.4, 0, 0.2, 1],
-                  delay: 0.15,
+                  type: "spring",
+                  stiffness: 650,
+                  damping: 30,
+                  mass: 0.5,
                 }}
-                className="absolute inset-0 flex items-center justify-center font-bold text-sm tracking-tight"
-                style={{ color: mood.color }}
+                className={`
+                  absolute bottom-2 font-bold text-xs tracking-tight
+                  ${isSelected ? "text-primary" : "text-foreground"}
+                `}
+                style={{
+                  transformOrigin: "center bottom",
+                }}
               >
                 {mood.label}
               </motion.span>
             )}
           </AnimatePresence>
 
-          {/* Morphing label overlay - State 1 transition */}
-          <AnimatePresence>
-            {isState1 && (
-              <motion.div
-                className="absolute inset-0 flex items-end justify-center pb-2 overflow-hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <motion.span
-                  initial={{ y: 40, scaleY: 1, opacity: 0.8 }}
-                  animate={{ 
-                    y: -20, 
-                    scaleY: 2.5,
-                    opacity: 0,
-                  }}
-                  transition={{
-                    duration: 0.8,
-                    ease: [0.4, 0, 0.2, 1],
-                  }}
-                  className="font-bold text-xs text-white/80 tracking-wider"
-                  style={{
-                    transformOrigin: "bottom center",
-                  }}
-                >
-                  {mood.label}
-                </motion.span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Selection glow ring */}
-          <AnimatePresence>
-            {isSelected && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 400, 
-                  damping: 25 
-                }}
-                className="absolute inset-0 ring-2 ring-offset-2 ring-offset-background pointer-events-none"
-                style={{ 
-                  borderRadius: `${borderRadius}px`,
-                  boxShadow: `0 0 20px ${mood.color}40`,
-                  borderColor: mood.color,
-                }}
-              />
-            )}
-          </AnimatePresence>
+          {/* Selection ring glow */}
+          {isSelected && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                borderRadius,
+                boxShadow: "0 0 0 3px hsl(var(--primary) / 0.3)",
+              }}
+            />
+          )}
         </motion.div>
 
-        {/* External label - visible in State 0 */}
+        {/* External label - Step 1: visible when NOT active */}
         <motion.span
-          className="mt-2.5 font-semibold text-xs sm:text-sm tracking-tight text-center"
-          style={{ color: isState0 ? "hsl(var(--foreground))" : mood.color }}
+          className="mt-2 font-medium text-xs sm:text-sm tracking-tight text-center text-muted-foreground"
           animate={{
-            opacity: isState0 ? 1 : 0,
-            y: isState0 ? 0 : -15,
-            scale: isState0 ? 1 : 0.8,
+            opacity: isActive ? 0 : 1,
+            y: isActive ? -10 : 0,
+            scale: isActive ? 0.85 : 1,
           }}
           transition={{
-            duration: 0.8,
-            ease: [0.4, 0, 0.2, 1],
+            duration: 0.15,
+            ease: "easeOut",
           }}
         >
           {mood.label}
