@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, KeyRound, ArrowRight } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
+import { AuthBackground } from "@/components/auth/AuthBackground";
+import { FloatingParticles } from "@/components/auth/FloatingParticles";
+import { GlassCard } from "@/components/auth/GlassCard";
 import { useKeyAuth } from "@/hooks/useKeyAuth";
 import { generateSecretKey, hashKey } from "@/lib/keyAuth";
 import { toast } from "sonner";
@@ -12,7 +15,7 @@ import logo from "@/assets/logo.svg";
 
 type AuthStep = "choice" | "signup-persona" | "signup-key" | "login";
 
-// Sample movie stills for gallery strip
+// Curated movie stills for the gallery
 const GALLERY_STILLS = [
   "https://image.tmdb.org/t/p/w300/hek3koDUyRQq7gkV2Fj0hMhiWtI.jpg",
   "https://image.tmdb.org/t/p/w300/jOzrELAzFxtMx2I4uDGHOotdfsS.jpg",
@@ -34,11 +37,11 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Gallery rotation
+  // Gallery rotation with smooth timing
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStill((prev) => (prev + 1) % GALLERY_STILLS.length);
-    }, 4000);
+    }, 3500);
     return () => clearInterval(interval);
   }, []);
 
@@ -129,7 +132,14 @@ const Auth = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2 className="w-10 h-10 animate-spin text-foreground/60" />
+          <p className="text-sm text-muted-foreground font-medium">Loading...</p>
+        </motion.div>
       </div>
     );
   }
@@ -137,51 +147,57 @@ const Auth = () => {
   if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2 className="w-10 h-10 animate-spin text-foreground/60" />
           <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden relative">
-      {/* Subtle texture overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.015] dark:opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
+      {/* Animated background layers */}
+      <AuthBackground />
+      <FloatingParticles />
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 relative z-10">
-        {/* Gallery Strip - Rotating stills */}
+        {/* Cinematic Gallery Strip */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-          className="mb-8 sm:mb-10"
+          transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+          className="mb-10 sm:mb-12"
         >
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             {GALLERY_STILLS.map((still, index) => {
               const isActive = index === currentStill;
               const distance = Math.abs(index - currentStill);
-              const isNear = distance <= 2 || distance >= GALLERY_STILLS.length - 2;
+              const wrappedDistance = Math.min(distance, GALLERY_STILLS.length - distance);
+              const isNear = wrappedDistance <= 2;
 
               return (
                 <motion.div
                   key={index}
-                  className="relative overflow-hidden rounded-lg"
+                  className="relative overflow-hidden rounded-xl"
                   animate={{
-                    width: isActive ? 72 : 36,
-                    height: isActive ? 48 : 32,
-                    opacity: isNear ? (isActive ? 1 : 0.4) : 0.15,
+                    width: isActive ? 80 : 40,
+                    height: isActive ? 56 : 36,
+                    opacity: isNear ? (isActive ? 1 : 0.5) : 0.2,
                   }}
                   transition={{
                     type: "spring",
                     stiffness: 300,
                     damping: 30,
+                  }}
+                  style={{
+                    boxShadow: isActive 
+                      ? "0 8px 32px -8px hsl(var(--primary) / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.2)" 
+                      : "none",
                   }}
                 >
                   <img
@@ -191,7 +207,12 @@ const Auth = () => {
                     loading="lazy"
                   />
                   {isActive && (
-                    <div className="absolute inset-0 ring-2 ring-primary/60 rounded-lg" />
+                    <motion.div 
+                      className="absolute inset-0 ring-2 ring-foreground/20 rounded-xl"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
                   )}
                 </motion.div>
               );
@@ -202,27 +223,30 @@ const Auth = () => {
         <div className="w-full max-w-sm">
           {/* Logo & Brand */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
+            transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
             className="text-center mb-10"
           >
             <motion.div
-              className="inline-flex items-center justify-center mb-5"
-              whileHover={{ scale: 1.02 }}
+              className="inline-flex items-center justify-center mb-6"
+              whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
             >
-              <img
+              <motion.img
                 src={logo}
                 alt="MoodFlix"
-                className="h-12 sm:h-14 w-auto dark:invert opacity-90"
+                className="h-14 sm:h-16 w-auto dark:invert"
+                initial={{ filter: "blur(10px)" }}
+                animate={{ filter: "blur(0px)" }}
+                transition={{ duration: 0.6 }}
               />
             </motion.div>
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-muted-foreground text-sm font-light tracking-[0.15em] uppercase"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-muted-foreground text-sm font-medium tracking-[0.2em] uppercase"
             >
               Cinema for your mood
             </motion.p>
@@ -232,123 +256,164 @@ const Auth = () => {
             {step === "choice" && (
               <motion.div
                 key="choice"
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
                 className="space-y-6"
               >
-                {/* Auth buttons */}
+                {/* Auth Buttons */}
                 <div className="space-y-3">
+                  {/* Create Vault Button */}
                   <motion.button
                     onClick={() => setStep("signup-persona")}
-                    whileHover={{ scale: 1.01, y: -1 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="w-full h-14 rounded-2xl text-base font-semibold bg-foreground text-background 
-                              hover:opacity-90 transition-opacity duration-200
-                              flex items-center justify-center gap-3 shadow-lg"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative w-full h-16 rounded-2xl overflow-hidden"
+                    style={{
+                      boxShadow: "0 8px 32px -8px hsl(var(--primary) / 0.25), 0 4px 12px -4px hsl(0 0% 0% / 0.1)",
+                    }}
                   >
-                    <span className="text-lg">✦</span>
-                    Create Your Vault
+                    {/* Button gradient background */}
+                    <div className="absolute inset-0 bg-foreground" />
+                    <div 
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{
+                        background: "linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, transparent 50%)",
+                      }}
+                    />
+                    
+                    <div className="relative z-10 flex items-center justify-center gap-3 text-background">
+                      <Sparkles className="w-5 h-5" />
+                      <span className="text-base font-semibold tracking-tight">Create Your Vault</span>
+                      <motion.div
+                        className="ml-1"
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </motion.div>
+                    </div>
                   </motion.button>
 
+                  {/* Enter With Key Button */}
                   <motion.button
                     onClick={() => setStep("login")}
-                    whileHover={{ scale: 1.01, y: -1 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="w-full h-14 rounded-2xl text-base font-medium 
-                              bg-secondary text-foreground 
-                              border border-border hover:border-foreground/20
-                              transition-all duration-200
-                              flex items-center justify-center gap-3"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative w-full h-16 rounded-2xl border-2 border-border hover:border-foreground/30 transition-colors duration-300 bg-card/50 backdrop-blur-sm"
                   >
-                    <span className="text-lg opacity-70">⚿</span>
-                    Enter With Key
+                    <div className="flex items-center justify-center gap-3">
+                      <KeyRound className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-base font-medium text-foreground/80 group-hover:text-foreground transition-colors">
+                        Enter With Key
+                      </span>
+                    </div>
                   </motion.button>
                 </div>
 
-                {/* Feature tags */}
-                <div className="flex justify-center gap-6 text-muted-foreground text-xs tracking-wide uppercase">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    Private
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    Secure
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    Instant
-                  </span>
-                </div>
-
-                {/* Guest option */}
+                {/* Feature Pills */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex justify-center gap-3"
+                >
+                  {["Private", "Secure", "Instant"].map((feature, i) => (
+                    <motion.span
+                      key={feature}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 + i * 0.1 }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 text-muted-foreground text-xs font-medium tracking-wide"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-foreground/30" />
+                      {feature}
+                    </motion.span>
+                  ))}
+                </motion.div>
+
+                {/* Guest Option */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
                   className="text-center pt-4"
                 >
                   <button
                     onClick={() => navigate("/")}
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm underline-offset-4 hover:underline"
+                    className="group text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
                   >
-                    Continue as guest →
+                    <span>Continue as guest</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </motion.div>
               </motion.div>
             )}
 
             {step === "signup-persona" && (
-              <PersonaForm
-                key="persona"
-                onSubmit={handlePersonaSubmit}
-                isLoading={isSubmitting}
-              />
+              <GlassCard delay={0.1}>
+                <PersonaForm
+                  key="persona"
+                  onSubmit={handlePersonaSubmit}
+                  isLoading={isSubmitting}
+                />
+              </GlassCard>
             )}
 
             {step === "signup-key" && generatedKey && personaData && (
-              <KeyRevealCard
-                key="reveal"
-                secretKey={generatedKey}
-                displayName={personaData.displayName}
-                onConfirm={handleKeyConfirm}
-                isLoading={isSubmitting}
-              />
+              <GlassCard delay={0.1}>
+                <KeyRevealCard
+                  key="reveal"
+                  secretKey={generatedKey}
+                  displayName={personaData.displayName}
+                  onConfirm={handleKeyConfirm}
+                  isLoading={isSubmitting}
+                />
+              </GlassCard>
             )}
 
             {step === "login" && (
-              <KeyLoginForm
-                key="login"
-                onSubmit={handleLogin}
-                onSwitchToSignup={() => setStep("signup-persona")}
-                isLoading={isSubmitting}
-                error={loginError}
-              />
+              <GlassCard delay={0.1}>
+                <KeyLoginForm
+                  key="login"
+                  onSubmit={handleLogin}
+                  onSwitchToSignup={() => setStep("signup-persona")}
+                  isLoading={isSubmitting}
+                  error={loginError}
+                />
+              </GlassCard>
             )}
           </AnimatePresence>
 
           {/* Back button for sub-steps */}
           {step !== "choice" && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
               className="mt-8 text-center"
             >
               <button
                 onClick={() => setStep("choice")}
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                className="group text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
               >
-                ← Back
+                <motion.span
+                  className="inline-block"
+                  animate={{ x: [0, -3, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  ←
+                </motion.span>
+                <span>Back to options</span>
               </button>
             </motion.div>
           )}
         </div>
       </div>
 
-      {/* Bottom decorative line */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
     </div>
   );
 };

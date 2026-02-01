@@ -27,7 +27,7 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#fafafa', '#a3a3a3', '#525252'],
+      colors: ['hsl(var(--foreground))', 'hsl(var(--muted-foreground))', 'hsl(var(--primary))'],
     });
   };
   
@@ -51,19 +51,19 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
   
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-lg mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="w-full"
     >
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-6 px-6 pt-6">
         <VaultIllustration isUnlocked={true} />
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="text-2xl font-semibold mt-4 text-neutral-100 tracking-tight"
+          className="text-2xl font-semibold mt-4 text-foreground tracking-tight"
         >
           Your Vault is Ready!
         </motion.h2>
@@ -71,38 +71,21 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-neutral-500 mt-2 text-sm"
+          className="text-muted-foreground mt-2 text-sm"
         >
           Welcome, {displayName}. Save your secret key now.
         </motion.p>
       </div>
       
-      {/* Key Display Card - noir glass style */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="relative rounded-2xl p-6 mb-4 border border-neutral-800/60"
-        style={{
-          background: "linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)",
-          backdropFilter: "blur(20px)",
-        }}
-      >
-        {/* Subtle inner glow */}
-        <div 
-          className="absolute inset-0 rounded-2xl pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse at top, hsl(var(--primary) / 0.04) 0%, transparent 50%)",
-          }}
-        />
-        
-        <div className="relative z-10">
-          <p className="text-xs text-neutral-500 uppercase tracking-wider mb-3">
+      {/* Key Display */}
+      <div className="px-6 pb-6 space-y-4">
+        <div className="rounded-xl p-4 bg-secondary/50 border border-border">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
             Your Secret Access Key
           </p>
           
-          <div className="bg-neutral-900/80 rounded-xl p-4 border border-neutral-700 mb-4">
-            <code className="font-mono text-lg md:text-xl tracking-wider text-neutral-100 break-all select-all">
+          <div className="bg-background/80 rounded-lg p-4 border border-border mb-4">
+            <code className="font-mono text-lg md:text-xl tracking-wider text-foreground break-all select-all">
               {formatKeyForDisplay(secretKey)}
             </code>
           </div>
@@ -113,8 +96,8 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
               onClick={handleCopy}
               variant={hasCopied ? "default" : "outline"}
               className={`flex-1 gap-2 ${hasCopied 
-                ? "bg-neutral-100 text-neutral-900 hover:bg-white" 
-                : "border-neutral-700 bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "bg-foreground text-background hover:bg-foreground/90" 
+                : "border-border bg-transparent text-foreground hover:bg-secondary"
               }`}
             >
               {hasCopied ? (
@@ -134,8 +117,8 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
               onClick={handleDownload}
               variant={hasDownloaded ? "default" : "outline"}
               className={`flex-1 gap-2 ${hasDownloaded 
-                ? "bg-neutral-100 text-neutral-900 hover:bg-white" 
-                : "border-neutral-700 bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                ? "bg-foreground text-background hover:bg-foreground/90" 
+                : "border-border bg-transparent text-foreground hover:bg-secondary"
               }`}
             >
               {hasDownloaded ? (
@@ -152,70 +135,70 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
             </Button>
           </div>
         </div>
-      </motion.div>
-      
-      {/* Warning */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="flex items-start gap-3 p-4 rounded-xl bg-amber-950/30 border border-amber-900/40 mb-4"
-      >
-        <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-medium text-amber-500">Important Security Notice</p>
-          <p className="text-xs text-amber-500/70 mt-1">
-            This key is your only way back. We cannot recover it for you. Store it somewhere safe!
-          </p>
-        </div>
-      </motion.div>
-      
-      {/* Confirmation Checkbox */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-        className="flex items-center gap-3 mb-6"
-      >
-        <Checkbox
-          id="confirm-save"
-          checked={hasConfirmedSave}
-          onCheckedChange={(checked) => setHasConfirmedSave(checked === true)}
-          className="border-neutral-600 data-[state=checked]:bg-neutral-100 data-[state=checked]:border-neutral-100"
-        />
-        <label
-          htmlFor="confirm-save"
-          className="text-sm text-neutral-500 cursor-pointer"
+        
+        {/* Warning */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20"
         >
-          I have saved my secret key in a secure location
-        </label>
-      </motion.div>
-      
-      {/* Continue Button */}
-      <AnimatePresence>
-        {canProceed && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Important Security Notice</p>
+            <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">
+              This key is your only way back. We cannot recover it for you. Store it somewhere safe!
+            </p>
+          </div>
+        </motion.div>
+        
+        {/* Confirmation Checkbox */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="flex items-center gap-3"
+        >
+          <Checkbox
+            id="confirm-save"
+            checked={hasConfirmedSave}
+            onCheckedChange={(checked) => setHasConfirmedSave(checked === true)}
+            className="border-border data-[state=checked]:bg-foreground data-[state=checked]:border-foreground"
+          />
+          <label
+            htmlFor="confirm-save"
+            className="text-sm text-muted-foreground cursor-pointer"
           >
-            <Button
-              onClick={onConfirm}
-              disabled={isLoading}
-              className="w-full h-12 gap-2 text-base font-medium bg-neutral-100 text-neutral-900 hover:bg-white transition-all duration-200"
+            I have saved my secret key in a secure location
+          </label>
+        </motion.div>
+        
+        {/* Continue Button */}
+        <AnimatePresence>
+          {canProceed && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
             >
-              {isLoading ? (
-                "Creating your vault..."
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Enter MoodFlix
-                </>
-              )}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Button
+                onClick={onConfirm}
+                disabled={isLoading}
+                className="w-full h-12 gap-2 text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-all duration-200"
+              >
+                {isLoading ? (
+                  "Creating your vault..."
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Enter MoodFlix
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
