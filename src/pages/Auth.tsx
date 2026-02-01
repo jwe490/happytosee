@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, X, ArrowRight } from "lucide-react";
+import { Loader2, X, ArrowRight, Shield, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
@@ -110,13 +110,13 @@ const Auth = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </motion.div>
       </div>
     );
@@ -125,33 +125,33 @@ const Auth = () => {
   // Already authenticated
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
-          <p className="text-sm text-white/50">Redirecting...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+          <p className="text-sm text-neutral-500">Redirecting...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       {/* Close button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         onClick={() => navigate("/")}
-        className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all"
+        className="absolute top-5 right-5 z-50 p-2 rounded-full bg-neutral-100 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-all"
       >
         <X className="w-5 h-5" />
       </motion.button>
 
-      {/* Main content - centered vertically */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <AnimatePresence mode="wait">
@@ -175,7 +175,7 @@ const Auth = () => {
                     <img
                       src={logo}
                       alt="MoodFlix"
-                      className="h-16 w-auto mx-auto invert opacity-60"
+                      className="h-14 w-auto mx-auto"
                     />
                   </motion.div>
 
@@ -184,9 +184,9 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-2xl font-semibold text-white tracking-tight"
+                    className="text-2xl font-bold text-neutral-900 tracking-tight"
                   >
-                    Sign In or Sign Up
+                    Welcome Back
                   </motion.h1>
 
                   {/* Subtitle */}
@@ -194,9 +194,9 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-white/50 mt-3 text-base"
+                    className="text-neutral-500 mt-2 text-base"
                   >
-                    Enter your secret key or create a new vault to get started.
+                    Sign in with your secret key or create a new account
                   </motion.p>
                 </div>
 
@@ -210,17 +210,32 @@ const Auth = () => {
                   {/* Primary: Login with Key */}
                   <button
                     onClick={() => setStep("login")}
-                    className="w-full py-4 px-6 rounded-xl bg-white/[0.08] border border-white/10 text-white/70 text-left transition-all hover:bg-white/[0.12] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full py-4 px-6 rounded-xl bg-neutral-900 text-white font-medium text-center transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/50 focus:ring-offset-2"
                   >
-                    <span className="text-base">Enter with Secret Key</span>
+                    Sign In with Key
                   </button>
 
                   {/* Secondary: Create Vault */}
                   <button
                     onClick={() => setStep("signup-persona")}
-                    className="w-full py-4 px-6 rounded-xl bg-white/[0.08] border border-white/10 text-white/70 text-left transition-all hover:bg-white/[0.12] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full py-4 px-6 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-700 font-medium text-center transition-all hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-400/50 focus:ring-offset-2"
                   >
-                    <span className="text-base">Create New Vault</span>
+                    Create New Account
+                  </button>
+                </motion.div>
+
+                {/* Continue as guest */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-center pt-4"
+                >
+                  <button
+                    onClick={() => navigate("/")}
+                    className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                  >
+                    Continue as Guest →
                   </button>
                 </motion.div>
               </motion.div>
@@ -235,20 +250,22 @@ const Auth = () => {
                 transition={{ duration: 0.4 }}
                 className="space-y-6"
               >
-                {/* Logo */}
-                <div className="text-center mb-8">
+                {/* Header */}
+                <div className="text-center mb-6">
                   <img
                     src={logo}
                     alt="MoodFlix"
-                    className="h-12 w-auto mx-auto invert opacity-60"
+                    className="h-10 w-auto mx-auto mb-6"
                   />
+                  <h1 className="text-xl font-bold text-neutral-900">
+                    Create Your Profile
+                  </h1>
+                  <p className="text-neutral-500 text-sm mt-1">
+                    Tell us a bit about yourself
+                  </p>
                 </div>
 
-                <h1 className="text-xl font-semibold text-white text-center">
-                  Create Your Profile
-                </h1>
-
-                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
                   <PersonaForm
                     onSubmit={handlePersonaSubmit}
                     isLoading={isSubmitting}
@@ -266,16 +283,22 @@ const Auth = () => {
                 transition={{ duration: 0.4 }}
                 className="space-y-6"
               >
-                {/* Logo */}
-                <div className="text-center mb-8">
+                {/* Header */}
+                <div className="text-center mb-6">
                   <img
                     src={logo}
                     alt="MoodFlix"
-                    className="h-12 w-auto mx-auto invert opacity-60"
+                    className="h-10 w-auto mx-auto mb-6"
                   />
+                  <h1 className="text-xl font-bold text-neutral-900">
+                    Your Secret Key
+                  </h1>
+                  <p className="text-neutral-500 text-sm mt-1">
+                    Save this key securely - you'll need it to sign in
+                  </p>
                 </div>
 
-                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
                   <KeyRevealCard
                     secretKey={generatedKey}
                     displayName={personaData.displayName}
@@ -295,20 +318,22 @@ const Auth = () => {
                 transition={{ duration: 0.4 }}
                 className="space-y-6"
               >
-                {/* Logo */}
-                <div className="text-center mb-8">
+                {/* Header */}
+                <div className="text-center mb-6">
                   <img
                     src={logo}
                     alt="MoodFlix"
-                    className="h-12 w-auto mx-auto invert opacity-60"
+                    className="h-10 w-auto mx-auto mb-6"
                   />
+                  <h1 className="text-xl font-bold text-neutral-900">
+                    Welcome Back
+                  </h1>
+                  <p className="text-neutral-500 text-sm mt-1">
+                    Enter your secret key to sign in
+                  </p>
                 </div>
 
-                <h1 className="text-xl font-semibold text-white text-center">
-                  Enter Your Key
-                </h1>
-
-                <div className="bg-white/[0.05] rounded-2xl border border-white/10 p-6">
+                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
                   <KeyLoginForm
                     onSubmit={handleLogin}
                     onSwitchToSignup={() => setStep("signup-persona")}
@@ -330,9 +355,9 @@ const Auth = () => {
             >
               <button
                 onClick={() => setStep("choice")}
-                className="text-white/40 hover:text-white/70 transition-colors text-sm inline-flex items-center gap-2"
+                className="text-neutral-500 hover:text-neutral-900 transition-colors text-sm inline-flex items-center gap-2"
               >
-                <ArrowRight className="w-4 h-4 rotate-180" />
+                <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
               </button>
             </motion.div>
@@ -340,37 +365,20 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* Bottom info section */}
+      {/* Bottom info */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
         className="px-6 pb-8 text-center"
       >
-        <div className="flex justify-center mb-4">
-          <svg className="w-10 h-10 text-primary" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-          </svg>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-neutral-400" />
+          <span className="text-xs text-neutral-500">Secure & Private</span>
         </div>
-        <p className="text-white/40 text-xs leading-relaxed max-w-xs mx-auto">
-          Your data is encrypted and stored securely. 
-          We never share your information with third parties.
-          <br />
-          <button className="text-primary/80 hover:text-primary mt-1">
-            Learn more about privacy...
-          </button>
+        <p className="text-neutral-400 text-xs leading-relaxed max-w-xs mx-auto">
+          Your data is encrypted and stored securely. We never share your information.
         </p>
-
-        {/* Continue as Guest */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          onClick={() => navigate("/")}
-          className="mt-6 w-full py-4 rounded-full bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 transition-colors"
-        >
-          Continue as Guest
-        </motion.button>
       </motion.div>
     </div>
   );

@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield } from "lucide-react";
+import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield, Search } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import FullScreenSearch from "@/components/FullScreenSearch";
 import logo from "@/assets/logo.svg";
 
 interface HeaderProps {
@@ -17,6 +18,7 @@ interface HeaderProps {
 const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { displayName, isAuthenticated, signOut, isLoading } = useAuth();
@@ -144,6 +146,17 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
 
           {/* Right Side */}
           <div className="flex items-center gap-2">
+            {/* Search button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSearchOpen(true)}
+              className="h-9 w-9"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+
             <div className="hidden md:flex items-center gap-1">
               <AccentColorPicker />
               <ThemeToggle />
@@ -308,6 +321,9 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Full Screen Search Overlay */}
+      <FullScreenSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 };
