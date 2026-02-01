@@ -658,7 +658,7 @@ const Person = () => {
               }}
               whileTap={{ scale: 0.95 }}
             >
-              {/* Icon with smooth scale */}
+              {/* Back arrow icon with smooth scale */}
               <motion.div
                 className="flex items-center justify-center shrink-0"
                 animate={{
@@ -670,7 +670,7 @@ const Person = () => {
                   damping: 25,
                 }}
               >
-                <Film className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5" />
               </motion.div>
               
               {/* Text with smooth width and opacity animation */}

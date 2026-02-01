@@ -128,6 +128,8 @@ export function useEnhancedReviews(movieId?: number) {
       return;
     }
 
+    console.log('[Reviews] Adding review for user:', user.id, 'movie:', review.movie_id);
+
     try {
       // Check if user already has a review for this movie
       const { data: existingReview } = await supabase
@@ -149,7 +151,11 @@ export function useEnhancedReviews(movieId?: number) {
           })
           .eq('id', existingReview.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[Reviews] Insert error:', error);
+          throw error;
+        }
+        console.log('[Reviews] Review inserted successfully');
       } else {
         // Insert new review
         const { error } = await supabase
