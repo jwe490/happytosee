@@ -107,14 +107,18 @@ const MoodButton = ({
       onMouseEnter={() => onHover(mood.id)}
       onMouseLeave={() => onHover(null)}
       className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      style={{ width: 120, height: 120 }}
     >
-      {/* Container for the button with animations */}
+      {/* Container matching exact SVG viewBox ratio: 384x384 */}
       <motion.div
-        className="relative w-full h-full"
+        className="relative"
+        style={{
+          // Match exact SVG viewBox proportions
+          width: 120,
+          height: 120, // Same aspect as viewBox 384x384
+        }}
         animate={{
-          scale: isPressed ? 0.92 : isHovered ? 1.08 : 1,
-          y: isPressed ? 3 : isHovered ? -4 : 0,
+          scale: isPressed ? 0.92 : isHovered ? 1.06 : 1,
+          y: isPressed ? 2 : isHovered ? -3 : 0,
         }}
         transition={{
           type: "spring",
@@ -123,44 +127,45 @@ const MoodButton = ({
           mass: 0.8,
         }}
       >
-        {/* State 1: Default - Your actual SVG button */}
+        {/* State 1: Default - Your actual SVG button (full button with emoji + label) */}
         <motion.img
           src={mood.icon}
           alt={mood.label}
-          className="absolute inset-0 w-full h-full object-contain select-none"
+          className="absolute inset-0 w-full h-full select-none"
           draggable={false}
+          style={{ objectFit: "contain" }}
           animate={{
             opacity: isActive ? 0 : 1,
-            scale: isActive ? 0.9 : 1,
+            scale: isActive ? 0.92 : 1,
           }}
           transition={{
-            duration: 0.25,
+            duration: 0.2,
             ease: [0.4, 0, 0.2, 1],
           }}
         />
 
-        {/* State 2-4: Hover/Active - Blank blob with border + label inside */}
+        {/* State 2-4: Hover/Active - Blank blob matching your SVG's exact proportions */}
         <AnimatePresence>
           {isActive && (
             <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, scale: 0.85 }}
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 0.88 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
+              exit={{ opacity: 0, scale: 0.88 }}
               transition={{
                 type: "spring",
-                stiffness: 350,
-                damping: 28,
+                stiffness: 380,
+                damping: 26,
               }}
             >
-              {/* Blank blob - matches the rounded rectangle shape from your SVGs */}
+              {/* SVG matching your exact viewBox and blob coordinates */}
               <svg
                 viewBox="0 0 384 384"
-                className="absolute inset-0 w-full h-full"
+                className="w-full h-full"
                 preserveAspectRatio="xMidYMid meet"
               >
-                {/* Background blob - coral orange matching your SVGs */}
-                <motion.rect
+                {/* Orange blob: exact match - x=26, y=51, width=320, height=194, rx=50 */}
+                <rect
                   x="26"
                   y="51"
                   width="320"
@@ -168,11 +173,8 @@ const MoodButton = ({
                   rx="50"
                   ry="50"
                   fill="#f15e3d"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
                 />
-                {/* Dark border - appears on hover (State 3) */}
+                {/* Dark border overlay */}
                 <motion.rect
                   x="26"
                   y="51"
@@ -183,26 +185,26 @@ const MoodButton = ({
                   fill="none"
                   stroke="#2D3436"
                   strokeWidth="6"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    delay: 0.05,
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 25,
-                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.05, duration: 0.15 }}
                 />
               </svg>
 
-              {/* Label morphs up into the button (State 4) */}
+              {/* Label morphing up into the blob area */}
               <motion.div
-                className="relative z-10 flex items-center justify-center"
-                style={{ marginTop: "-40px" }} // Offset to center in the blob area
+                className="absolute left-0 right-0 flex items-center justify-center"
+                style={{
+                  // Position label inside the blob area (y=51 to y=245 in viewBox)
+                  // In 120px height: blob spans from ~16px to ~76px
+                  top: "13%",
+                  bottom: "36%",
+                }}
                 initial={{
-                  y: 60,
+                  y: 50,
                   opacity: 0,
-                  scale: 0.7,
-                  filter: "blur(6px)",
+                  scale: 0.75,
+                  filter: "blur(4px)",
                 }}
                 animate={{
                   y: 0,
@@ -211,54 +213,42 @@ const MoodButton = ({
                   filter: "blur(0px)",
                 }}
                 exit={{
-                  y: 60,
+                  y: 50,
                   opacity: 0,
-                  scale: 0.7,
-                  filter: "blur(6px)",
+                  scale: 0.75,
+                  filter: "blur(4px)",
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 280,
-                  damping: 22,
-                  mass: 0.9,
+                  stiffness: 300,
+                  damping: 24,
+                  mass: 0.85,
                 }}
               >
-                <motion.span
-                  className="font-display font-bold text-white text-base sm:text-lg tracking-tight text-center px-2"
-                  style={{ textShadow: "0 2px 4px rgba(0,0,0,0.2)" }}
+                <span
+                  className="font-display font-bold text-white text-sm sm:text-base tracking-tight text-center"
+                  style={{ textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}
                 >
                   {mood.label.split("").map((char, i) => (
                     <motion.span
                       key={i}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{
-                        delay: i * 0.015,
-                        duration: 0.25,
+                        delay: i * 0.012,
+                        duration: 0.2,
                         ease: [0.23, 1, 0.32, 1],
                       }}
                     >
                       {char}
                     </motion.span>
                   ))}
-                </motion.span>
+                </span>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* Shadow effect on hover */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl pointer-events-none"
-        style={{ marginTop: "-40px", height: "calc(100% - 40px)" }}
-        animate={{
-          boxShadow: isActive
-            ? "0 12px 32px -8px rgba(241, 94, 61, 0.5), 0 6px 16px -4px rgba(0, 0, 0, 0.2)"
-            : "0 4px 12px -4px rgba(241, 94, 61, 0.3), 0 2px 6px -2px rgba(0, 0, 0, 0.1)",
-        }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      />
     </motion.button>
   );
 };
