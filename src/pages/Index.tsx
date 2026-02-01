@@ -2,19 +2,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
+import HeroSection from "@/components/HeroSection";
 import MoodSelector from "@/components/MoodSelector";
-// FloatingMoodSelector removed per user request
 import PreferencesForm from "@/components/PreferencesForm";
 import MovieGrid from "@/components/MovieGrid";
 import MovieSearch from "@/components/MovieSearch";
 import StickyFilterBar from "@/components/StickyFilterBar";
 import { TrendingSection } from "@/components/TrendingSection";
-import { CinematicHeroCarousel } from "@/components/CinematicHeroCarousel";
+import { CinematicImageCarousel } from "@/components/CinematicImageCarousel";
 import { AISearch } from "@/components/AISearch";
 import ExpandedMovieView from "@/components/ExpandedMovieView";
 import { DiscoveryDrawer, DiscoveryFilters } from "@/components/DiscoveryDrawer";
 import Footer from "@/components/Footer";
-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ChevronDown, Film, RotateCcw, Search, Wand2, Gem } from "lucide-react";
@@ -388,12 +387,15 @@ const Index = () => {
       </AnimatePresence>
 
       <main className="pb-16">
-        {/* Cinematic Hero Carousel - Combined hero + featured movies */}
+        {/* Hero Section - Original branding hero */}
+        <HeroSection />
+
+        {/* Cinematic Image Carousel - Featured movies */}
         {trendingMovies.length > 0 && (
-          <CinematicHeroCarousel
+          <CinematicImageCarousel
             movies={trendingMovies}
             onMovieSelect={handleMovieSelect}
-            autoPlayInterval={6000}
+            autoPlayInterval={5000}
           />
         )}
 
