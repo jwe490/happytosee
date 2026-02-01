@@ -2,18 +2,19 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackMoodSelection } from "@/lib/analytics";
 
+// Import the complete button SVGs
 import happySvg from "@/assets/mood-happy.svg";
 import sadSvg from "@/assets/mood-sad.svg";
 import romanticSvg from "@/assets/mood-romantic.svg";
-import excitedSvg from "@/assets/mood-excited.svg";
 import chillSvg from "@/assets/mood-chill.svg";
-import adventurousSvg from "@/assets/mood-adventurous.svg";
-import nostalgicSvg from "@/assets/mood-nostalgic.svg";
-import thrilledSvg from "@/assets/mood-thrilled.svg";
-import stressedSvg from "@/assets/mood-stressed.svg";
+import relaxedSvg from "@/assets/mood-relaxed.svg";
 import motivatedSvg from "@/assets/mood-motivated.svg";
 import boredSvg from "@/assets/mood-bored.svg";
 import inspiredSvg from "@/assets/mood-inspired.svg";
+import angrySvg from "@/assets/mood-angry.svg";
+import anxiousSvg from "@/assets/mood-anxious.svg";
+import thrilledSvg from "@/assets/mood-thrilled.svg";
+import nostalgicSvg from "@/assets/mood-nostalgic.svg";
 
 interface MoodSelectorProps {
   selectedMood: string | null;
@@ -24,15 +25,15 @@ const moods = [
   { id: "happy", label: "Happy", icon: happySvg },
   { id: "sad", label: "Sad", icon: sadSvg },
   { id: "romantic", label: "Romantic", icon: romanticSvg },
-  { id: "excited", label: "Excited", icon: excitedSvg },
   { id: "chill", label: "Chill", icon: chillSvg },
-  { id: "adventurous", label: "Adventurous", icon: adventurousSvg },
-  { id: "nostalgic", label: "Nostalgic", icon: nostalgicSvg },
-  { id: "thrilled", label: "Thrilled", icon: thrilledSvg },
-  { id: "stressed", label: "Stressed", icon: stressedSvg },
+  { id: "relaxed", label: "Relaxed", icon: relaxedSvg },
   { id: "motivated", label: "Motivated", icon: motivatedSvg },
   { id: "bored", label: "Bored", icon: boredSvg },
   { id: "inspired", label: "Inspired", icon: inspiredSvg },
+  { id: "angry", label: "Angry", icon: angrySvg },
+  { id: "anxious", label: "Anxious", icon: anxiousSvg },
+  { id: "thrilled", label: "Thrilled", icon: thrilledSvg },
+  { id: "nostalgic", label: "Nostalgic", icon: nostalgicSvg },
 ];
 
 const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
@@ -53,7 +54,6 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
 
   return (
     <div id="mood-selector" className="w-full max-w-5xl mx-auto px-4 sm:px-6">
-      {/* Grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 justify-items-center">
         {moods.map((mood, index) => (
           <MoodButton
@@ -65,7 +65,6 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
             isPressed={pressedMood === mood.id}
             onSelect={handleMoodClick}
             onHover={setHoveredMood}
-            onPress={setPressedMood}
           />
         ))}
       </div>
@@ -74,14 +73,13 @@ const MoodSelector = ({ selectedMood, onSelectMood }: MoodSelectorProps) => {
 };
 
 interface MoodButtonProps {
-  mood: typeof moods[0];
+  mood: (typeof moods)[0];
   index: number;
   isSelected: boolean;
   isHovered: boolean;
   isPressed: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
-  onPress: (id: string | null) => void;
 }
 
 const MoodButton = ({
@@ -92,17 +90,8 @@ const MoodButton = ({
   isPressed,
   onSelect,
   onHover,
-  onPress,
 }: MoodButtonProps) => {
-  // Animation states based on the 4-state sequence
-  // State 1: Default - icon visible, label below
-  // State 2: Hover transition - preparing
-  // State 3: Hover/Focus - border appears
-  // State 4: Active - label morphs up into button
-  
   const isActive = isSelected || isHovered;
-  const showBorder = isActive;
-  const showLabelInside = isActive;
 
   return (
     <motion.button
@@ -117,154 +106,159 @@ const MoodButton = ({
       onClick={() => onSelect(mood.id)}
       onMouseEnter={() => onHover(mood.id)}
       onMouseLeave={() => onHover(null)}
-      onMouseDown={() => onPress(mood.id)}
-      onMouseUp={() => onPress(null)}
-      onTouchStart={() => onPress(mood.id)}
-      onTouchEnd={() => onPress(null)}
       className="relative flex flex-col items-center cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      style={{ width: 120, height: 120 }}
     >
-      {/* Main button container with morphing animation */}
+      {/* Container for the button with animations */}
       <motion.div
-        className="relative overflow-hidden"
+        className="relative w-full h-full"
         animate={{
-          scale: isPressed ? 0.95 : isHovered ? 1.05 : 1,
-          y: isPressed ? 2 : isHovered ? -3 : 0,
+          scale: isPressed ? 0.92 : isHovered ? 1.08 : 1,
+          y: isPressed ? 3 : isHovered ? -4 : 0,
         }}
         transition={{
           type: "spring",
-          stiffness: 500,
-          damping: 30,
+          stiffness: 400,
+          damping: 25,
           mass: 0.8,
         }}
-        style={{
-          width: 88,
-          height: 88,
-        }}
       >
-        {/* Background - coral orange */}
-        <motion.div
-          className="absolute inset-0 rounded-2xl"
-          style={{
-            backgroundColor: "#FF6B52",
-          }}
+        {/* State 1: Default - Your actual SVG button */}
+        <motion.img
+          src={mood.icon}
+          alt={mood.label}
+          className="absolute inset-0 w-full h-full object-contain select-none"
+          draggable={false}
           animate={{
-            boxShadow: isActive
-              ? "0 8px 24px -4px rgba(255, 107, 82, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.15)"
-              : "0 4px 12px -2px rgba(255, 107, 82, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.08)",
-          }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        />
-
-        {/* Border - appears on hover/active (State 3) */}
-        <AnimatePresence>
-          {showBorder && (
-            <motion.div
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 25,
-              }}
-              style={{
-                border: "3px solid #2D3436",
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Icon - fades out when label moves in (State 2 transition) */}
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          animate={{
-            opacity: showLabelInside ? 0 : 1,
-            scale: showLabelInside ? 0.8 : 1,
-            y: showLabelInside ? -10 : 0,
+            opacity: isActive ? 0 : 1,
+            scale: isActive ? 0.9 : 1,
           }}
           transition={{
             duration: 0.25,
             ease: [0.4, 0, 0.2, 1],
           }}
-        >
-          <img
-            src={mood.icon}
-            alt={mood.label}
-            className="w-11 h-11 select-none object-contain"
-            draggable={false}
-          />
-        </motion.div>
+        />
 
-        {/* Label inside button - morphs up from bottom (State 4) */}
+        {/* State 2-4: Hover/Active - Blank blob with border + label inside */}
         <AnimatePresence>
-          {showLabelInside && (
+          {isActive && (
             <motion.div
               className="absolute inset-0 flex items-center justify-center"
-              initial={{ 
-                y: "100%", 
-                opacity: 0,
-                scale: 0.8,
-                filter: "blur(4px)",
-              }}
-              animate={{ 
-                y: 0, 
-                opacity: 1,
-                scale: 1,
-                filter: "blur(0px)",
-              }}
-              exit={{ 
-                y: "100%", 
-                opacity: 0,
-                scale: 0.8,
-                filter: "blur(4px)",
-              }}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
               transition={{
                 type: "spring",
-                stiffness: 300,
-                damping: 25,
-                mass: 0.9,
+                stiffness: 350,
+                damping: 28,
               }}
             >
-              <motion.span
-                className="font-display font-bold text-white text-sm tracking-tight text-center px-2"
-                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
+              {/* Blank blob - matches the rounded rectangle shape from your SVGs */}
+              <svg
+                viewBox="0 0 384 384"
+                className="absolute inset-0 w-full h-full"
+                preserveAspectRatio="xMidYMid meet"
               >
-                {mood.label.split("").map((char, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: i * 0.02,
-                      duration: 0.3,
-                      ease: [0.23, 1, 0.32, 1],
-                    }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-              </motion.span>
+                {/* Background blob - coral orange matching your SVGs */}
+                <motion.rect
+                  x="26"
+                  y="51"
+                  width="320"
+                  height="194"
+                  rx="50"
+                  ry="50"
+                  fill="#f15e3d"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                />
+                {/* Dark border - appears on hover (State 3) */}
+                <motion.rect
+                  x="26"
+                  y="51"
+                  width="320"
+                  height="194"
+                  rx="50"
+                  ry="50"
+                  fill="none"
+                  stroke="#2D3436"
+                  strokeWidth="6"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: 0.05,
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                  }}
+                />
+              </svg>
+
+              {/* Label morphs up into the button (State 4) */}
+              <motion.div
+                className="relative z-10 flex items-center justify-center"
+                style={{ marginTop: "-40px" }} // Offset to center in the blob area
+                initial={{
+                  y: 60,
+                  opacity: 0,
+                  scale: 0.7,
+                  filter: "blur(6px)",
+                }}
+                animate={{
+                  y: 0,
+                  opacity: 1,
+                  scale: 1,
+                  filter: "blur(0px)",
+                }}
+                exit={{
+                  y: 60,
+                  opacity: 0,
+                  scale: 0.7,
+                  filter: "blur(6px)",
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 280,
+                  damping: 22,
+                  mass: 0.9,
+                }}
+              >
+                <motion.span
+                  className="font-display font-bold text-white text-base sm:text-lg tracking-tight text-center px-2"
+                  style={{ textShadow: "0 2px 4px rgba(0,0,0,0.2)" }}
+                >
+                  {mood.label.split("").map((char, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: i * 0.015,
+                        duration: 0.25,
+                        ease: [0.23, 1, 0.32, 1],
+                      }}
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
+                </motion.span>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
 
-      {/* External label - visible when not active (State 1) */}
-      <motion.span
-        className="mt-2.5 font-medium text-xs sm:text-sm tracking-tight text-center text-muted-foreground"
+      {/* Shadow effect on hover */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{ marginTop: "-40px", height: "calc(100% - 40px)" }}
         animate={{
-          opacity: showLabelInside ? 0 : 1,
-          y: showLabelInside ? -8 : 0,
-          scale: showLabelInside ? 0.9 : 1,
+          boxShadow: isActive
+            ? "0 12px 32px -8px rgba(241, 94, 61, 0.5), 0 6px 16px -4px rgba(0, 0, 0, 0.2)"
+            : "0 4px 12px -4px rgba(241, 94, 61, 0.3), 0 2px 6px -2px rgba(0, 0, 0, 0.1)",
         }}
-        transition={{
-          duration: 0.25,
-          ease: [0.4, 0, 0.2, 1],
-        }}
-      >
-        {mood.label}
-      </motion.span>
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      />
     </motion.button>
   );
 };
