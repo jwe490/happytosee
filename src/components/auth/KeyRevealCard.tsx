@@ -27,7 +27,7 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#22c55e', '#10b981', '#14b8a6', '#06b6d4'],
+      colors: ['#fafafa', '#a3a3a3', '#525252'],
     });
   };
   
@@ -63,7 +63,7 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="text-2xl font-bold mt-4"
+          className="text-2xl font-semibold mt-4 text-neutral-100 tracking-tight"
         >
           Your Vault is Ready!
         </motion.h2>
@@ -71,66 +71,86 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-muted-foreground mt-2"
+          className="text-neutral-500 mt-2 text-sm"
         >
           Welcome, {displayName}. Save your secret key now.
         </motion.p>
       </div>
       
-      {/* Key Display Card */}
+      {/* Key Display Card - noir glass style */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="glass rounded-2xl p-6 mb-4"
+        className="relative rounded-2xl p-6 mb-4 border border-neutral-800/60"
+        style={{
+          background: "linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)",
+          backdropFilter: "blur(20px)",
+        }}
       >
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
-          Your Secret Access Key
-        </p>
+        {/* Subtle inner glow */}
+        <div 
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse at top, hsl(var(--primary) / 0.04) 0%, transparent 50%)",
+          }}
+        />
         
-        <div className="bg-background/80 rounded-xl p-4 border border-border mb-4">
-          <code className="font-mono text-lg md:text-xl tracking-wider text-foreground break-all select-all">
-            {formatKeyForDisplay(secretKey)}
-          </code>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            onClick={handleCopy}
-            variant={hasCopied ? "default" : "outline"}
-            className="flex-1 gap-2"
-          >
-            {hasCopied ? (
-              <>
-                <Check className="w-4 h-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy Key
-              </>
-            )}
-          </Button>
+        <div className="relative z-10">
+          <p className="text-xs text-neutral-500 uppercase tracking-wider mb-3">
+            Your Secret Access Key
+          </p>
           
-          <Button
-            onClick={handleDownload}
-            variant={hasDownloaded ? "default" : "outline"}
-            className="flex-1 gap-2"
-          >
-            {hasDownloaded ? (
-              <>
-                <Check className="w-4 h-4" />
-                Downloaded!
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Download
-              </>
-            )}
-          </Button>
+          <div className="bg-neutral-900/80 rounded-xl p-4 border border-neutral-700 mb-4">
+            <code className="font-mono text-lg md:text-xl tracking-wider text-neutral-100 break-all select-all">
+              {formatKeyForDisplay(secretKey)}
+            </code>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              onClick={handleCopy}
+              variant={hasCopied ? "default" : "outline"}
+              className={`flex-1 gap-2 ${hasCopied 
+                ? "bg-neutral-100 text-neutral-900 hover:bg-white" 
+                : "border-neutral-700 bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+              }`}
+            >
+              {hasCopied ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy Key
+                </>
+              )}
+            </Button>
+            
+            <Button
+              onClick={handleDownload}
+              variant={hasDownloaded ? "default" : "outline"}
+              className={`flex-1 gap-2 ${hasDownloaded 
+                ? "bg-neutral-100 text-neutral-900 hover:bg-white" 
+                : "border-neutral-700 bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+              }`}
+            >
+              {hasDownloaded ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Downloaded!
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Download
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </motion.div>
       
@@ -139,12 +159,12 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4"
+        className="flex items-start gap-3 p-4 rounded-xl bg-amber-950/30 border border-amber-900/40 mb-4"
       >
         <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-medium text-amber-500">Important Security Notice</p>
-          <p className="text-xs text-amber-500/80 mt-1">
+          <p className="text-xs text-amber-500/70 mt-1">
             This key is your only way back. We cannot recover it for you. Store it somewhere safe!
           </p>
         </div>
@@ -161,10 +181,11 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
           id="confirm-save"
           checked={hasConfirmedSave}
           onCheckedChange={(checked) => setHasConfirmedSave(checked === true)}
+          className="border-neutral-600 data-[state=checked]:bg-neutral-100 data-[state=checked]:border-neutral-100"
         />
         <label
           htmlFor="confirm-save"
-          className="text-sm text-muted-foreground cursor-pointer"
+          className="text-sm text-neutral-500 cursor-pointer"
         >
           I have saved my secret key in a secure location
         </label>
@@ -181,7 +202,7 @@ export function KeyRevealCard({ secretKey, displayName, onConfirm, isLoading }: 
             <Button
               onClick={onConfirm}
               disabled={isLoading}
-              className="w-full h-12 gap-2 text-base"
+              className="w-full h-12 gap-2 text-base font-medium bg-neutral-100 text-neutral-900 hover:bg-white transition-all duration-200"
             >
               {isLoading ? (
                 "Creating your vault..."
