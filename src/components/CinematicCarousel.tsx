@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, PanInfo } from "framer-motion";
+import { motion, PanInfo, AnimatePresence } from "framer-motion";
 import { Star, Play } from "lucide-react";
 
 interface Movie {
@@ -19,12 +19,12 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
-const SLIDE_WIDTH = 280;
-const SLIDE_HEIGHT = 420;
-const VISIBLE_SLIDES = 7;
-const CENTER_SCALE = 1.15;
-const SIDE_SCALE = 0.8;
-const FAR_SCALE = 0.6;
+const SLIDE_WIDTH = 260;
+const SLIDE_HEIGHT = 390;
+const VISIBLE_SLIDES = 5;
+const CENTER_SCALE = 1.1;
+const SIDE_SCALE = 0.75;
+const FAR_SCALE = 0.55;
 
 export const CinematicCarousel = ({
   movies,
@@ -144,17 +144,17 @@ export const CinematicCarousel = ({
   if (movies.length === 0) return null;
 
   return (
-    <section className="relative w-full py-8 md:py-12 overflow-hidden">
+    <section className="relative w-full py-6 md:py-10 overflow-hidden z-10">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-xl md:text-2xl font-bold text-foreground">Featured Movies</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg md:text-xl font-bold text-foreground">Featured Movies</h2>
         </div>
 
-        <div className="relative h-[500px] md:h-[560px] flex items-center justify-center">
+        <div className="relative h-[460px] md:h-[500px] flex items-center justify-center">
           <motion.div
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
+            dragElastic={0.15}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
@@ -169,7 +169,7 @@ export const CinematicCarousel = ({
                   className="absolute"
                   initial={false}
                   animate={{
-                    x: position * (SLIDE_WIDTH * 0.82),
+                    x: position * (SLIDE_WIDTH * 0.78),
                     scale: style.scale,
                     opacity: style.opacity,
                     filter: style.filter,
@@ -178,9 +178,9 @@ export const CinematicCarousel = ({
                   }}
                   transition={{
                     type: "spring",
-                    stiffness: 260,
-                    damping: 35,
-                    mass: 0.9,
+                    stiffness: 300,
+                    damping: 30,
+                    mass: 0.8,
                   }}
                   onClick={() => {
                     if (!isDragging && position !== 0) {
