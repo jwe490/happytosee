@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, Clapperboard, Loader2, Sparkles, Film } from "lucide-react";
+import { Star, Clapperboard, Loader2, Sparkles, Film, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { cn } from "@/lib/utils";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { Button } from "@/components/ui/button";
 
 interface SimilarMovie {
   id: number;
@@ -24,14 +25,10 @@ interface SimilarMoviesGridProps {
 const MoviePosterCard = ({ 
   movie, 
   index, 
-  isLast, 
-  lastMovieRef, 
   onClick 
 }: { 
   movie: SimilarMovie; 
   index: number; 
-  isLast: boolean; 
-  lastMovieRef: (node: HTMLDivElement | null) => void;
   onClick: (movie: SimilarMovie) => void;
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -39,7 +36,6 @@ const MoviePosterCard = ({
 
   return (
     <motion.div 
-      ref={isLast ? lastMovieRef : null}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: Math.min(index * 0.02, 0.5), duration: 0.2 }}
@@ -89,9 +85,7 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
   const [movies, setMovies] = useState<SimilarMovie[]>(initialMovies);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(2); // Start from page 2 since page 1 is already loaded
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [currentPage, setCurrentPage] = useState(2);
   const lastClickRef = useRef<number>(0);
   const clickedMovieRef = useRef<number | null>(null);
   const { trackSimilarMovieClick, trackLoadMore } = useEngagementTracking();
@@ -100,11 +94,11 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
   useEffect(() => {
     setMovies(initialMovies);
     setCurrentPage(2);
-    setHasMore(initialMovies.length >= 10); // If we got less than 10, there might not be more
+    setHasMore(initialMovies.length >= 10);
   }, [movieId, initialMovies]);
 
-  // Fetch more similar movies
-  const fetchMoreSimilar = useCallback(async () => {
+  // Fetch more similar movies - now triggered by button click
+  const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
     
     setIsLoadingMore(true);
@@ -122,7 +116,6 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
       if (newMovies.length === 0) {
         setHasMore(false);
       } else {
-        // Filter out duplicates
         const existingIds = new Set(movies.map(m => m.id));
         const uniqueNewMovies = newMovies.filter((m: SimilarMovie) => !existingIds.has(m.id));
         
@@ -140,40 +133,11 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
     }
   }, [movieId, currentPage, isLoadingMore, hasMore, movies, trackLoadMore]);
 
-  // Intersection Observer for infinite scroll
-  const lastMovieRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoadingMore) return;
-    
-    if (observerRef.current) observerRef.current.disconnect();
-    
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        fetchMoreSimilar();
-      }
-    }, { threshold: 0.1, rootMargin: '100px' });
-    
-    if (node) observerRef.current.observe(node);
-  }, [isLoadingMore, hasMore, fetchMoreSimilar]);
-
-  // Cleanup observer on unmount
-  useEffect(() => {
-    return () => {
-      if (observerRef.current) observerRef.current.disconnect();
-    };
-  }, []);
-
   const handleMovieClick = useCallback((movie: SimilarMovie) => {
     const now = Date.now();
     
-    // Debounce rapid clicks (300ms cooldown)
-    if (now - lastClickRef.current < 300) {
-      return;
-    }
-    
-    // Prevent clicking the same movie twice
-    if (clickedMovieRef.current === movie.id) {
-      return;
-    }
+    if (now - lastClickRef.current < 300) return;
+    if (clickedMovieRef.current === movie.id) return;
     
     lastClickRef.current = now;
     clickedMovieRef.current = movie.id;
@@ -181,7 +145,6 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
     trackSimilarMovieClick(movie.id, movie.title);
     onMovieClick(movie);
     
-    // Reset after a short delay
     setTimeout(() => {
       clickedMovieRef.current = null;
     }, 500);
@@ -190,7 +153,7 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
   if (movies.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
         <Clapperboard className="w-4 h-4 text-primary" />
         Similar Movies
@@ -198,33 +161,43 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
       </h3>
       
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-        {movies.map((similar, index) => {
-          const isLastMovie = index === movies.length - 1;
-          
-          return (
-            <MoviePosterCard
-              key={similar.id}
-              movie={similar}
-              index={index}
-              isLast={isLastMovie}
-              lastMovieRef={lastMovieRef}
-              onClick={handleMovieClick}
-            />
-          );
-        })}
+        {movies.map((similar, index) => (
+          <MoviePosterCard
+            key={similar.id}
+            movie={similar}
+            index={index}
+            onClick={handleMovieClick}
+          />
+        ))}
       </div>
 
-      {/* Loading indicator */}
-      {isLoadingMore && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      {/* Load More Button */}
+      {hasMore && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex justify-center pt-2"
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+            className="gap-2 rounded-full min-w-[160px] min-h-[48px] touch-manipulation"
           >
-            <Loader2 className="w-5 h-5 text-primary" />
-          </motion.div>
-          <span className="text-sm text-muted-foreground">Loading more...</span>
-        </div>
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4" />
+                Load More
+              </>
+            )}
+          </Button>
+        </motion.div>
       )}
 
       {/* End indicator */}
@@ -232,14 +205,12 @@ const SimilarMoviesGrid = ({ movieId, initialMovies, onMovieClick }: SimilarMovi
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-center justify-center gap-2 py-4"
+          className="flex items-center justify-center gap-2 py-3"
         >
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-sm text-muted-foreground">You've seen all similar movies!</span>
         </motion.div>
       )}
-      
-      <div ref={loadMoreRef} />
     </div>
   );
 };
