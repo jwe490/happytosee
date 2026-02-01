@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, PanInfo, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Movie {
@@ -19,6 +19,14 @@ interface CinematicCarouselProps {
   autoPlayInterval?: number;
 }
 
+// Optimized spring config for smooth 60fps animations
+const springConfig = {
+  type: "spring" as const,
+  stiffness: 280,
+  damping: 28,
+  mass: 0.9,
+};
+
 export const CinematicCarousel = ({
   movies,
   onMovieSelect,
@@ -26,7 +34,6 @@ export const CinematicCarousel = ({
 }: CinematicCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [isDragging, setIsDragging] = useState(false);
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const goToSlide = useCallback(
@@ -69,31 +76,19 @@ export const CinematicCarousel = ({
     };
   }, []);
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false);
-    const threshold = 50;
-    if (info.offset.x > threshold) {
-      goToPrevious();
-      pauseAutoPlay();
-    } else if (info.offset.x < -threshold) {
-      goToNext();
-      pauseAutoPlay();
-    }
-  };
-
-  // Get 5 visible slides: 2 left pills, center main, 2 right pills
-  const getVisibleSlides = () => {
+  // Memoized visible slides calculation
+  const visibleSlides = useMemo(() => {
     const slides = [];
     for (let offset = -2; offset <= 2; offset++) {
       const index = ((currentIndex + offset) % movies.length + movies.length) % movies.length;
       slides.push({ movie: movies[index], offset, index });
     }
     return slides;
-  };
+  }, [currentIndex, movies]);
 
   if (movies.length === 0) return null;
 
-  // Dimensions - main poster is large rectangle, pills are vertical capsules
+  // Dimensions
   const mainWidth = 260;
   const mainHeight = 380;
   const pillWidth = 48;
@@ -109,7 +104,6 @@ export const CinematicCarousel = ({
             Featured Movies
           </h2>
           
-          {/* Navigation arrows */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -134,179 +128,140 @@ export const CinematicCarousel = ({
           </div>
         </div>
 
-        <div className="relative h-[440px] md:h-[500px] flex items-center justify-center">
-          <motion.div
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.1}
-            onDragStart={() => setIsDragging(true)}
-            onDragEnd={handleDragEnd}
-            className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
-          >
-            <AnimatePresence mode="popLayout">
-              {getVisibleSlides().map(({ movie, offset, index }) => {
+        <div 
+          className="relative h-[440px] md:h-[500px] flex items-center justify-center"
+          style={{ willChange: "transform" }}
+        >
+          <div className="relative w-full h-full flex items-center justify-center">
+            <AnimatePresence initial={false} mode="sync">
+              {visibleSlides.map(({ movie, offset, index }) => {
                 const isCenter = offset === 0;
                 const absOffset = Math.abs(offset);
 
-                // Calculate dimensions based on position
-                let width: number, height: number, borderRadius: string;
+                // Calculate dimensions
+                let width: number, height: number, borderRadius: number;
                 
                 if (isCenter) {
-                  // Main poster - large rounded rectangle
                   width = mainWidth;
                   height = mainHeight;
-                  borderRadius = "24px";
+                  borderRadius = 24;
                 } else if (absOffset === 1) {
-                  // Inner pills - vertical capsule shape
                   width = pillWidth;
                   height = pillHeight;
-                  borderRadius = `${pillWidth / 2}px`;
+                  borderRadius = pillWidth / 2;
                 } else {
-                  // Outer pills - smaller vertical capsule
                   width = outerPillWidth;
                   height = outerPillHeight;
-                  borderRadius = `${outerPillWidth / 2}px`;
+                  borderRadius = outerPillWidth / 2;
                 }
 
-                // Calculate X position - tighter grouping
+                // Calculate X position
                 const getXPosition = () => {
                   if (isCenter) return 0;
                   const direction = offset > 0 ? 1 : -1;
                   
                   if (absOffset === 1) {
                     return direction * (mainWidth / 2 + 40 + pillWidth / 2);
-                  } else {
-                    return direction * (mainWidth / 2 + 40 + pillWidth + 20 + outerPillWidth / 2);
                   }
+                  return direction * (mainWidth / 2 + 40 + pillWidth + 20 + outerPillWidth / 2);
                 };
 
                 const xPos = getXPosition();
                 const opacity = isCenter ? 1 : absOffset === 1 ? 0.7 : 0.4;
                 const zIndex = isCenter ? 50 : 40 - absOffset * 10;
-                const scale = isCenter ? 1 : 0.95;
 
                 return (
                   <motion.div
-                    key={`slide-${movie.id}-${offset}`}
-                    layoutId={`slide-${movie.id}`}
-                    className="absolute flex items-center justify-center"
-                    initial={{ 
-                      x: offset > 0 ? 300 : -300, 
-                      opacity: 0,
-                      scale: 0.8,
+                    key={`${movie.id}-${offset}`}
+                    className="absolute cursor-pointer"
+                    style={{
+                      willChange: "transform, opacity",
+                      transformOrigin: "center center",
                     }}
+                    initial={false}
                     animate={{
                       x: xPos,
                       width,
                       height,
                       opacity,
                       zIndex,
-                      scale,
+                      borderRadius,
                     }}
-                    exit={{
-                      x: offset > 0 ? 300 : -300,
-                      opacity: 0,
-                      scale: 0.8,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 350,
-                      damping: 35,
-                      mass: 0.8,
-                    }}
+                    transition={springConfig}
                     onClick={() => {
-                      if (!isDragging && offset !== 0) {
+                      if (offset !== 0) {
                         goToSlide(index);
                         pauseAutoPlay();
-                      } else if (!isDragging && isCenter) {
+                      } else {
                         onMovieSelect(movie);
                       }
                     }}
-                    style={{ 
-                      cursor: "pointer",
-                      transformOrigin: "center center",
-                    }}
                   >
-                    {/* Card container with morphing border radius */}
-                    <motion.div
+                    <div 
                       className="relative w-full h-full overflow-hidden"
-                      animate={{ borderRadius }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 35,
-                        mass: 0.8,
-                      }}
                       style={{
+                        borderRadius,
                         boxShadow: isCenter
-                          ? "0 30px 60px -15px rgba(0,0,0,0.5), 0 10px 30px -10px rgba(0,0,0,0.3)"
+                          ? "0 30px 60px -15px rgba(0,0,0,0.5)"
                           : "0 10px 30px -10px rgba(0,0,0,0.3)",
                       }}
                     >
-                      {/* Image */}
-                      <motion.img
+                      <img
                         src={movie.posterUrl}
                         alt={movie.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
                         draggable={false}
-                        animate={{
-                          scale: isCenter ? 1 : 1.1,
+                        style={{
+                          transform: isCenter ? "scale(1)" : "scale(1.1)",
+                          transition: "transform 0.3s ease-out",
                         }}
-                        transition={{ duration: 0.3 }}
                       />
 
                       {/* Gradient overlay - only on center */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none"
-                        animate={{ opacity: isCenter ? 1 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      />
+                      {isCenter && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+                      )}
 
                       {/* Content - only on center */}
-                      <motion.div
-                        className="absolute bottom-0 left-0 right-0 p-4"
-                        animate={{
-                          y: isCenter ? 0 : 30,
-                          opacity: isCenter ? 1 : 0,
-                        }}
-                        transition={{ duration: 0.25, ease: "easeOut" }}
-                      >
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
-                              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                              <span className="text-xs font-semibold text-white">
-                                {movie.rating.toFixed(1)}
+                      {isCenter && (
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
+                                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                                <span className="text-xs font-semibold text-white">
+                                  {movie.rating.toFixed(1)}
+                                </span>
+                              </div>
+                              <span className="text-xs text-white/80 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
+                                {movie.year}
                               </span>
                             </div>
-                            <span className="text-xs text-white/80 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
-                              {movie.year}
-                            </span>
+
+                            <h3 className="font-bold text-white text-base leading-tight line-clamp-2">
+                              {movie.title}
+                            </h3>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onMovieSelect(movie);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              View Details
+                            </button>
                           </div>
-
-                          <h3 className="font-bold text-white text-base leading-tight line-clamp-2">
-                            {movie.title}
-                          </h3>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onMovieSelect(movie);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors"
-                          >
-                            <Play className="w-3.5 h-3.5 fill-current" />
-                            View Details
-                          </button>
                         </div>
-                      </motion.div>
-                    </motion.div>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
             </AnimatePresence>
-          </motion.div>
+          </div>
         </div>
 
         {/* Navigation dots */}
@@ -321,20 +276,14 @@ export const CinematicCarousel = ({
               className="group p-1"
               aria-label={`Go to slide ${index + 1}`}
             >
-              <motion.span
-                className="block rounded-full"
-                animate={{
+              <span
+                className="block rounded-full transition-all duration-300"
+                style={{
                   width: index === currentIndex ? 28 : 8,
                   height: 8,
-                  backgroundColor:
-                    index === currentIndex
-                      ? "hsl(var(--primary))"
-                      : "hsl(var(--muted-foreground) / 0.3)",
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 25,
+                  backgroundColor: index === currentIndex
+                    ? "hsl(var(--primary))"
+                    : "hsl(var(--muted-foreground) / 0.3)",
                 }}
               />
             </button>
