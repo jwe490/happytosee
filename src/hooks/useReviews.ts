@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Review {
@@ -22,21 +22,16 @@ export interface Review {
 export function useReviews(movieId?: number) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [userReview, setUserReview] = useState<Review | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    // Re-fetch reviews when user changes
+    if (movieId) {
+      fetchReviews();
+    }
+  }, [user?.id, movieId]);
 
   const fetchReviews = useCallback(async () => {
     if (!movieId) {
@@ -55,12 +50,17 @@ export function useReviews(movieId?: number) {
 
       // Fetch profiles separately
       const userIds = [...new Set((data || []).map(r => r.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, avatar_url')
-        .in('user_id', userIds);
+      
+      let profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', userIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+        profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      }
 
       const reviewsWithProfiles: Review[] = (data || []).map(r => ({
         ...r,
@@ -72,13 +72,15 @@ export function useReviews(movieId?: number) {
       if (user) {
         const myReview = reviewsWithProfiles.find(r => r.user_id === user.id);
         setUserReview(myReview || null);
+      } else {
+        setUserReview(null);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [movieId, user]);
+  }, [movieId, user?.id]);
 
   useEffect(() => {
     fetchReviews();
@@ -97,27 +99,47 @@ export function useReviews(movieId?: number) {
     }
 
     try {
-      const { data, error } = await supabase
+      // Check if user already has a review for this movie
+      const { data: existingReview } = await supabase
         .from('reviews')
-        .upsert({
-          user_id: user.id,
-          movie_id: review.movie_id,
-          movie_title: review.movie_title,
-          movie_poster: review.movie_poster || null,
-          rating: review.rating,
-          review_text: review.review_text || null,
-        }, {
-          onConflict: 'user_id,movie_id'
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('movie_id', review.movie_id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingReview) {
+        // Update existing review
+        const { error } = await supabase
+          .from('reviews')
+          .update({
+            rating: review.rating,
+            review_text: review.review_text || null,
+            movie_poster: review.movie_poster || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingReview.id);
 
-      setUserReview(data);
+        if (error) throw error;
+      } else {
+        // Insert new review
+        const { error } = await supabase
+          .from('reviews')
+          .insert({
+            user_id: user.id,
+            movie_id: review.movie_id,
+            movie_title: review.movie_title,
+            movie_poster: review.movie_poster || null,
+            rating: review.rating,
+            review_text: review.review_text || null,
+          });
+
+        if (error) throw error;
+      }
+
       await fetchReviews();
       toast({ title: 'Review submitted successfully' });
     } catch (error: any) {
+      console.error('Error submitting review:', error);
       toast({ title: 'Error submitting review', description: error.message, variant: 'destructive' });
     }
   };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   ChevronLeft,
   Star,
@@ -159,18 +160,25 @@ const Person = () => {
     }
   }, [navigate, returnTo]);
 
-  // Smooth morphing animation based on scroll position
+  // Smooth morphing animation based on scroll position with interpolation
+  const [morphValue, setMorphValue] = useState(0);
+  
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          // Calculate morph progress (0 = pill, 1 = circle)
-          const threshold = 150;
-          const newProgress = Math.min(1, Math.max(0, currentY / threshold));
-          morphProgress.current = newProgress;
+          // Smooth interpolation from 0 to 1 based on scroll
+          const threshold = 200;
+          const progress = Math.min(1, Math.max(0, currentY / threshold));
           
-          setIsCompactBtn(newProgress > 0.5);
+          // Smooth easing curve for natural feel
+          const eased = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+          
+          setMorphValue(eased);
+          setIsCompactBtn(progress > 0.5);
           
           lastScrollY.current = currentY;
           ticking.current = false;
@@ -594,65 +602,68 @@ const Person = () => {
 
       {/* Floating Back-to-movie button with smooth pill-to-circle morph */}
       {returnTo && fromMovieTitle && (
-        <div
-          className={`fixed z-[80] transition-all ease-out ${
-            isCompactBtn 
-              ? 'bottom-6 right-6 duration-300' 
-              : 'inset-x-0 bottom-4 px-4 duration-500'
-          }`}
-          style={{
-            transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed z-[80] bottom-6 right-6"
         >
-          <div className={`${isCompactBtn ? '' : 'mx-auto w-full max-w-md'}`}>
-            <div className="relative group">
-              {/* Glow effect */}
-              <div 
-                className={`absolute -inset-[2px] bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-full blur-md transition-all duration-500 ${
-                  isCompactBtn ? 'opacity-60' : 'opacity-40 group-hover:opacity-70'
-                }`} 
-              />
-              
-              <button
-                onClick={handleBackToMovie}
-                className={`relative bg-background/80 backdrop-blur-2xl
-                          border border-white/25
-                          shadow-[0_8px_40px_rgba(0,0,0,0.25),inset_0_1px_2px_rgba(255,255,255,0.2)]
-                          hover:bg-background/90 hover:border-white/35
-                          active:scale-[0.97]
-                          transition-all duration-500 ease-out
-                          flex items-center justify-center
-                          text-foreground font-medium
-                          touch-manipulation rounded-full
-                          overflow-hidden
-                          ${isCompactBtn
-                            ? 'w-14 h-14 p-0'
-                            : 'w-full min-h-[56px] px-6 py-3.5 gap-3'
-                          }`}
-                style={{
-                  transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+          <div className="relative group">
+            {/* Glow effect */}
+            <motion.div 
+              className="absolute -inset-[2px] bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-full blur-md"
+              animate={{
+                opacity: isCompactBtn ? 0.6 : 0.4,
+              }}
+              transition={{ duration: 0.3 }}
+            />
+            
+            <motion.button
+              onClick={handleBackToMovie}
+              className="relative bg-background/80 backdrop-blur-2xl border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),inset_0_1px_2px_rgba(255,255,255,0.2)] hover:bg-background/90 hover:border-white/35 active:scale-[0.97] flex items-center justify-center text-foreground font-medium touch-manipulation rounded-full overflow-hidden"
+              animate={{
+                width: isCompactBtn ? 56 : 'auto',
+                height: 56,
+                paddingLeft: isCompactBtn ? 0 : 24,
+                paddingRight: isCompactBtn ? 0 : 24,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 350,
+                damping: 28,
+                mass: 0.8,
+              }}
+            >
+              <motion.div
+                animate={{
+                  scale: isCompactBtn ? 1.2 : 1,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 350,
+                  damping: 28,
                 }}
               >
-                <Film className={`shrink-0 transition-all duration-500 ease-out ${
-                  isCompactBtn ? 'w-5 h-5' : 'w-4 h-4'
-                }`} />
-                
-                <span 
-                  className={`text-sm font-medium whitespace-nowrap transition-all duration-500 ease-out ${
-                    isCompactBtn 
-                      ? 'w-0 opacity-0 scale-90' 
-                      : 'w-auto opacity-100 scale-100'
-                  }`}
-                  style={{ 
-                    transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                >
-                  Back to {fromMovieTitle.length > 28 ? `${fromMovieTitle.slice(0, 28)}...` : fromMovieTitle}
-                </span>
-              </button>
-            </div>
+                <Film className="w-5 h-5 shrink-0" />
+              </motion.div>
+              
+              <motion.span 
+                className="text-sm font-medium whitespace-nowrap ml-3 origin-left"
+                animate={{
+                  width: isCompactBtn ? 0 : 'auto',
+                  opacity: isCompactBtn ? 0 : 1,
+                  marginLeft: isCompactBtn ? 0 : 12,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 350,
+                  damping: 28,
+                }}
+              >
+                Back to {fromMovieTitle.length > 22 ? `${fromMovieTitle.slice(0, 22)}...` : fromMovieTitle}
+              </motion.span>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       <ExpandedMovieView
