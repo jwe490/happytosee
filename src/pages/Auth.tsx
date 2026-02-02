@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, X, ArrowRight, Shield, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Loader2, X, ArrowLeft, Shield } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
@@ -110,13 +110,13 @@ const Auth = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </motion.div>
       </div>
     );
@@ -125,28 +125,28 @@ const Auth = () => {
   // Already authenticated
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
-          <p className="text-sm text-neutral-500">Redirecting...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       {/* Close button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         onClick={() => navigate("/")}
-        className="absolute top-5 right-5 z-50 p-2 rounded-full bg-neutral-100 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-all"
+        className="absolute top-5 right-5 z-50 p-2 rounded-full bg-secondary text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
       >
         <X className="w-5 h-5" />
       </motion.button>
@@ -184,7 +184,7 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-2xl font-bold text-neutral-900 tracking-tight"
+                    className="text-2xl font-bold text-foreground tracking-tight"
                   >
                     Welcome Back
                   </motion.h1>
@@ -194,7 +194,7 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-neutral-500 mt-2 text-base"
+                    className="text-muted-foreground mt-2 text-base"
                   >
                     Sign in with your secret key or create a new account
                   </motion.p>
@@ -210,7 +210,7 @@ const Auth = () => {
                   {/* Primary: Login with Key */}
                   <button
                     onClick={() => setStep("login")}
-                    className="w-full py-4 px-6 rounded-xl bg-neutral-900 text-white font-medium text-center transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/50 focus:ring-offset-2"
+                    className="w-full py-4 px-6 rounded-xl bg-primary text-primary-foreground font-medium text-center transition-all hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
                   >
                     Sign In with Key
                   </button>
@@ -218,7 +218,7 @@ const Auth = () => {
                   {/* Secondary: Create Vault */}
                   <button
                     onClick={() => setStep("signup-persona")}
-                    className="w-full py-4 px-6 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-700 font-medium text-center transition-all hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-400/50 focus:ring-offset-2"
+                    className="w-full py-4 px-6 rounded-xl bg-secondary border border-border text-foreground font-medium text-center transition-all hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring/50 focus:ring-offset-2 focus:ring-offset-background"
                   >
                     Create New Account
                   </button>
@@ -233,7 +233,7 @@ const Auth = () => {
                 >
                   <button
                     onClick={() => navigate("/")}
-                    className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Continue as Guest →
                   </button>
@@ -257,15 +257,15 @@ const Auth = () => {
                     alt="MoodFlix"
                     className="h-10 w-auto mx-auto mb-6"
                   />
-                  <h1 className="text-xl font-bold text-neutral-900">
+                  <h1 className="text-xl font-bold text-foreground">
                     Create Your Profile
                   </h1>
-                  <p className="text-neutral-500 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     Tell us a bit about yourself
                   </p>
                 </div>
 
-                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
+                <div className="bg-card rounded-2xl border border-border p-6">
                   <PersonaForm
                     onSubmit={handlePersonaSubmit}
                     isLoading={isSubmitting}
@@ -290,15 +290,15 @@ const Auth = () => {
                     alt="MoodFlix"
                     className="h-10 w-auto mx-auto mb-6"
                   />
-                  <h1 className="text-xl font-bold text-neutral-900">
+                  <h1 className="text-xl font-bold text-foreground">
                     Your Secret Key
                   </h1>
-                  <p className="text-neutral-500 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     Save this key securely - you'll need it to sign in
                   </p>
                 </div>
 
-                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
+                <div className="bg-card rounded-2xl border border-border p-6">
                   <KeyRevealCard
                     secretKey={generatedKey}
                     displayName={personaData.displayName}
@@ -325,15 +325,15 @@ const Auth = () => {
                     alt="MoodFlix"
                     className="h-10 w-auto mx-auto mb-6"
                   />
-                  <h1 className="text-xl font-bold text-neutral-900">
+                  <h1 className="text-xl font-bold text-foreground">
                     Welcome Back
                   </h1>
-                  <p className="text-neutral-500 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     Enter your secret key to sign in
                   </p>
                 </div>
 
-                <div className="bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
+                <div className="bg-card rounded-2xl border border-border p-6">
                   <KeyLoginForm
                     onSubmit={handleLogin}
                     onSwitchToSignup={() => setStep("signup-persona")}
@@ -355,7 +355,7 @@ const Auth = () => {
             >
               <button
                 onClick={() => setStep("choice")}
-                className="text-neutral-500 hover:text-neutral-900 transition-colors text-sm inline-flex items-center gap-2"
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
@@ -373,10 +373,10 @@ const Auth = () => {
         className="px-6 pb-8 text-center"
       >
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-neutral-400" />
-          <span className="text-xs text-neutral-500">Secure & Private</span>
+          <Shield className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Secure & Private</span>
         </div>
-        <p className="text-neutral-400 text-xs leading-relaxed max-w-xs mx-auto">
+        <p className="text-muted-foreground/70 text-xs leading-relaxed max-w-xs mx-auto">
           Your data is encrypted and stored securely. We never share your information.
         </p>
       </motion.div>
