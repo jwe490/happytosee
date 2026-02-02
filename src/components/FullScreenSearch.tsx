@@ -217,7 +217,7 @@ const FullScreenSearch = ({
                 </div>
 
                 {/* Cancel button */}
-                <button onClick={onClose} className="text-sm font-medium text-primary hover:text-primary/80 transition-colors px-2">
+                <button onClick={onClose} className="text-sm font-medium transition-colors px-2 text-muted-foreground">
                   Cancel
                 </button>
               </div>
