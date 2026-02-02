@@ -210,7 +210,7 @@ const FullScreenSearch = ({
                   scale: 0.8
                 }} transition={{
                   duration: 0.15
-                }} onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors text-center shadow-inner">
+                }} onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-inner text-right">
                         <X className="w-4 h-4" />
                       </motion.button>}
                   </AnimatePresence>
