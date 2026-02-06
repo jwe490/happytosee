@@ -130,25 +130,93 @@ export function useEnhancedReviews(movieId?: number) {
 
     console.log('[Reviews] Adding review via API for user:', user.id, 'movie:', review.movie_id);
 
-    const result = await addReviewApi({
-      movie_id: review.movie_id,
-      movie_title: review.movie_title,
-      movie_poster: review.movie_poster,
-      rating: review.rating,
-      review_text: review.review_text,
-    });
-
-    if (result.error) {
-      toast({
-        title: 'Error submitting review',
-        description: result.error,
-        variant: 'destructive',
+    try {
+      const result = await addReviewApi({
+        movie_id: review.movie_id,
+        movie_title: review.movie_title,
+        movie_poster: review.movie_poster,
+        rating: review.rating,
+        review_text: review.review_text,
       });
-      return;
-    }
 
-    await fetchReviews();
-    toast({ title: 'Review submitted successfully' });
+      if (result.error) {
+        console.error('[Reviews] API error:', result.error);
+        
+        // If key-auth fails, try direct insert as fallback
+        if (result.error === 'Not authenticated' || result.error === 'Session expired') {
+          console.log('[Reviews] Trying direct insert fallback...');
+          const { error: directError } = await supabase
+            .from('reviews')
+            .upsert({
+              user_id: user.id,
+              movie_id: review.movie_id,
+              movie_title: review.movie_title,
+              movie_poster: review.movie_poster || null,
+              rating: review.rating,
+              review_text: review.review_text || null,
+            }, { onConflict: 'user_id,movie_id', ignoreDuplicates: false });
+
+          if (directError) {
+            // If upsert fails on conflict, try separate logic
+            console.error('[Reviews] Direct upsert error:', directError);
+            
+            // Check if review exists
+            const { data: existing } = await supabase
+              .from('reviews')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('movie_id', review.movie_id)
+              .maybeSingle();
+
+            if (existing) {
+              const { error: updateError } = await supabase
+                .from('reviews')
+                .update({
+                  rating: review.rating,
+                  review_text: review.review_text || null,
+                  movie_poster: review.movie_poster || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', existing.id);
+
+              if (updateError) {
+                toast({ title: 'Error updating review', description: updateError.message, variant: 'destructive' });
+                return;
+              }
+            } else {
+              const { error: insertError } = await supabase
+                .from('reviews')
+                .insert({
+                  user_id: user.id,
+                  movie_id: review.movie_id,
+                  movie_title: review.movie_title,
+                  movie_poster: review.movie_poster || null,
+                  rating: review.rating,
+                  review_text: review.review_text || null,
+                });
+
+              if (insertError) {
+                toast({ title: 'Error submitting review', description: insertError.message, variant: 'destructive' });
+                return;
+              }
+            }
+          }
+        } else {
+          toast({
+            title: 'Error submitting review',
+            description: result.error,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      await fetchReviews();
+      toast({ title: 'Review submitted successfully! 🎬' });
+    } catch (err) {
+      console.error('[Reviews] Unexpected error:', err);
+      toast({ title: 'Error submitting review', description: 'Please try again', variant: 'destructive' });
+    }
   };
 
   const deleteReview = async () => {
