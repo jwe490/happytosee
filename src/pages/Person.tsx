@@ -395,19 +395,19 @@ const Person = () => {
           </Breadcrumb>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-6 lg:gap-8">
           <div className="space-y-4 sm:space-y-6">
             {person.profileUrl ? (
               <img
                 src={person.profileUrl}
                 alt={person.name}
-                className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-border/50"
+                className="w-full max-w-[280px] mx-auto lg:max-w-none aspect-[2/3] object-cover object-top rounded-2xl shadow-lg ring-1 ring-border/50"
                 loading="eager"
                 decoding="async"
               />
             ) : (
-              <div className="w-full aspect-[2/3] bg-muted rounded-2xl flex items-center justify-center">
-                <User className="w-20 h-20 sm:w-24 sm:h-24 text-muted-foreground" />
+              <div className="w-full max-w-[280px] mx-auto lg:max-w-none aspect-[2/3] bg-muted rounded-2xl flex items-center justify-center">
+                <User className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground" />
               </div>
             )}
 

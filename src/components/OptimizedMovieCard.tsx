@@ -1,6 +1,6 @@
 import { memo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Star, Bookmark, BookmarkCheck } from "lucide-react";
+import { Star, Bookmark, BookmarkCheck, Download } from "lucide-react";
 import { useProgressiveImage } from "@/hooks/useProgressiveImage";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { Movie } from "@/hooks/useMovieRecommendations";
@@ -40,6 +40,28 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
     }
   }, [inWatchlist, movie, addToWatchlist, removeFromWatchlist]);
 
+  const handleDownloadPoster = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const highResUrl = movie.posterUrl?.replace("/w500/", "/original/") || movie.posterUrl;
+    if (!highResUrl) return;
+    
+    try {
+      const response = await fetch(highResUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${movie.title.replace(/[^a-zA-Z0-9]/g, "_")}_poster.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(highResUrl, "_blank");
+    }
+  }, [movie.posterUrl, movie.title]);
+
   return (
     <motion.div
       ref={ref}
@@ -47,78 +69,99 @@ const OptimizedMovieCard = memo(({ movie, index, onClick, style }: OptimizedMovi
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
-      whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className="cursor-pointer group relative"
     >
       {/* Card container */}
-      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md hover:shadow-xl transition-all duration-300 relative">
-        {/* Skeleton loading state */}
-        <div 
-          className={cn(
-            "absolute inset-0 bg-muted animate-pulse transition-opacity duration-300",
-            isLoaded ? "opacity-0" : "opacity-100"
-          )}
-        />
+      <div className="rounded-xl overflow-hidden bg-card shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md hover:border-border
+                      md:flex md:flex-row md:aspect-auto
+                      aspect-[2/3] relative">
         
-        {/* Image with blur-up and fade-in effect */}
-        <img
-          src={src}
-          alt={movie.title}
-          className={cn(
-            "w-full h-full object-cover transition-all duration-500 ease-out",
-            isLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-sm scale-105"
-          )}
-          loading="lazy"
-          decoding="async"
-        />
+        {/* Poster section */}
+        <div className="relative md:w-36 lg:w-40 md:shrink-0 md:aspect-[2/3] aspect-[2/3] overflow-hidden">
+          <div 
+            className={cn(
+              "absolute inset-0 bg-muted animate-pulse transition-opacity duration-300",
+              isLoaded ? "opacity-0" : "opacity-100"
+            )}
+          />
+          
+          <img
+            src={src}
+            alt={movie.title}
+            className={cn(
+              "w-full h-full object-cover transition-all duration-500 ease-out",
+              isLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-sm scale-105"
+            )}
+            loading="lazy"
+            decoding="async"
+          />
 
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <p className="text-white text-sm font-medium line-clamp-2">{movie.title}</p>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-white/70 text-xs">{movie.year}</span>
-              <span className="text-white/70 text-xs">{movie.genre}</span>
+          {/* Rating badge - mobile only */}
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1 md:hidden">
+            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+            <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || "N/A"}</span>
+          </div>
+        </div>
+
+        {/* Desktop info panel */}
+        <div className="hidden md:flex md:flex-col md:justify-between md:flex-1 md:p-4">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">
+              {movie.title}
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{movie.year}</span>
+              <span>•</span>
+              <span className="line-clamp-1">{movie.genre}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-semibold">{movie.rating?.toFixed(1) || "N/A"}</span>
             </div>
           </div>
-        </div>
 
-        {/* Rating badge */}
-        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm flex items-center gap-1">
-          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-          <span className="text-white text-xs font-medium">{movie.rating?.toFixed(1) || "N/A"}</span>
-        </div>
-
-        {/* Mood match badge */}
-        {movie.moodMatch && (
-          <div className="absolute top-2 right-10 px-2 py-1 rounded-lg bg-primary/80 backdrop-blur-sm">
-            <span className="text-primary-foreground text-xs font-medium">{movie.moodMatch}</span>
+          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-border/50">
+            <button
+              onClick={handleWatchlistClick}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors",
+                inWatchlist 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+            >
+              {inWatchlist ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={handleDownloadPoster}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              title="Download HD poster"
+            >
+              <Download className="w-4 h-4" />
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Mobile: Watchlist + hover overlay */}
+        <button
+          onClick={handleWatchlistClick}
+          className={cn(
+            "absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200 md:hidden",
+            inWatchlist 
+              ? "bg-primary text-primary-foreground" 
+              : "bg-black/50 text-white hover:bg-black/70"
+          )}
+          aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        >
+          {inWatchlist ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+        </button>
       </div>
 
-      {/* Watchlist button */}
-      <button
-        onClick={handleWatchlistClick}
-        className={cn(
-          "absolute top-2 right-2 p-2 rounded-lg backdrop-blur-sm transition-all duration-200",
-          inWatchlist 
-            ? "bg-primary text-primary-foreground" 
-            : "bg-black/50 text-white hover:bg-black/70"
-        )}
-        aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-      >
-        {inWatchlist ? (
-          <BookmarkCheck className="w-4 h-4" />
-        ) : (
-          <Bookmark className="w-4 h-4" />
-        )}
-      </button>
-
-      {/* Title below card */}
-      <div className="mt-2 px-1">
+      {/* Mobile title below card */}
+      <div className="mt-2 px-1 md:hidden">
         <p className="text-sm font-medium text-foreground line-clamp-1">{movie.title}</p>
         <p className="text-xs text-muted-foreground">{movie.year} • {movie.genre}</p>
       </div>

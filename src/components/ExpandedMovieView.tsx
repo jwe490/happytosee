@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Clock, Calendar, Play, Users,
   Film, Bookmark, BookmarkCheck,
-  ChevronLeft, Eye, EyeOff, Tv, ChevronDown
+  ChevronLeft, Eye, EyeOff, Tv, ChevronDown, Download
 } from "lucide-react";
 import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { supabase } from "@/integrations/supabase/client";
@@ -556,6 +556,33 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
                               text={`Check out ${details.title} on MoodFlix!`}
                               variant="outline"
                             />
+
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              onClick={async () => {
+                                const highResUrl = details.posterUrl?.replace("/w500/", "/original/") || details.posterUrl;
+                                if (!highResUrl) return;
+                                try {
+                                  const response = await fetch(highResUrl);
+                                  const blob = await response.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement("a");
+                                  link.href = url;
+                                  link.download = `${details.title.replace(/[^a-zA-Z0-9]/g, "_")}_poster_HD.jpg`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                } catch {
+                                  window.open(highResUrl, "_blank");
+                                }
+                              }}
+                              className="gap-2 rounded-full active:scale-95 transition-transform min-h-[48px] touch-manipulation col-span-2"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download HD Poster
+                            </Button>
                           </>
                         )}
                       </div>
