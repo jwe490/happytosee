@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Link2, Check, Download, Twitter, MessageCircle, Send } from "lucide-react";
+import { X, Link2, Check, Download, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShareDrawerProps {
@@ -17,184 +17,9 @@ interface ShareOption {
   id: string;
   icon: React.ReactNode;
   label: string;
+  color: string;
   action: () => void;
 }
-
-// Animated line illustration component
-const LineIllustration = ({ type }: { type: "share" | "copy" | "success" }) => {
-  const paths = {
-    share: (
-      <motion.svg 
-        viewBox="0 0 120 80" 
-        className="w-full h-full"
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Radiating lines from center */}
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-          <motion.line
-            key={angle}
-            x1="60"
-            y1="40"
-            x2={60 + Math.cos(angle * Math.PI / 180) * 35}
-            y2={40 + Math.sin(angle * Math.PI / 180) * 25}
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.6 }}
-            transition={{ delay: i * 0.08, duration: 0.4, ease: "easeOut" }}
-          />
-        ))}
-        {/* Center circle */}
-        <motion.circle
-          cx="60"
-          cy="40"
-          r="8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.3, type: "spring" }}
-        />
-        {/* Floating dots */}
-        {[
-          { x: 25, y: 20, delay: 0.6 },
-          { x: 95, y: 25, delay: 0.7 },
-          { x: 30, y: 60, delay: 0.8 },
-          { x: 90, y: 55, delay: 0.9 },
-        ].map((dot, i) => (
-          <motion.circle
-            key={i}
-            cx={dot.x}
-            cy={dot.y}
-            r="3"
-            fill="currentColor"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.4 }}
-            transition={{ delay: dot.delay, duration: 0.2, type: "spring" }}
-          />
-        ))}
-      </motion.svg>
-    ),
-    copy: (
-      <motion.svg 
-        viewBox="0 0 120 80" 
-        className="w-full h-full"
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Document outline */}
-        <motion.rect
-          x="35"
-          y="15"
-          width="35"
-          height="45"
-          rx="4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
-        {/* Copied document */}
-        <motion.rect
-          x="50"
-          y="25"
-          width="35"
-          height="45"
-          rx="4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0, x: 35 }}
-          animate={{ pathLength: 1, x: 50 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-        />
-        {/* Lines on document */}
-        {[30, 38, 46].map((y, i) => (
-          <motion.line
-            key={y}
-            x1="40"
-            y1={y}
-            x2="60"
-            y2={y}
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeLinecap="round"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            transition={{ delay: 0.6 + i * 0.1 }}
-          />
-        ))}
-      </motion.svg>
-    ),
-    success: (
-      <motion.svg 
-        viewBox="0 0 120 80" 
-        className="w-full h-full"
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Circle */}
-        <motion.circle
-          cx="60"
-          cy="40"
-          r="25"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        />
-        {/* Checkmark */}
-        <motion.path
-          d="M45 40 L55 50 L75 30"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
-        />
-        {/* Celebration particles */}
-        {[
-          { x1: 60, y1: 10, x2: 60, y2: 2, delay: 0.5 },
-          { x1: 85, y1: 20, x2: 92, y2: 14, delay: 0.55 },
-          { x1: 90, y1: 40, x2: 98, y2: 40, delay: 0.6 },
-          { x1: 85, y1: 60, x2: 92, y2: 66, delay: 0.65 },
-          { x1: 35, y1: 20, x2: 28, y2: 14, delay: 0.7 },
-          { x1: 30, y1: 40, x2: 22, y2: 40, delay: 0.75 },
-        ].map((line, i) => (
-          <motion.line
-            key={i}
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            initial={{ opacity: 0, pathLength: 0 }}
-            animate={{ opacity: 0.6, pathLength: 1 }}
-            transition={{ delay: line.delay, duration: 0.2 }}
-          />
-        ))}
-      </motion.svg>
-    ),
-  };
-
-  return (
-    <div className="w-24 h-16 text-accent">
-      {paths[type]}
-    </div>
-  );
-};
 
 export const ShareDrawer = ({
   isOpen,
@@ -207,124 +32,88 @@ export const ShareDrawer = ({
 }: ShareDrawerProps) => {
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
   const { toast } = useToast();
 
   const url = shareUrl || (typeof window !== "undefined" ? window.location.href : "");
   const text = shareText || `Check out ${title}`;
 
   const handleCopy = async () => {
-    setActiveAction("copy");
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-        setActiveAction(null);
-      }, 2000);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       toast({ title: "Failed to copy", variant: "destructive" });
-      setActiveAction(null);
     }
   };
 
   const handleDownload = async () => {
     if (!onImageShare) return;
     setIsProcessing(true);
-    setActiveAction("download");
-    
     try {
       const blob = await onImageShare();
       if (blob) {
-        const url = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url;
+        a.href = blobUrl;
         a.download = "my-movie-mood.png";
         a.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(blobUrl);
         toast({ title: "Downloaded!" });
       }
     } catch {
       toast({ title: "Download failed", variant: "destructive" });
     } finally {
       setIsProcessing(false);
-      setActiveAction(null);
     }
   };
 
   const handleNativeShare = async () => {
-    setActiveAction("native");
-    
     if (navigator.share) {
       try {
-        if (onImageShare) {
-          const blob = await onImageShare();
-          if (blob) {
-            const file = new File([blob], "my-movie-mood.png", { type: "image/png" });
-            await navigator.share({ title, text, files: [file] });
-          }
-        } else {
-          await navigator.share({ title, text, url });
-        }
+        await navigator.share({ title, text, url });
         onClose();
       } catch {
         // User cancelled
       }
     }
-    setActiveAction(null);
-  };
-
-  const handleTwitter = () => {
-    setActiveAction("twitter");
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, "_blank", "width=550,height=420");
-    setTimeout(() => setActiveAction(null), 500);
-  };
-
-  const handleWhatsApp = () => {
-    setActiveAction("whatsapp");
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
-    window.open(whatsappUrl, "_blank");
-    setTimeout(() => setActiveAction(null), 500);
-  };
-
-  const handleTelegram = () => {
-    setActiveAction("telegram");
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-    window.open(telegramUrl, "_blank");
-    setTimeout(() => setActiveAction(null), 500);
   };
 
   const shareOptions: ShareOption[] = [
     {
       id: "copy",
       icon: copied ? <Check className="w-5 h-5" /> : <Link2 className="w-5 h-5" />,
-      label: copied ? "Copied!" : "Copy link",
+      label: copied ? "Copied!" : "Copy Link",
+      color: "bg-muted",
       action: handleCopy,
     },
     ...(onImageShare ? [{
       id: "download",
       icon: <Download className="w-5 h-5" />,
-      label: "Save image",
+      label: "Save",
+      color: "bg-muted",
       action: handleDownload,
     }] : []),
     {
       id: "twitter",
-      icon: <Twitter className="w-5 h-5" />,
-      label: "Twitter",
-      action: handleTwitter,
+      icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>,
+      label: "X",
+      color: "bg-foreground/10",
+      action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "width=550,height=420"),
     },
     {
       id: "whatsapp",
-      icon: <MessageCircle className="w-5 h-5" />,
+      icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>,
       label: "WhatsApp",
-      action: handleWhatsApp,
+      color: "bg-green-500/10 text-green-600 dark:text-green-400",
+      action: () => window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank"),
     },
     {
       id: "telegram",
       icon: <Send className="w-5 h-5" />,
       label: "Telegram",
-      action: handleTelegram,
+      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      action: () => window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"),
     },
   ];
 
@@ -332,120 +121,79 @@ export const ShareDrawer = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50"
             onClick={onClose}
           />
 
-          {/* Drawer */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh]"
+            transition={{ type: "spring", damping: 32, stiffness: 350 }}
+            className="fixed inset-x-0 bottom-0 z-50"
           >
-            <div className="bg-card border-t border-border rounded-t-3xl overflow-hidden">
-              {/* Handle bar */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+            <div className="bg-card border-t border-border rounded-t-2xl">
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-8 h-1 rounded-full bg-muted-foreground/20" />
               </div>
 
-              {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors"
+                className="absolute top-3 right-3 p-2 rounded-full hover:bg-muted transition-colors"
               >
-                <X className="w-5 h-5 text-muted-foreground" />
+                <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              <div className="px-6 pb-8 pt-2">
-                {/* Header with illustration */}
-                <div className="flex flex-col items-center text-center mb-8">
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
-                  >
-                    <LineIllustration type={copied ? "success" : "share"} />
-                  </motion.div>
-                  
-                  <motion.h2
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="font-display text-xl font-semibold mt-3"
-                  >
-                    {title}
-                  </motion.h2>
-                  
+              <div className="px-5 pb-6 pt-1">
+                {/* Title */}
+                <div className="text-center mb-5">
+                  <h2 className="font-display text-base font-semibold truncate">{title}</h2>
                   {subtitle && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-sm text-muted-foreground mt-1"
-                    >
-                      {subtitle}
-                    </motion.p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
                   )}
                 </div>
 
-                {/* Native share button (mobile) */}
+                {/* Native share (mobile) */}
                 {typeof navigator !== "undefined" && navigator.share && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
+                  <button
                     onClick={handleNativeShare}
                     disabled={isProcessing}
-                    className="w-full py-4 mb-4 rounded-2xl bg-accent text-accent-foreground font-medium
-                      hover:bg-accent/90 active:scale-[0.98] transition-all duration-200
-                      flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 mb-4 rounded-xl bg-primary text-primary-foreground font-medium
+                      active:scale-[0.98] transition-transform
+                      flex items-center justify-center gap-2 text-sm"
                   >
                     <Send className="w-4 h-4" />
                     Share
-                  </motion.button>
+                  </button>
                 )}
 
-                {/* Share options grid */}
-                <div className="grid grid-cols-4 gap-3">
-                  {shareOptions.map((option, index) => (
-                    <motion.button
+                {/* Options row */}
+                <div className="flex justify-center gap-5">
+                  {shareOptions.map((option) => (
+                    <button
                       key={option.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + index * 0.05 }}
                       onClick={option.action}
                       disabled={isProcessing && option.id === "download"}
-                      className={`
-                        flex flex-col items-center gap-2 p-4 rounded-2xl
-                        transition-all duration-200 active:scale-95
-                        ${activeAction === option.id 
-                          ? "bg-accent/10 text-accent" 
-                          : "hover:bg-muted text-foreground"
-                        }
-                        ${option.id === "copy" && copied ? "text-accent" : ""}
-                        disabled:opacity-50
-                      `}
+                      className="flex flex-col items-center gap-1.5 group"
                     >
                       <div className={`
                         w-12 h-12 rounded-full flex items-center justify-center
-                        transition-colors duration-200
-                        ${activeAction === option.id || (option.id === "copy" && copied)
-                          ? "bg-accent/20" 
-                          : "bg-muted"
-                        }
+                        transition-transform duration-150 active:scale-90
+                        ${option.color}
+                        ${option.id === "copy" && copied ? "bg-green-500/10 text-green-500" : ""}
                       `}>
                         {option.icon}
                       </div>
-                      <span className="text-xs font-medium">{option.label}</span>
-                    </motion.button>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {option.label}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
