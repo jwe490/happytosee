@@ -607,7 +607,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reviews_user_id_key_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_content: {
         Row: {

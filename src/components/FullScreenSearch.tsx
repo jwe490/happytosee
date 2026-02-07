@@ -197,22 +197,20 @@ const FullScreenSearch = ({
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                   <input ref={inputRef} type="text" placeholder="Search movies, shows..." value={query} onChange={e => setQuery(e.target.value)} className="w-full h-12 pl-12 pr-12 rounded-2xl bg-secondary/80 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all" />
-                  {/* Clear button */}
+                  {/* Clear button - inside input */}
                   <AnimatePresence>
-                    {query && <motion.button initial={{
-                  opacity: 0,
-                  scale: 0.8
-                }} animate={{
-                  opacity: 1,
-                  scale: 1
-                }} exit={{
-                  opacity: 0,
-                  scale: 0.8
-                }} transition={{
-                  duration: 0.15
-                }} onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-inner text-center">
-                        <X className="w-4 h-4" />
-                      </motion.button>}
+                    {query && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={clearSearch}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </motion.button>
+                    )}
                   </AnimatePresence>
                 </div>
 
