@@ -1,4 +1,4 @@
-// Supabase Edge Function for AI-powered movie search
+// Supabase Edge Function for AI-powered movie search using Lovable AI (Gemini)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,76 +42,123 @@ function validateAISearchInput(body: unknown): {
   return { valid: true, data: { description, type, movieTitle, movieOverview, mood, excludeIds } };
 }
 
-// Smart keyword extraction for movie descriptions
-function extractSearchQueries(description: string): string[] {
-  const queries: string[] = [];
+// Use Gemini AI via Lovable AI Gateway to extract search terms
+async function aiExtractSearchTerms(description: string): Promise<{ titles: string[]; actors: string[]; keywords: string[] }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
+  if (!LOVABLE_API_KEY) {
+    console.log("No LOVABLE_API_KEY, falling back to keyword extraction");
+    return fallbackExtract(description);
+  }
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are a movie identification expert. Extract search terms from user descriptions to find movies on TMDb. Be thorough and identify all possible movie titles, actor names, director names, and meaningful keywords."
+          },
+          {
+            role: "user",
+            content: `From this movie description, extract search terms:\n\n"${description}"\n\nRespond with a JSON object containing:\n- titles: array of possible movie titles mentioned or implied\n- actors: array of actor/director names mentioned\n- keywords: array of key descriptive terms (genre, theme, plot elements)\n\nOnly respond with valid JSON, no markdown.`
+          }
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_search_terms",
+              description: "Extract movie search terms from a description",
+              parameters: {
+                type: "object",
+                properties: {
+                  titles: { type: "array", items: { type: "string" }, description: "Possible movie titles" },
+                  actors: { type: "array", items: { type: "string" }, description: "Actor or director names" },
+                  keywords: { type: "array", items: { type: "string" }, description: "Key descriptive terms" }
+                },
+                required: ["titles", "actors", "keywords"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "extract_search_terms" } },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("AI Gateway error:", response.status, errText);
+      return fallbackExtract(description);
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      console.log("AI extracted terms:", parsed);
+      return {
+        titles: parsed.titles || [],
+        actors: parsed.actors || [],
+        keywords: parsed.keywords || [],
+      };
+    }
+
+    return fallbackExtract(description);
+  } catch (err) {
+    console.error("AI extraction error:", err);
+    return fallbackExtract(description);
+  }
+}
+
+// Fallback keyword extraction without AI
+function fallbackExtract(description: string): { titles: string[]; actors: string[]; keywords: string[] } {
+  const titles: string[] = [];
+  const actors: string[] = [];
+  const keywords: string[] = [];
+
   // Extract quoted titles
   const quotedMatches = description.match(/["'「」]([^"'「」]+)["'「」]/g);
   if (quotedMatches) {
-    quotedMatches.forEach(m => queries.push(m.replace(/["'「」]/g, '').trim()));
+    quotedMatches.forEach(m => titles.push(m.replace(/["'「」]/g, '').trim()));
   }
-  
+
   // Extract actor/director names (capitalized word pairs)
   const namePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g;
   const names = description.match(namePattern);
   if (names) {
+    const skipWords = ['The Movie', 'The Film', 'The One', 'This Movie', 'Blue Alien'];
     names.forEach(name => {
-      // Filter out common non-name phrases
-      const skipWords = ['The Movie', 'The Film', 'The One', 'This Movie', 'That Movie', 'Blue Alien', 'Red Dragon'];
       if (!skipWords.some(s => name.toLowerCase() === s.toLowerCase())) {
-        queries.push(name);
+        actors.push(name);
       }
     });
   }
-  
-  // Extract words after "called", "named", "titled"
-  const titlePatterns = /(?:called|named|titled|name is|movie is)\s+["']?([^"',\.]+)["']?/gi;
+
+  // Extract words after naming patterns
   let match;
-  while ((match = titlePatterns.exec(description)) !== null) {
-    queries.push(match[1].trim());
-  }
-  
-  // Extract words after "starring", "with", "featuring" for actor searches
+  const titlePatterns = /(?:called|named|titled|name is|movie is)\s+["']?([^"',\.]+)["']?/gi;
+  while ((match = titlePatterns.exec(description)) !== null) titles.push(match[1].trim());
+
   const actorPatterns = /(?:starring|with|featuring|acted by|played by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi;
-  while ((match = actorPatterns.exec(description)) !== null) {
-    queries.push(match[1].trim());
-  }
-  
-  // Extract character names after "character named/called"
-  const charPatterns = /(?:character\s+(?:named|called)|alien\s+(?:named|called))\s+["']?(\w+)["']?/gi;
-  while ((match = charPatterns.exec(description)) !== null) {
-    queries.push(match[1].trim());
+  while ((match = actorPatterns.exec(description)) !== null) actors.push(match[1].trim());
+
+  // Keywords from remaining
+  if (titles.length === 0 && actors.length === 0) {
+    const stopWords = new Set(['a','an','the','is','was','were','are','have','has','had','do','does','did','will','would','could','should','that','this','i','me','my','we','you','he','she','it','they','what','which','who','where','when','why','how','movie','film','about','with','and','but','or','not','in','on','at','to','for','of','from','by']);
+    const kws = description.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+    keywords.push(...kws.slice(0, 6));
   }
 
-  // If no specific terms found, use cleaned-up description
-  if (queries.length === 0) {
-    // Remove common filler words and use remaining keywords
-    const stopWords = new Set(['a', 'an', 'the', 'is', 'was', 'were', 'are', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'that', 'this', 'these', 'those', 'i', 'me', 'my', 'we', 'our', 'you', 'your', 'he', 'she', 'it', 'they', 'them', 'their', 'what', 'which', 'who', 'whom', 'where', 'when', 'why', 'how', 'movie', 'film', 'about', 'with', 'and', 'but', 'or', 'not', 'no', 'so', 'if', 'then', 'than', 'too', 'very', 'just', 'don', 'now', 'in', 'on', 'at', 'to', 'for', 'of', 'from', 'by', 'up', 'out', 'off', 'over', 'under', 'again', 'there', 'here', 'all', 'each', 'some', 'any', 'most', 'other', 'into', 'one', 'two']);
-    
-    const keywords = description
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 2 && !stopWords.has(w));
-    
-    // Take meaningful keyword groups
-    if (keywords.length > 0) {
-      queries.push(keywords.slice(0, 5).join(' '));
-      // Also try just the first 3 keywords as a more focused search
-      if (keywords.length > 3) {
-        queries.push(keywords.slice(0, 3).join(' '));
-      }
-    }
-  }
-  
-  // Also add the full description as a last resort search
-  if (description.length <= 60) {
-    queries.push(description);
-  }
-
-  // Deduplicate
-  return [...new Set(queries)].slice(0, 6);
+  return { titles, actors, keywords };
 }
 
 Deno.serve(async (req) => {
@@ -141,7 +188,7 @@ Deno.serve(async (req) => {
 
     console.log("AI search request:", { description, type });
 
-    // Handle "describe" type
+    // Handle "describe" type - now powered by Gemini AI
     if (type === "describe") {
       if (!description) {
         return new Response(JSON.stringify({
@@ -150,29 +197,35 @@ Deno.serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Extract smart search queries from description
-      const searchQueries = extractSearchQueries(description);
-      console.log("Extracted search queries:", searchQueries);
+      // Use AI to extract smart search terms
+      const { titles, actors, keywords } = await aiExtractSearchTerms(description);
+      const searchQueries = [...titles, ...actors, ...keywords.slice(0, 3)];
+      
+      // Also add the raw description as a search if short enough
+      if (description.length <= 60 && searchQueries.length === 0) {
+        searchQueries.push(description);
+      }
+      
+      // Deduplicate
+      const uniqueQueries = [...new Set(searchQueries)].slice(0, 8);
+      console.log("Search queries:", uniqueQueries);
 
       const allMovies: any[] = [];
       const seenIds = new Set<number>();
 
       // Search TMDb with each query
-      for (const term of searchQueries) {
+      for (const term of uniqueQueries) {
         try {
-          // Try movie search
+          // Movie search
           const searchUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(term)}&language=en-US&page=1`;
-          console.log("Searching TMDb for:", term);
           const searchResponse = await fetch(searchUrl);
 
           if (searchResponse.ok) {
             const searchData = await searchResponse.json();
-            const results = searchData.results || [];
-            console.log(`Found ${results.length} results for "${term}"`);
-
-            for (const movie of results.slice(0, 5)) {
+            for (const movie of (searchData.results || []).slice(0, 5)) {
               if (!seenIds.has(movie.id) && movie.poster_path) {
                 seenIds.add(movie.id);
+                const isTitle = titles.some(t => t.toLowerCase() === term.toLowerCase());
                 allMovies.push({
                   id: movie.id,
                   title: movie.title,
@@ -180,36 +233,36 @@ Deno.serve(async (req) => {
                   rating: Math.round(movie.vote_average * 10) / 10,
                   posterUrl: `${TMDB_IMAGE_BASE}${movie.poster_path}`,
                   overview: movie.overview,
-                  confidence: searchQueries.indexOf(term) === 0 ? "high" : "medium",
+                  confidence: isTitle ? "high" : uniqueQueries.indexOf(term) < 2 ? "high" : "medium",
                   matchReason: `Matches: "${term}"`,
                 });
               }
             }
           }
 
-          // Also try person search for actor names
-          const personUrl = `${TMDB_BASE_URL}/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(term)}&language=en-US&page=1`;
-          const personResponse = await fetch(personUrl);
-          
-          if (personResponse.ok) {
-            const personData = await personResponse.json();
-            const persons = personData.results || [];
+          // Person search for actor queries
+          if (actors.includes(term)) {
+            const personUrl = `${TMDB_BASE_URL}/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(term)}&language=en-US&page=1`;
+            const personResponse = await fetch(personUrl);
             
-            for (const person of persons.slice(0, 2)) {
-              if (person.known_for) {
-                for (const work of person.known_for) {
-                  if (work.media_type === 'movie' && !seenIds.has(work.id) && work.poster_path) {
-                    seenIds.add(work.id);
-                    allMovies.push({
-                      id: work.id,
-                      title: work.title,
-                      year: work.release_date ? new Date(work.release_date).getFullYear() : null,
-                      rating: Math.round(work.vote_average * 10) / 10,
-                      posterUrl: `${TMDB_IMAGE_BASE}${work.poster_path}`,
-                      overview: work.overview,
-                      confidence: "high",
-                      matchReason: `Starring ${person.name}`,
-                    });
+            if (personResponse.ok) {
+              const personData = await personResponse.json();
+              for (const person of (personData.results || []).slice(0, 2)) {
+                if (person.known_for) {
+                  for (const work of person.known_for) {
+                    if (work.media_type === 'movie' && !seenIds.has(work.id) && work.poster_path) {
+                      seenIds.add(work.id);
+                      allMovies.push({
+                        id: work.id,
+                        title: work.title,
+                        year: work.release_date ? new Date(work.release_date).getFullYear() : null,
+                        rating: Math.round(work.vote_average * 10) / 10,
+                        posterUrl: `${TMDB_IMAGE_BASE}${work.poster_path}`,
+                        overview: work.overview,
+                        confidence: "high",
+                        matchReason: `Starring ${person.name}`,
+                      });
+                    }
                   }
                 }
               }
@@ -228,11 +281,9 @@ Deno.serve(async (req) => {
         return (b.rating || 0) - (a.rating || 0);
       });
 
-      console.log(`Returning ${Math.min(allMovies.length, 12)} movies total`);
-
       return new Response(JSON.stringify({
         movies: allMovies.slice(0, 12),
-        searchTerms: searchQueries,
+        searchTerms: uniqueQueries,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -291,11 +342,6 @@ Deno.serve(async (req) => {
 
       const randomIndex = Math.floor(Math.random() * Math.min(results.length, 10));
       const tmdbMovie = results[randomIndex];
-      const surpriseReasons = [
-        "A hidden gem you might love!", "Critics loved this one!",
-        "Underrated masterpiece", "Perfect for your mood",
-        "You won't regret this pick", "A fan favorite",
-      ];
 
       return new Response(JSON.stringify({
         movie: {
@@ -305,7 +351,7 @@ Deno.serve(async (req) => {
           rating: Math.round(tmdbMovie.vote_average * 10) / 10,
           posterUrl: tmdbMovie.poster_path ? `${TMDB_IMAGE_BASE}${tmdbMovie.poster_path}` : null,
           overview: tmdbMovie.overview,
-          surpriseReason: surpriseReasons[Math.floor(Math.random() * surpriseReasons.length)],
+          surpriseReason: "A hidden gem picked just for you ✨",
         }
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
