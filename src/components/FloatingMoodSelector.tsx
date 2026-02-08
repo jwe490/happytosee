@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { trackMoodSelection } from "@/lib/analytics";
@@ -36,26 +36,22 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
   const [isExpanded, setIsExpanded] = useState(false);
   const [recentMoods, setRecentMoods] = useState<string[]>([]);
 
-  // Load recent moods from session storage
   useEffect(() => {
     const stored = sessionStorage.getItem("recentMoods");
     if (stored) {
-      setRecentMoods(JSON.parse(stored));
+      try { setRecentMoods(JSON.parse(stored)); } catch {}
     }
   }, []);
 
-  const handleMoodSelect = (moodId: string) => {
+  const handleMoodSelect = useCallback((moodId: string) => {
     onSelectMood(moodId);
     setIsExpanded(false);
-    
-    // Track mood selection for analytics
     trackMoodSelection(moodId);
     
-    // Track recent moods (last 3)
     const updated = [moodId, ...recentMoods.filter(m => m !== moodId)].slice(0, 3);
     setRecentMoods(updated);
     sessionStorage.setItem("recentMoods", JSON.stringify(updated));
-  };
+  }, [onSelectMood, recentMoods]);
 
   const currentMood = moods.find(m => m.id === selectedMood);
 
@@ -68,56 +64,52 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40"
             onClick={() => setIsExpanded(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Floating Button & Expanded Panel */}
+      {/* Floating Button & Panel */}
       <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
         <AnimatePresence mode="wait">
           {isExpanded ? (
             <motion.div
               key="expanded"
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              initial={{ opacity: 0, scale: 0.85, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              exit={{ opacity: 0, scale: 0.85, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="bg-card border border-border rounded-2xl p-4 shadow-xl w-[280px] sm:w-[320px]"
             >
-              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-display font-semibold text-foreground text-sm">
                   How are you feeling?
                 </h3>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="p-1 hover:bg-secondary rounded-full transition-colors"
+                  className="p-1.5 hover:bg-secondary rounded-full transition-colors"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
-              {/* Mood Grid */}
               <div className="grid grid-cols-4 gap-2 mb-4">
-                {moods.map((mood, index) => {
+                {moods.map((mood) => {
                   const isSelected = selectedMood === mood.id;
                   const isRecent = recentMoods.includes(mood.id);
                   
                   return (
-                    <motion.button
+                    <button
                       key={mood.id}
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
                       onClick={() => handleMoodSelect(mood.id)}
                       disabled={isLoading}
                       className={`
-                        relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200
+                        relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-150
                         ${isSelected
-                          ? "bg-foreground/10 ring-2 ring-foreground scale-110 shadow-lg"
-                          : "hover:bg-secondary hover:scale-105"
+                          ? "bg-foreground/10 ring-2 ring-foreground scale-105"
+                          : "hover:bg-secondary active:scale-95"
                         }
                         ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                       `}
@@ -125,7 +117,7 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
                       <img
                         src={mood.icon}
                         alt={mood.label}
-                        className="w-8 h-8 sm:w-10 sm:h-10 object-contain transition-transform hover:scale-110"
+                        className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                       />
                       <span className="text-[10px] font-medium text-muted-foreground">
                         {mood.label}
@@ -133,19 +125,18 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
                       {isRecent && !isSelected && (
                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
                       )}
-                    </motion.button>
+                    </button>
                   );
                 })}
               </div>
 
-              {/* Surprise Me Button */}
               <button
                 onClick={() => {
                   const randomMood = moods[Math.floor(Math.random() * moods.length)];
                   handleMoodSelect(randomMood.id);
                 }}
                 disabled={isLoading}
-                className="w-full py-2 px-3 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium text-foreground transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-2 px-3 bg-secondary hover:bg-secondary/80 active:scale-[0.98] rounded-lg text-sm font-medium text-foreground transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Sparkles className="w-4 h-4" />
                 Surprise me! 🎲
@@ -157,12 +148,11 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.15 }}
               onClick={() => setIsExpanded(true)}
               className={`
                 flex items-center gap-2 px-4 py-3 bg-card border border-border rounded-full shadow-xl
-                hover:shadow-2xl transition-all duration-300
+                hover:shadow-2xl active:scale-95 transition-all duration-150
                 ${isLoading ? "animate-pulse" : ""}
               `}
             >
@@ -175,25 +165,21 @@ const FloatingMoodSelector = ({ selectedMood, onSelectMood, isLoading }: Floatin
                 {currentMood?.label || "Pick Mood"}
               </span>
               {isLoading && (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </motion.div>
+                <Sparkles className="w-4 h-4 text-primary animate-spin" />
               )}
             </motion.button>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Dynamic Mood Tagline */}
+      {/* Tagline */}
       <AnimatePresence>
         {currentMood && !isExpanded && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.15 }}
             className="fixed bottom-20 right-4 sm:bottom-[88px] sm:right-6 z-40"
           >
             <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
