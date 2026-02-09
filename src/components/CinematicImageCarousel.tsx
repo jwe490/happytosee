@@ -239,10 +239,14 @@ export const CinematicImageCarousel = memo(({
 
               {/* Action buttons */}
               <div className="flex items-center gap-3 md:gap-4">
-                {/* View Details / Watch Trailer - opens movie card */}
+                {/* View Details - opens movie card where trailer plays */}
                 <Button
                   size="lg"
-                  onClick={() => onMovieSelect(currentMovie)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onMovieSelect(currentMovie);
+                  }}
                   className="rounded-xl md:rounded-2xl px-6 md:px-10 h-12 md:h-14 gap-2.5 font-semibold text-sm md:text-base bg-white text-black hover:bg-white/90 shadow-2xl shadow-white/10 transition-all duration-300 hover:scale-[1.02]"
                 >
                   <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
@@ -252,7 +256,11 @@ export const CinematicImageCarousel = memo(({
                 {/* Add to Watchlist */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={handleWatchlistToggle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleWatchlistToggle();
+                  }}
                   className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center
                     backdrop-blur-md transition-all duration-300 border
                     ${inWatchlist

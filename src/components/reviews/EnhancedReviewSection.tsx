@@ -45,41 +45,42 @@ function getEmotionForRating(rating: number) {
   return EMOTION_RATINGS[4];
 }
 
-// Simple SVG Pie Chart component
+// Sentiment Pie Chart
 function SentimentPieChart({ reviews }: { reviews: { rating: number; review_text: string | null }[] }) {
   const segments = useMemo(() => {
-    const counts = { "Mind-blowing": 0, "Loved it": 0, "Enjoyed it": 0, "It was okay": 0, "Disappointed": 0 };
+    const counts: Record<string, number> = {};
+    EMOTION_RATINGS.forEach(e => { counts[e.label] = 0; });
     reviews.forEach(r => {
       const emotion = getEmotionForRating(r.rating);
-      counts[emotion.label as keyof typeof counts]++;
+      counts[emotion.label]++;
     });
     return EMOTION_RATINGS.map(e => ({
       ...e,
-      count: counts[e.label as keyof typeof counts],
-      percentage: reviews.length > 0 ? (counts[e.label as keyof typeof counts] / reviews.length) * 100 : 0,
+      count: counts[e.label],
+      percentage: reviews.length > 0 ? (counts[e.label] / reviews.length) * 100 : 0,
     })).filter(s => s.count > 0);
   }, [reviews]);
 
-  // Generate AI-like summary from reviews
   const summary = useMemo(() => {
     if (reviews.length === 0) return null;
-    const avgRating = reviews.reduce((a, r) => a + r.rating, 0) / reviews.length;
-    const emotion = getEmotionForRating(avgRating);
     const total = reviews.length;
     const positive = reviews.filter(r => r.rating >= 7).length;
     const pct = Math.round((positive / total) * 100);
     
-    if (pct >= 80) return `${pct}% of viewers loved this movie. A crowd favorite that delivers.`;
-    if (pct >= 60) return `${pct}% positive reviews. Most viewers found it enjoyable.`;
-    if (pct >= 40) return `Mixed reception — opinions are divided on this one.`;
-    return `Only ${pct}% positive. This one might not be for everyone.`;
+    // Extract key phrases from review texts
+    const texts = reviews.filter(r => r.review_text).map(r => r.review_text!);
+    const hasTexts = texts.length > 0;
+    
+    if (pct >= 80) return `${pct}% of viewers loved this movie.${hasTexts ? " Highly recommended by the community." : " A crowd favorite."}`;
+    if (pct >= 60) return `${pct}% positive. ${hasTexts ? "Most viewers found it worth watching." : "Generally well-received."}`;
+    if (pct >= 40) return `Mixed reception — opinions are divided.${hasTexts ? " Worth a watch to form your own opinion." : ""}`;
+    return `Only ${pct}% positive. ${hasTexts ? "Might not be for everyone." : "Proceed with caution."}`;
   }, [reviews]);
 
   if (reviews.length === 0) return null;
 
-  // SVG Donut chart
-  const size = 120;
-  const strokeWidth = 20;
+  const size = 100;
+  const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
@@ -96,7 +97,6 @@ function SentimentPieChart({ reviews }: { reviews: { rating: number; review_text
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Donut Chart */}
         <div className="relative flex-shrink-0">
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             {segments.map((seg) => {
@@ -104,7 +104,6 @@ function SentimentPieChart({ reviews }: { reviews: { rating: number; review_text
               const dashArray = `${segLength} ${circumference - segLength}`;
               const currentOffset = offset;
               offset += segLength;
-              
               return (
                 <circle
                   key={seg.label}
@@ -124,17 +123,16 @@ function SentimentPieChart({ reviews }: { reviews: { rating: number; review_text
             })}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-lg font-bold">{reviews.length}</span>
+            <span className="text-base font-bold">{reviews.length}</span>
           </div>
         </div>
 
-        {/* Legend + Summary */}
-        <div className="flex-1 min-w-0 space-y-2">
-          {segments.slice(0, 4).map(seg => (
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {segments.map(seg => (
             <div key={seg.label} className="flex items-center gap-2 text-xs">
-              <span className="text-base">{seg.emoji}</span>
+              <span className="text-sm">{seg.emoji}</span>
               <span className="flex-1 text-muted-foreground truncate">{seg.label}</span>
-              <span className="font-semibold">{Math.round(seg.percentage)}%</span>
+              <span className="font-semibold tabular-nums">{Math.round(seg.percentage)}%</span>
             </div>
           ))}
         </div>
@@ -166,13 +164,19 @@ export function EnhancedReviewSection({
   } = useEnhancedReviews(movieId);
 
   const [isWriting, setIsWriting] = useState(false);
-  const [selectedEmotion, setSelectedEmotion] = useState<typeof EMOTION_RATINGS[number] | null>(
-    userReview ? getEmotionForRating(userReview.rating) : null
-  );
-  const [reviewText, setReviewText] = useState(userReview?.review_text || "");
+  const [selectedEmotion, setSelectedEmotion] = useState<typeof EMOTION_RATINGS[number] | null>(null);
+  const [reviewText, setReviewText] = useState("");
   const [isSpoiler, setIsSpoiler] = useState(false);
-  const [sortBy, setSortBy] = useState<"helpful" | "recent">("helpful");
+  const [sortBy, setSortBy] = useState<"helpful" | "recent">("recent");
   const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
+
+  // Initialize from existing review
+  useState(() => {
+    if (userReview) {
+      setSelectedEmotion(getEmotionForRating(userReview.rating));
+      setReviewText(userReview.review_text || "");
+    }
+  });
 
   const handleSubmit = async (e?: React.MouseEvent) => {
     if (e) {
@@ -206,7 +210,9 @@ export function EnhancedReviewSection({
     setIsWriting(false);
   };
 
-  const toggleSpoilerReveal = (reviewId: string) => {
+  const toggleSpoilerReveal = (e: React.MouseEvent, reviewId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     setRevealedSpoilers(prev => {
       const next = new Set(prev);
       if (next.has(reviewId)) next.delete(reviewId);
@@ -223,7 +229,11 @@ export function EnhancedReviewSection({
     });
 
   return (
-    <div className="space-y-6" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="space-y-6" 
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
@@ -232,9 +242,7 @@ export function EnhancedReviewSection({
             <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-lg">
               <span className="text-base">{getEmotionForRating(averageRating).emoji}</span>
               <span className="font-bold text-sm">{averageRating.toFixed(1)}</span>
-              <span className="text-xs text-muted-foreground">
-                ({reviews.length})
-              </span>
+              <span className="text-xs text-muted-foreground">({reviews.length})</span>
             </div>
           )}
         </div>
@@ -242,12 +250,12 @@ export function EnhancedReviewSection({
         <div className="flex items-center gap-3">
           {reviews.length > 1 && (
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as "helpful" | "recent")}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectTrigger className="w-[120px] h-8 text-xs rounded-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="helpful">Most Helpful</SelectItem>
                 <SelectItem value="recent">Most Recent</SelectItem>
+                <SelectItem value="helpful">Most Helpful</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -257,7 +265,7 @@ export function EnhancedReviewSection({
               variant="default"
               size="sm"
               onClick={handleWriteClick}
-              className="gap-2"
+              className="gap-2 rounded-full"
               type="button"
             >
               <Edit className="w-4 h-4" />
@@ -268,11 +276,9 @@ export function EnhancedReviewSection({
       </div>
 
       {/* Sentiment Pie Chart */}
-      {reviews.length >= 2 && (
-        <SentimentPieChart reviews={reviews} />
-      )}
+      {reviews.length >= 2 && <SentimentPieChart reviews={reviews} />}
 
-      {/* Write Review Form - Animated */}
+      {/* Write Review Form */}
       <AnimatePresence>
         {isWriting && (
           <motion.div
@@ -280,11 +286,12 @@ export function EnhancedReviewSection({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.97 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-card rounded-2xl p-6 border border-border space-y-5 shadow-lg"
+            className="bg-card rounded-2xl p-6 border border-border shadow-lg space-y-5"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Emotion Rating */}
+            {/* Emotion Selection */}
             <div>
-              <label className="text-sm font-semibold mb-3 block text-foreground">How did this movie make you feel?</label>
+              <label className="text-sm font-semibold mb-3 block">How did this movie make you feel?</label>
               <div className="flex gap-2 flex-wrap">
                 {EMOTION_RATINGS.map((emotion) => {
                   const isActive = selectedEmotion?.value === emotion.value;
@@ -292,8 +299,8 @@ export function EnhancedReviewSection({
                     <motion.button
                       key={emotion.value}
                       type="button"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -305,7 +312,7 @@ export function EnhancedReviewSection({
                           : "bg-secondary/50 border-border hover:bg-secondary"
                       }`}
                     >
-                      <span className="text-xl">{emotion.emoji}</span>
+                      <span className="text-lg">{emotion.emoji}</span>
                       <span className={`text-xs font-medium ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                         {emotion.label}
                       </span>
@@ -317,12 +324,14 @@ export function EnhancedReviewSection({
 
             {/* Review Text */}
             <div>
-              <label className="text-sm font-semibold mb-2 block text-foreground">Your thoughts <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <label className="text-sm font-semibold mb-2 block">
+                Your thoughts <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
               <Textarea
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="What made it special? Share your insights..."
-                rows={4}
+                rows={3}
                 className="resize-none rounded-xl bg-secondary/30 border-border focus:border-primary/50"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -331,19 +340,21 @@ export function EnhancedReviewSection({
             {/* Spoiler Toggle */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30">
               <Switch
-                id="spoiler-toggle"
+                id="spoiler-toggle-write"
                 checked={isSpoiler}
-                onCheckedChange={setIsSpoiler}
+                onCheckedChange={(checked) => {
+                  setIsSpoiler(checked);
+                }}
               />
-              <Label htmlFor="spoiler-toggle" className="text-sm flex items-center gap-2 cursor-pointer text-muted-foreground">
+              <Label htmlFor="spoiler-toggle-write" className="text-sm flex items-center gap-2 cursor-pointer text-muted-foreground">
                 <AlertTriangle className="w-4 h-4 text-orange-500" />
                 Contains spoilers
               </Label>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 justify-end pt-1">
-              <Button variant="ghost" onClick={handleCancelClick} type="button" size="sm">
+            <div className="flex gap-3 justify-end">
+              <Button variant="ghost" onClick={handleCancelClick} type="button" size="sm" className="rounded-full">
                 Cancel
               </Button>
               <Button
@@ -351,7 +362,7 @@ export function EnhancedReviewSection({
                 type="button"
                 disabled={!selectedEmotion}
                 size="sm"
-                className="gap-2"
+                className="rounded-full"
               >
                 Submit Review
               </Button>
@@ -371,9 +382,7 @@ export function EnhancedReviewSection({
             <div className="flex items-center gap-3">
               <Avatar className="w-9 h-9">
                 <AvatarImage src={userReview.profiles?.avatar_url || ""} />
-                <AvatarFallback>
-                  <User className="w-4 h-4" />
-                </AvatarFallback>
+                <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-sm">Your Review</p>
@@ -393,26 +402,19 @@ export function EnhancedReviewSection({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedEmotion(getEmotionForRating(userReview.rating));
-                    setReviewText(userReview.review_text || "");
-                    setIsWriting(true);
-                  }}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedEmotion(getEmotionForRating(userReview.rating));
+                  setReviewText(userReview.review_text || "");
+                  setIsWriting(true);
+                }}>
+                  <Edit className="w-4 h-4 mr-2" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteReview();
-                  }}
+                  onClick={(e) => { e.stopPropagation(); deleteReview(); }}
                   className="text-destructive"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -427,39 +429,34 @@ export function EnhancedReviewSection({
       )}
 
       {/* Other Reviews */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {sortedReviews.map((review) => {
           const isSpoilerHidden = review.is_spoiler && !revealedSpoilers.has(review.id);
-          
+
           return (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-2xl p-4 border border-border space-y-3"
+              className="bg-card rounded-2xl p-4 border border-border space-y-2"
             >
               <div className="flex items-start gap-3">
                 <Avatar className="w-9 h-9">
                   <AvatarImage src={review.profiles?.avatar_url || ""} />
-                  <AvatarFallback>
-                    <User className="w-4 h-4" />
-                  </AvatarFallback>
+                  <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm truncate">
                       {review.profiles?.display_name || "Anonymous"}
                     </p>
-                    <span className="text-base">{getEmotionForRating(review.rating).emoji}</span>
+                    <span className="text-sm">{getEmotionForRating(review.rating).emoji}</span>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
                     </span>
                     {review.is_spoiler && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSpoilerReveal(review.id);
-                        }}
+                        onClick={(e) => toggleSpoilerReveal(e, review.id)}
                         type="button"
                         className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-orange-500/15 text-orange-500 rounded-full hover:bg-orange-500/25 transition-colors"
                       >
@@ -471,18 +468,38 @@ export function EnhancedReviewSection({
 
                   {review.review_text && (
                     <div className="relative mt-2">
-                      {isSpoilerHidden ? (
-                        <div 
-                          className="text-sm text-muted-foreground/50 select-none blur-sm pointer-events-none leading-relaxed"
-                          aria-hidden="true"
-                        >
-                          {review.review_text}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-foreground leading-relaxed break-words">
-                          {review.review_text}
-                        </p>
-                      )}
+                      <AnimatePresence mode="wait">
+                        {isSpoilerHidden ? (
+                          <motion.div
+                            key="hidden"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="relative cursor-pointer"
+                            onClick={(e) => toggleSpoilerReveal(e, review.id)}
+                          >
+                            <p className="text-sm text-muted-foreground/30 select-none blur-[6px] leading-relaxed pointer-events-none">
+                              {review.review_text}
+                            </p>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-xs text-orange-500 font-medium bg-orange-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                                <EyeOff className="w-3.5 h-3.5" />
+                                Tap to reveal spoiler
+                              </span>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.p
+                            key="visible"
+                            initial={{ opacity: 0, filter: "blur(8px)" }}
+                            animate={{ opacity: 1, filter: "blur(0px)" }}
+                            transition={{ duration: 0.4 }}
+                            className="text-sm text-foreground leading-relaxed break-words"
+                          >
+                            {review.review_text}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>
@@ -492,14 +509,26 @@ export function EnhancedReviewSection({
         })}
       </div>
 
+      {/* Empty */}
       {reviews.length === 0 && !isWriting && (
         <div className="text-center py-12 space-y-3">
           <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto">
             <MessageCircle className="w-8 h-8 text-muted-foreground" />
           </div>
           <p className="text-muted-foreground">
-            No reviews yet. {user ? "Be the first to share your thoughts!" : "Sign in to write a review."}
+            {user ? "Be the first to share your thoughts!" : "Sign in to write a review."}
           </p>
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleWriteClick}
+              className="rounded-full gap-2"
+              type="button"
+            >
+              <Edit className="w-4 h-4" /> Write Review
+            </Button>
+          )}
         </div>
       )}
     </div>
