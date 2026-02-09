@@ -23,7 +23,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect authenticated users
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
@@ -51,7 +50,6 @@ const Auth = () => {
 
   const handleKeyConfirm = async () => {
     if (!personaData || !generatedKey) return;
-
     setIsSubmitting(true);
     try {
       const keyHash = await hashKey(generatedKey);
@@ -61,12 +59,7 @@ const Auth = () => {
         gender: personaData.gender,
         purpose: personaData.purpose,
       });
-
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
+      if (error) { toast.error(error.message); return; }
       const loginResult = await signIn(generatedKey, true);
       if (loginResult.error) {
         toast.success("Account created! Please login with your key.");
@@ -75,8 +68,7 @@ const Auth = () => {
         toast.success("Welcome to MoodFlix! 🎬");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create account";
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,73 +77,44 @@ const Auth = () => {
   const handleLogin = async (key: string, rememberMe: boolean) => {
     setLoginError("");
     setIsSubmitting(true);
-
     try {
       const { error } = await signIn(key, rememberMe);
-
       if (error) {
-        if (error.message.toLowerCase().includes("invalid")) {
-          setLoginError("No account found with this key. Try creating a new vault first.");
-        } else {
-          setLoginError(error.message);
-        }
+        setLoginError(error.message.toLowerCase().includes("invalid")
+          ? "No account found with this key."
+          : error.message
+        );
         setIsSubmitting(false);
         return;
       }
-
       toast.success("Welcome back! 🎬");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
-      setLoginError(message);
+      setLoginError(err instanceof Error ? err.message : "Login failed.");
       setIsSubmitting(false);
     }
   };
 
-  // Loading state
-  if (isLoading) {
+  if (isLoading || isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Already authenticated
-  if (isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Redirecting...</p>
-        </motion.div>
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Close button */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Close */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         onClick={() => navigate("/")}
-        className="absolute top-5 right-5 z-50 p-2 rounded-full bg-secondary text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+        className="absolute top-5 right-5 z-50 p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
       >
         <X className="w-5 h-5" />
       </motion.button>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <AnimatePresence mode="wait">
@@ -161,143 +124,83 @@ const Auth = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.3 }}
                 className="space-y-8"
               >
-                {/* Logo */}
                 <div className="text-center">
-                  <motion.div
+                  <motion.img
+                    src={logo}
+                    alt="MoodFlix"
+                    className="h-12 w-auto mx-auto mb-8"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="inline-block mb-8"
-                  >
-                    <img
-                      src={logo}
-                      alt="MoodFlix"
-                      className="h-14 w-auto mx-auto"
-                    />
-                  </motion.div>
-
-                  {/* Title */}
-                  <motion.h1
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-2xl font-bold text-foreground tracking-tight"
-                  >
-                    Welcome Back
-                  </motion.h1>
-
-                  {/* Subtitle */}
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-muted-foreground mt-2 text-base"
-                  >
-                    Sign in with your secret key or create a new account
-                  </motion.p>
+                  />
+                  <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                    Welcome to MoodFlix
+                  </h1>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Movies that match your mood
+                  </p>
                 </div>
 
-                {/* Action Buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-3 pt-4"
-                >
-                  {/* Primary: Login with Key */}
+                <div className="space-y-3 pt-2">
                   <button
                     onClick={() => setStep("login")}
-                    className="w-full py-4 px-6 rounded-xl bg-primary text-primary-foreground font-medium text-center transition-all hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+                    className="w-full py-3.5 px-6 rounded-xl bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 active:scale-[0.98]"
                   >
                     Sign In with Key
                   </button>
-
-                  {/* Secondary: Create Vault */}
                   <button
                     onClick={() => setStep("signup-persona")}
-                    className="w-full py-4 px-6 rounded-xl bg-secondary border border-border text-foreground font-medium text-center transition-all hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring/50 focus:ring-offset-2 focus:ring-offset-background"
+                    className="w-full py-3.5 px-6 rounded-xl bg-secondary border border-border text-foreground font-medium transition-all hover:bg-muted active:scale-[0.98]"
                   >
                     Create New Account
                   </button>
-                </motion.div>
+                </div>
 
-                {/* Continue as guest */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-center pt-4"
-                >
+                <div className="text-center">
                   <button
                     onClick={() => navigate("/")}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Continue as Guest →
                   </button>
-                </motion.div>
+                </div>
               </motion.div>
             )}
 
             {step === "signup-persona" && (
               <motion.div
-                key="signup-persona"
+                key="signup"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
+                transition={{ duration: 0.3 }}
               >
-                {/* Header */}
                 <div className="text-center mb-6">
-                  <img
-                    src={logo}
-                    alt="MoodFlix"
-                    className="h-10 w-auto mx-auto mb-6"
-                  />
-                  <h1 className="text-xl font-bold text-foreground">
-                    Create Your Profile
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Tell us a bit about yourself
-                  </p>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
+                  <h1 className="text-xl font-bold text-foreground">Create Your Profile</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Quick setup — takes 30 seconds</p>
                 </div>
-
                 <div className="bg-card rounded-2xl border border-border p-6">
-                  <PersonaForm
-                    onSubmit={handlePersonaSubmit}
-                    isLoading={isSubmitting}
-                  />
+                  <PersonaForm onSubmit={handlePersonaSubmit} isLoading={isSubmitting} />
                 </div>
               </motion.div>
             )}
 
             {step === "signup-key" && generatedKey && personaData && (
               <motion.div
-                key="signup-key"
+                key="key"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
+                transition={{ duration: 0.3 }}
               >
-                {/* Header */}
                 <div className="text-center mb-6">
-                  <img
-                    src={logo}
-                    alt="MoodFlix"
-                    className="h-10 w-auto mx-auto mb-6"
-                  />
-                  <h1 className="text-xl font-bold text-foreground">
-                    Your Secret Key
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Save this key securely - you'll need it to sign in
-                  </p>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
+                  <h1 className="text-xl font-bold text-foreground">Your Secret Key</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Save this — it's your only way to sign in</p>
                 </div>
-
                 <div className="bg-card rounded-2xl border border-border p-6">
                   <KeyRevealCard
                     secretKey={generatedKey}
@@ -315,24 +218,13 @@ const Auth = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
+                transition={{ duration: 0.3 }}
               >
-                {/* Header */}
                 <div className="text-center mb-6">
-                  <img
-                    src={logo}
-                    alt="MoodFlix"
-                    className="h-10 w-auto mx-auto mb-6"
-                  />
-                  <h1 className="text-xl font-bold text-foreground">
-                    Welcome Back
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Enter your secret key to sign in
-                  </p>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
+                  <h1 className="text-xl font-bold text-foreground">Welcome Back</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Enter your key to continue</p>
                 </div>
-
                 <div className="bg-card rounded-2xl border border-border p-6">
                   <KeyLoginForm
                     onSubmit={handleLogin}
@@ -345,41 +237,30 @@ const Auth = () => {
             )}
           </AnimatePresence>
 
-          {/* Back button for sub-steps */}
           {step !== "choice" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 text-center"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-center">
               <button
                 onClick={() => setStep("choice")}
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-2"
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm inline-flex items-center gap-1.5"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back
               </button>
             </motion.div>
           )}
         </div>
       </div>
 
-      {/* Bottom info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="px-6 pb-8 text-center"
-      >
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-muted-foreground" />
+      {/* Footer */}
+      <div className="px-6 pb-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Shield className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Secure & Private</span>
         </div>
-        <p className="text-muted-foreground/70 text-xs leading-relaxed max-w-xs mx-auto">
-          Your data is encrypted and stored securely. We never share your information.
+        <p className="text-muted-foreground/60 text-[11px]">
+          Your data is encrypted. We never share your information.
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 };
