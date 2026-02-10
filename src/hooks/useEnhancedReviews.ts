@@ -68,6 +68,7 @@ export function useEnhancedReviews(movieId?: number) {
       
       let profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
       
+      // Also try to get display_name from key_users for key-auth users
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
@@ -75,28 +76,45 @@ export function useEnhancedReviews(movieId?: number) {
           .in('user_id', userIds);
 
         profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+        // Fall back to key_users for profiles not found
+        const missingIds = userIds.filter(id => !profileMap.has(id));
+        if (missingIds.length > 0) {
+          const { data: keyUsers } = await supabase
+            .from('key_users')
+            .select('id, display_name')
+            .in('id', missingIds);
+          
+          keyUsers?.forEach(ku => {
+            if (!profileMap.has(ku.id)) {
+              profileMap.set(ku.id, { display_name: ku.display_name, avatar_url: null });
+            }
+          });
+        }
       }
 
-      // Map reviews with profile data and default values for missing columns
-      const reviewsWithData: EnhancedReview[] = (reviewsData || []).map(r => ({
-        id: r.id,
-        user_id: r.user_id,
-        movie_id: r.movie_id,
-        movie_title: r.movie_title,
-        movie_poster: r.movie_poster,
-        rating: r.rating,
-        review_text: r.review_text,
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-        // Default values for columns that might not exist
-        is_spoiler: false,
-        helpful_count: 0,
-        reply_count: 0,
-        is_edited: false,
-        profiles: profileMap.get(r.user_id),
-        replies: [],
-        user_reaction: null,
-      }));
+      // Detect spoiler from review_text prefix
+      const reviewsWithData: EnhancedReview[] = (reviewsData || []).map(r => {
+        const isSpoiler = r.review_text?.startsWith("[SPOILER]") ?? false;
+        return {
+          id: r.id,
+          user_id: r.user_id,
+          movie_id: r.movie_id,
+          movie_title: r.movie_title,
+          movie_poster: r.movie_poster,
+          rating: r.rating,
+          review_text: r.review_text,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          is_spoiler: isSpoiler,
+          helpful_count: 0,
+          reply_count: 0,
+          is_edited: false,
+          profiles: profileMap.get(r.user_id),
+          replies: [],
+          user_reaction: null,
+        };
+      });
 
       setReviews(reviewsWithData);
 
@@ -128,8 +146,6 @@ export function useEnhancedReviews(movieId?: number) {
       return;
     }
 
-    console.log('[Reviews] Adding review via API for user:', user.id, 'movie:', review.movie_id);
-
     try {
       const result = await addReviewApi({
         movie_id: review.movie_id,
@@ -140,79 +156,55 @@ export function useEnhancedReviews(movieId?: number) {
       });
 
       if (result.error) {
-        console.error('[Reviews] API error:', result.error);
-        
         // If key-auth fails, try direct insert as fallback
         if (result.error === 'Not authenticated' || result.error === 'Session expired') {
-          console.log('[Reviews] Trying direct insert fallback...');
-          const { error: directError } = await supabase
+          const { data: existing } = await supabase
             .from('reviews')
-            .upsert({
-              user_id: user.id,
-              movie_id: review.movie_id,
-              movie_title: review.movie_title,
-              movie_poster: review.movie_poster || null,
-              rating: review.rating,
-              review_text: review.review_text || null,
-            }, { onConflict: 'user_id,movie_id', ignoreDuplicates: false });
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('movie_id', review.movie_id)
+            .maybeSingle();
 
-          if (directError) {
-            // If upsert fails on conflict, try separate logic
-            console.error('[Reviews] Direct upsert error:', directError);
-            
-            // Check if review exists
-            const { data: existing } = await supabase
+          if (existing) {
+            const { error: updateError } = await supabase
               .from('reviews')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('movie_id', review.movie_id)
-              .maybeSingle();
+              .update({
+                rating: review.rating,
+                review_text: review.review_text || null,
+                movie_poster: review.movie_poster || null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existing.id);
 
-            if (existing) {
-              const { error: updateError } = await supabase
-                .from('reviews')
-                .update({
-                  rating: review.rating,
-                  review_text: review.review_text || null,
-                  movie_poster: review.movie_poster || null,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existing.id);
+            if (updateError) {
+              toast({ title: 'Error updating review', description: updateError.message, variant: 'destructive' });
+              return;
+            }
+          } else {
+            const { error: insertError } = await supabase
+              .from('reviews')
+              .insert({
+                user_id: user.id,
+                movie_id: review.movie_id,
+                movie_title: review.movie_title,
+                movie_poster: review.movie_poster || null,
+                rating: review.rating,
+                review_text: review.review_text || null,
+              });
 
-              if (updateError) {
-                toast({ title: 'Error updating review', description: updateError.message, variant: 'destructive' });
-                return;
-              }
-            } else {
-              const { error: insertError } = await supabase
-                .from('reviews')
-                .insert({
-                  user_id: user.id,
-                  movie_id: review.movie_id,
-                  movie_title: review.movie_title,
-                  movie_poster: review.movie_poster || null,
-                  rating: review.rating,
-                  review_text: review.review_text || null,
-                });
-
-              if (insertError) {
-                toast({ title: 'Error submitting review', description: insertError.message, variant: 'destructive' });
-                return;
-              }
+            if (insertError) {
+              toast({ title: 'Error submitting review', description: insertError.message, variant: 'destructive' });
+              return;
             }
           }
         } else {
-          toast({
-            title: 'Error submitting review',
-            description: result.error,
-            variant: 'destructive',
-          });
+          toast({ title: 'Error submitting review', description: result.error, variant: 'destructive' });
           return;
         }
       }
 
       await fetchReviews();
-      toast({ title: 'Review submitted successfully! 🎬' });
+      toast({ title: 'Review submitted! ✦' });
     } catch (err) {
       console.error('[Reviews] Unexpected error:', err);
       toast({ title: 'Error submitting review', description: 'Please try again', variant: 'destructive' });
@@ -225,12 +217,16 @@ export function useEnhancedReviews(movieId?: number) {
     const result = await deleteReviewApi(userReview.id);
 
     if (result.error) {
-      toast({
-        title: 'Error deleting review',
-        description: result.error,
-        variant: 'destructive',
-      });
-      return;
+      // Fallback: direct delete
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', userReview.id);
+      
+      if (error) {
+        toast({ title: 'Error deleting review', description: error.message, variant: 'destructive' });
+        return;
+      }
     }
 
     setUserReview(null);
@@ -239,7 +235,6 @@ export function useEnhancedReviews(movieId?: number) {
   };
 
   const addReply = async (reviewId: string, replyText: string, parentReplyId?: string) => {
-    // Reply functionality requires review_replies table - show info message
     toast({ title: 'Reply feature coming soon!' });
   };
 
@@ -251,7 +246,6 @@ export function useEnhancedReviews(movieId?: number) {
     reviewId: string,
     reactionType: 'helpful' | 'insightful' | 'funny' | 'agree' | 'disagree'
   ) => {
-    // Reaction functionality requires review_reactions table - show info message
     toast({ title: 'Reaction feature coming soon!' });
   };
 

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Star, Play, Plus, Check } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWatchlist } from "@/hooks/useWatchlist";
+import { toast } from "sonner";
 
 interface Movie {
   id: number;
@@ -154,22 +155,30 @@ export const CinematicImageCarousel = memo(({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleNext, handlePrev, pauseAutoPlay, resumeAutoPlayDelayed]);
 
+  const [watchlistAnimating, setWatchlistAnimating] = useState(false);
+
   if (movies.length === 0) return null;
 
   const currentMovie = movies[currentIndex];
   const inWatchlist = isInWatchlist(currentMovie.id);
 
-  const handleWatchlistToggle = () => {
+  const handleWatchlistToggle = async () => {
+    setWatchlistAnimating(true);
     if (inWatchlist) {
-      removeFromWatchlist(currentMovie.id);
+      await removeFromWatchlist(currentMovie.id);
+      toast(`Removed "${currentMovie.title}" from watchlist`);
     } else {
-      addToWatchlist({
+      const added = await addToWatchlist({
         id: currentMovie.id,
         title: currentMovie.title,
         poster_path: currentMovie.posterUrl?.replace("https://image.tmdb.org/t/p/w500", ""),
         vote_average: currentMovie.rating,
       });
+      if (added) {
+        toast(`🍿 "${currentMovie.title}" added to your watchlist!`);
+      }
     }
+    setTimeout(() => setWatchlistAnimating(false), 600);
   };
 
   return (
@@ -255,7 +264,9 @@ export const CinematicImageCarousel = memo(({
 
                 {/* Add to Watchlist */}
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.85 }}
+                  animate={watchlistAnimating ? { scale: [1, 1.3, 1] } : {}}
+                  transition={{ duration: 0.4 }}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -264,16 +275,22 @@ export const CinematicImageCarousel = memo(({
                   className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center
                     backdrop-blur-md transition-all duration-300 border
                     ${inWatchlist
-                      ? "bg-white/20 border-white/40 text-white"
+                      ? "bg-white/25 border-white/50 text-white"
                       : "bg-white/10 border-white/20 text-white hover:bg-white/20"
                     }`}
                   aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
                 >
-                  {inWatchlist ? (
-                    <Check className="w-5 h-5 md:w-6 md:h-6" />
-                  ) : (
-                    <Plus className="w-5 h-5 md:w-6 md:h-6" />
-                  )}
+                  <AnimatePresence mode="wait">
+                    {inWatchlist ? (
+                      <motion.div key="check" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} transition={{ type: "spring", damping: 15 }}>
+                        <Check className="w-5 h-5 md:w-6 md:h-6" />
+                      </motion.div>
+                    ) : (
+                      <motion.div key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                        <Plus className="w-5 h-5 md:w-6 md:h-6" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               </div>
             </motion.div>

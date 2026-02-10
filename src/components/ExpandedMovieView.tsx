@@ -255,14 +255,28 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
           className="fixed inset-0 z-50 bg-background"
           {...swipeHandlers}
         >
-          {/* Background blur */}
+          {/* Background with auto-playing trailer backdrop */}
           <motion.div 
             className="absolute inset-0 overflow-hidden"
             initial={{ scale: 1.05 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            {(details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
+            {/* Trailer backdrop when available */}
+            {details?.trailerKey && showContent && (
+              <div className="absolute inset-0 z-0">
+                <iframe
+                  src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${details.trailerKey}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1`}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ transform: "scale(1.5)", objectFit: "cover" }}
+                  allow="autoplay; encrypted-media"
+                  title="Backdrop"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/85 to-background" />
+              </div>
+            )}
+            {/* Fallback image backdrop */}
+            {(!details?.trailerKey || !showContent) && (details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
               <img
                 src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl}
                 alt=""
