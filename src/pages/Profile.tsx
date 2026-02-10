@@ -10,7 +10,8 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 import { useAuth } from "@/hooks/useAuth";
 import {
   FolderHeart, Bookmark, Edit3, Sparkles, Film, LogOut, LogIn, User,
-  Palette, Check, Camera, X, Save
+  Palette, Check, Camera, X, Save, Heart, Globe, Star, Clapperboard,
+  Music, Popcorn, BookOpen, Settings
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,6 +26,10 @@ interface LocalProfile {
   avatar_image: string | null;
   accent_color: string;
   bio: string;
+  favorite_quote: string;
+  favorite_director: string;
+  movie_personality: string;
+  social_link: string;
 }
 
 const AVATAR_OPTIONS = [
@@ -35,6 +40,17 @@ const AVATAR_OPTIONS = [
 const ACCENT_COLORS = [
   "#8B5CF6", "#EC4899", "#F59E0B", "#10B981", "#3B82F6",
   "#EF4444", "#06B6D4", "#F97316", "#84CC16", "#A855F7",
+];
+
+const GENRE_OPTIONS = [
+  "Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Romance",
+  "Thriller", "Animation", "Documentary", "Fantasy", "Mystery", "Musical"
+];
+
+const MOVIE_PERSONALITIES = [
+  "🎬 The Cinephile", "🍿 Casual Viewer", "🎭 Drama Lover",
+  "⚡ Action Junkie", "🌙 Night Owl Binger", "📚 Story Seeker",
+  "🎪 Genre Explorer", "🌟 Blockbuster Fan"
 ];
 
 const Profile = () => {
@@ -51,11 +67,19 @@ const Profile = () => {
     avatar_image: null,
     accent_color: "#8B5CF6",
     bio: "",
+    favorite_quote: "",
+    favorite_director: "",
+    movie_personality: "",
+    social_link: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedBio, setEditedBio] = useState("");
+  const [editedQuote, setEditedQuote] = useState("");
+  const [editedDirector, setEditedDirector] = useState("");
+  const [editedSocialLink, setEditedSocialLink] = useState("");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const profileStorageKey = user?.id ? `${PROFILE_STORAGE_KEY}_${user.id}` : PROFILE_STORAGE_KEY;
 
@@ -67,6 +91,9 @@ const Profile = () => {
         setProfile(prev => ({ ...prev, ...parsed }));
         setEditedName(parsed.display_name || displayName || "");
         setEditedBio(parsed.bio || "");
+        setEditedQuote(parsed.favorite_quote || "");
+        setEditedDirector(parsed.favorite_director || "");
+        setEditedSocialLink(parsed.social_link || "");
       } else if (displayName) {
         setEditedName(displayName);
         setProfile(prev => ({ ...prev, display_name: displayName }));
@@ -84,8 +111,21 @@ const Profile = () => {
   };
 
   const handleSaveEdit = () => {
-    saveProfile({ display_name: editedName, bio: editedBio });
+    saveProfile({
+      display_name: editedName,
+      bio: editedBio,
+      favorite_quote: editedQuote,
+      favorite_director: editedDirector,
+      social_link: editedSocialLink,
+    });
     setIsEditing(false);
+  };
+
+  const toggleGenre = (genre: string) => {
+    const updated = profile.favorite_genres.includes(genre)
+      ? profile.favorite_genres.filter(g => g !== genre)
+      : [...profile.favorite_genres, genre];
+    saveProfile({ favorite_genres: updated });
   };
 
   const handleSignOut = async () => {
@@ -174,8 +214,8 @@ const Profile = () => {
         onChange={handleImageUpload}
       />
 
-      <main className="max-w-md mx-auto px-4 py-8 space-y-8">
-        {/* Profile Hero - Centered, inspired by reference */}
+      <main className="max-w-lg mx-auto px-4 py-8 space-y-6">
+        {/* Profile Hero */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,17 +228,17 @@ const Profile = () => {
               className="relative group"
             >
               <div
-                className="w-24 h-24 rounded-full flex items-center justify-center ring-4 ring-border hover:ring-primary/40 transition-all overflow-hidden"
+                className="w-28 h-28 rounded-full flex items-center justify-center ring-4 ring-border hover:ring-primary/40 transition-all overflow-hidden shadow-lg"
                 style={{ backgroundColor: `${profile.accent_color}15` }}
               >
                 {profile.avatar_image ? (
                   <img src={profile.avatar_image} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-5xl">{profile.avatar_emoji}</span>
+                  <span className="text-6xl">{profile.avatar_emoji}</span>
                 )}
               </div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-card border-2 border-border flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <Camera className="w-3.5 h-3.5" />
+              <div className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-card border-2 border-border flex items-center justify-center shadow-md group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Camera className="w-4 h-4" />
               </div>
             </button>
 
@@ -211,9 +251,8 @@ const Profile = () => {
                     initial={{ opacity: 0, scale: 0.9, y: -8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: -8 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-[280px]"
+                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-50 bg-card border border-border rounded-2xl shadow-2xl p-4 w-[300px]"
                   >
-                    {/* Upload photo option */}
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary transition-colors mb-3"
@@ -229,10 +268,7 @@ const Profile = () => {
 
                     {profile.avatar_image && (
                       <button
-                        onClick={() => {
-                          saveProfile({ avatar_image: null });
-                          setShowAvatarPicker(false);
-                        }}
+                        onClick={() => { saveProfile({ avatar_image: null }); setShowAvatarPicker(false); }}
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-destructive/10 text-destructive transition-colors mb-3"
                       >
                         <X className="w-4 h-4" />
@@ -247,14 +283,9 @@ const Profile = () => {
                       {AVATAR_OPTIONS.map(emoji => (
                         <button
                           key={emoji}
-                          onClick={() => {
-                            saveProfile({ avatar_emoji: emoji, avatar_image: null });
-                            setShowAvatarPicker(false);
-                          }}
+                          onClick={() => { saveProfile({ avatar_emoji: emoji, avatar_image: null }); setShowAvatarPicker(false); }}
                           className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl hover:bg-secondary transition-colors ${
-                            !profile.avatar_image && profile.avatar_emoji === emoji
-                              ? "bg-primary/10 ring-2 ring-primary"
-                              : ""
+                            !profile.avatar_image && profile.avatar_emoji === emoji ? "bg-primary/10 ring-2 ring-primary" : ""
                           }`}
                         >
                           {emoji}
@@ -290,15 +321,11 @@ const Profile = () => {
 
           {/* Name & Bio */}
           {isEditing ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="w-full space-y-3 max-w-xs"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full space-y-3 max-w-sm">
               <Input
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
-                className="text-center text-lg font-semibold h-11 rounded-xl"
+                className="text-center text-lg font-semibold h-12 rounded-xl"
                 placeholder="Your name"
                 autoFocus
               />
@@ -306,10 +333,28 @@ const Profile = () => {
                 value={editedBio}
                 onChange={(e) => setEditedBio(e.target.value)}
                 className="text-center text-sm resize-none rounded-xl"
-                placeholder="Write a short bio..."
+                placeholder="Short bio — who are you as a movie lover?"
                 rows={2}
               />
-              <div className="flex gap-2 justify-center">
+              <Input
+                value={editedQuote}
+                onChange={(e) => setEditedQuote(e.target.value)}
+                className="text-center text-sm h-10 rounded-xl"
+                placeholder="Favorite movie quote..."
+              />
+              <Input
+                value={editedDirector}
+                onChange={(e) => setEditedDirector(e.target.value)}
+                className="text-center text-sm h-10 rounded-xl"
+                placeholder="Favorite director..."
+              />
+              <Input
+                value={editedSocialLink}
+                onChange={(e) => setEditedSocialLink(e.target.value)}
+                className="text-center text-sm h-10 rounded-xl"
+                placeholder="Social link (optional)..."
+              />
+              <div className="flex gap-2 justify-center pt-1">
                 <Button size="sm" onClick={handleSaveEdit} className="gap-1.5 rounded-full">
                   <Save className="w-3.5 h-3.5" /> Save
                 </Button>
@@ -321,29 +366,115 @@ const Profile = () => {
           ) : (
             <div>
               <div className="flex items-center justify-center gap-2">
-                <h1 className="font-display text-xl font-bold">
-                  {profile.display_name || displayName}
-                </h1>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="p-1.5 hover:bg-muted rounded-full transition-colors"
-                >
+                <h1 className="font-display text-2xl font-bold">{profile.display_name || displayName}</h1>
+                <button onClick={() => setIsEditing(true)} className="p-1.5 hover:bg-muted rounded-full transition-colors">
                   <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               </div>
               <p className="text-sm text-muted-foreground">@{username || "user"}</p>
-              {profile.bio && (
-                <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">{profile.bio}</p>
+              {profile.bio && <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">{profile.bio}</p>}
+              {profile.favorite_quote && (
+                <p className="text-xs text-muted-foreground/80 mt-2 italic max-w-xs mx-auto">"{profile.favorite_quote}"</p>
               )}
             </div>
           )}
         </motion.div>
 
-        {/* Quick Action Buttons - Like reference */}
+        {/* Movie Personality */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <button
+            onClick={() => setActiveSection(activeSection === "personality" ? null : "personality")}
+            className="w-full flex items-center justify-between p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Clapperboard className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold">{profile.movie_personality || "Choose your movie personality"}</p>
+                <p className="text-xs text-muted-foreground">How do you watch movies?</p>
+              </div>
+            </div>
+          </button>
+          <AnimatePresence>
+            {activeSection === "personality" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-2 gap-2 pt-3">
+                  {MOVIE_PERSONALITIES.map(p => (
+                    <button
+                      key={p}
+                      onClick={() => saveProfile({ movie_personality: p })}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        profile.movie_personality === p
+                          ? "bg-primary/10 border-primary text-primary border"
+                          : "bg-secondary/50 border border-border hover:bg-secondary"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Favorite Genres */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <button
+            onClick={() => setActiveSection(activeSection === "genres" ? null : "genres")}
+            className="w-full flex items-center justify-between p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-accent/10">
+                <Heart className="w-5 h-5 text-accent" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold">Favorite Genres</p>
+                <p className="text-xs text-muted-foreground">
+                  {profile.favorite_genres.length > 0 ? profile.favorite_genres.join(", ") : "Select your favorites"}
+                </p>
+              </div>
+            </div>
+          </button>
+          <AnimatePresence>
+            {activeSection === "genres" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-wrap gap-2 pt-3">
+                  {GENRE_OPTIONS.map(genre => (
+                    <button
+                      key={genre}
+                      onClick={() => toggleGenre(genre)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        profile.favorite_genres.includes(genre)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+          transition={{ delay: 0.15 }}
           className="grid grid-cols-3 gap-3"
         >
           <button
@@ -351,7 +482,7 @@ const Profile = () => {
             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 transition-colors"
           >
             <Camera className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Set Photo</span>
+            <span className="text-xs font-medium text-muted-foreground">Avatar</span>
           </button>
           <button
             onClick={() => setIsEditing(true)}
@@ -365,26 +496,39 @@ const Profile = () => {
             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 transition-colors"
           >
             <Bookmark className="w-5 h-5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Watchlist</span>
+            <span className="text-xs font-medium text-muted-foreground">Library</span>
           </Link>
         </motion.div>
 
-        {/* Info Card */}
+        {/* Stats & Info */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="bg-card rounded-2xl border border-border p-5 space-y-4"
         >
-          <div className="space-y-1">
-            <p className="text-lg font-semibold">{watchlist.length} Movies</p>
-            <p className="text-xs text-muted-foreground">In your watchlist</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-2xl font-bold">{watchlist.length}</p>
+              <p className="text-xs text-muted-foreground">Movies Saved</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{profile.favorite_genres.length}</p>
+              <p className="text-xs text-muted-foreground">Favorite Genres</p>
+            </div>
           </div>
-
-          {profile.bio && (
+          {profile.favorite_director && (
             <div className="pt-3 border-t border-border">
-              <p className="text-sm text-foreground leading-relaxed">{profile.bio}</p>
-              <p className="text-xs text-muted-foreground mt-1">Bio</p>
+              <p className="text-xs text-muted-foreground">Favorite Director</p>
+              <p className="text-sm font-medium mt-0.5">{profile.favorite_director}</p>
+            </div>
+          )}
+          {profile.social_link && (
+            <div className="pt-3 border-t border-border">
+              <a href={profile.social_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <Globe className="w-3.5 h-3.5" />
+                {profile.social_link.replace(/^https?:\/\//, "")}
+              </a>
             </div>
           )}
         </motion.div>
@@ -393,7 +537,7 @@ const Profile = () => {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
+          transition={{ delay: 0.25 }}
           className="space-y-3"
         >
           <div className="flex items-center justify-between">
@@ -438,33 +582,18 @@ const Profile = () => {
           )}
         </motion.section>
 
-        {/* Actions */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="pt-4 border-t border-border space-y-3"
-        >
-          <Link to="/assessment">
-            <Button variant="outline" className="w-full justify-start gap-3 rounded-xl">
-              <Sparkles className="w-4 h-4" /> Take Mood Assessment
-            </Button>
-          </Link>
-          <Link to="/">
-            <Button variant="outline" className="w-full justify-start gap-3 rounded-xl">
-              <Film className="w-4 h-4" /> Browse Movies
-            </Button>
-          </Link>
+        {/* Sign Out */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={handleSignOut}
-            className="w-full justify-start gap-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="w-full gap-2 text-muted-foreground hover:text-destructive rounded-xl h-12"
           >
-            <LogOut className="w-4 h-4" /> Sign Out
+            <LogOut className="w-4 h-4" />
+            Sign Out
           </Button>
-        </motion.section>
+        </motion.div>
       </main>
-
       <Footer />
     </div>
   );
