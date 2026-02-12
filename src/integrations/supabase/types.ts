@@ -573,86 +573,6 @@ export type Database = {
         }
         Relationships: []
       }
-      review_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          reaction_type: string
-          review_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          reaction_type: string
-          review_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          reaction_type?: string
-          review_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "review_reactions_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      review_replies: {
-        Row: {
-          created_at: string
-          id: string
-          is_edited: boolean | null
-          parent_reply_id: string | null
-          reply_text: string
-          review_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_edited?: boolean | null
-          parent_reply_id?: string | null
-          reply_text: string
-          review_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_edited?: boolean | null
-          parent_reply_id?: string | null
-          reply_text?: string
-          review_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "review_replies_parent_reply_id_fkey"
-            columns: ["parent_reply_id"]
-            isOneToOne: false
-            referencedRelation: "review_replies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "review_replies_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       reviews: {
         Row: {
           created_at: string
@@ -911,27 +831,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      user_follows: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
       }
       user_roles: {
         Row: {
