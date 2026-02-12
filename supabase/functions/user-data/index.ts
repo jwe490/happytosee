@@ -6,26 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Verify JWT and extract user ID
 function verifyJWT(token: string, secret: string): { valid: boolean; userId?: string } {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return { valid: false };
-
     const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-
-    // Check expiration
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return { valid: false };
-    }
-
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return { valid: false };
     return { valid: true, userId: payload.sub };
   } catch {
     return { valid: false };
   }
 }
 
-// Hash function for token verification
 async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(token);
@@ -44,18 +36,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const jwtSecret = Deno.env.get("JWT_SECRET");
 
-    if (!jwtSecret) {
-      throw new Error("JWT_SECRET is not set");
-    }
+    if (!jwtSecret) throw new Error("JWT_SECRET is not set");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-
     const body = await req.json();
     const { action, token, data } = body;
 
     console.log(`[user-data] Action: ${action}`);
 
-    // Verify token
     const result = verifyJWT(token, jwtSecret);
     if (!result.valid || !result.userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -64,7 +52,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify session exists in DB
     const tokenHash = await hashToken(token);
     const { data: session } = await supabase
       .from("key_sessions")
@@ -85,41 +72,27 @@ Deno.serve(async (req) => {
       // ==================== GET DATA ====================
       case "get_watchlist": {
         const { data: watchlist, error } = await supabase
-          .from("watchlist")
-          .select("*")
-          .eq("user_id", userId)
+          .from("watchlist").select("*").eq("user_id", userId)
           .order("created_at", { ascending: false });
-
         if (error) throw error;
-
         return new Response(JSON.stringify({ watchlist: watchlist || [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       case "get_collections": {
-        // Get collections with their movies
         const { data: collections, error } = await supabase
-          .from("collections")
-          .select("*")
-          .eq("user_id", userId)
+          .from("collections").select("*").eq("user_id", userId)
           .order("updated_at", { ascending: false });
-
         if (error) throw error;
-
-        // Get movies for each collection
         const collectionsWithMovies = await Promise.all(
           (collections || []).map(async (collection) => {
             const { data: movies } = await supabase
-              .from("collection_movies")
-              .select("*")
-              .eq("collection_id", collection.id)
+              .from("collection_movies").select("*").eq("collection_id", collection.id)
               .order("added_at", { ascending: false });
-
             return { ...collection, movies: movies || [] };
           })
         );
-
         return new Response(JSON.stringify({ collections: collectionsWithMovies }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -127,30 +100,17 @@ Deno.serve(async (req) => {
 
       case "get_collection_movies": {
         const { collection_id } = data;
-
-        // Verify collection belongs to user
         const { data: collection } = await supabase
-          .from("collections")
-          .select("id")
-          .eq("id", collection_id)
-          .eq("user_id", userId)
-          .maybeSingle();
-
+          .from("collections").select("id").eq("id", collection_id).eq("user_id", userId).maybeSingle();
         if (!collection) {
           return new Response(JSON.stringify({ error: "Collection not found" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         const { data: movies, error } = await supabase
-          .from("collection_movies")
-          .select("*")
-          .eq("collection_id", collection_id)
+          .from("collection_movies").select("*").eq("collection_id", collection_id)
           .order("added_at", { ascending: false });
-
         if (error) throw error;
-
         return new Response(JSON.stringify({ movies: movies || [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -158,24 +118,14 @@ Deno.serve(async (req) => {
 
       case "update_collection": {
         const { collection_id, name, description, is_public, mood } = data;
-
-        const updateData: Record<string, unknown> = {
-          updated_at: new Date().toISOString(),
-        };
+        const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (name !== undefined) updateData.name = name;
         if (description !== undefined) updateData.description = description;
         if (is_public !== undefined) updateData.is_public = is_public;
         if (mood !== undefined) updateData.mood = mood;
-
-        const { error } = await supabase
-          .from("collections")
-          .update(updateData)
-          .eq("id", collection_id)
-          .eq("user_id", userId);
-
+        const { error } = await supabase.from("collections").update(updateData)
+          .eq("id", collection_id).eq("user_id", userId);
         if (error) throw error;
-        console.log("[user-data] Collection updated:", collection_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -184,44 +134,21 @@ Deno.serve(async (req) => {
       // ==================== REVIEWS ====================
       case "add_review": {
         const { movie_id, movie_title, movie_poster, rating, review_text } = data;
-
-        // Check existing
-        const { data: existing } = await supabase
-          .from("reviews")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("movie_id", movie_id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("reviews").select("id")
+          .eq("user_id", userId).eq("movie_id", movie_id).maybeSingle();
         if (existing) {
-          // Update
-          const { error } = await supabase
-            .from("reviews")
-            .update({
-              rating,
-              review_text: review_text || null,
-              movie_poster: movie_poster || null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
-
+          const { error } = await supabase.from("reviews").update({
+            rating, review_text: review_text || null, movie_poster: movie_poster || null,
+            updated_at: new Date().toISOString(),
+          }).eq("id", existing.id);
           if (error) throw error;
-          console.log("[user-data] Review updated for movie:", movie_id);
         } else {
-          // Insert
           const { error } = await supabase.from("reviews").insert({
-            user_id: userId,
-            movie_id,
-            movie_title,
-            movie_poster: movie_poster || null,
-            rating,
-            review_text: review_text || null,
+            user_id: userId, movie_id, movie_title,
+            movie_poster: movie_poster || null, rating, review_text: review_text || null,
           });
-
           if (error) throw error;
-          console.log("[user-data] Review created for movie:", movie_id);
         }
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -229,17 +156,122 @@ Deno.serve(async (req) => {
 
       case "delete_review": {
         const { review_id } = data;
-
-        const { error } = await supabase
-          .from("reviews")
-          .delete()
-          .eq("id", review_id)
-          .eq("user_id", userId);
-
+        const { error } = await supabase.from("reviews").delete()
+          .eq("id", review_id).eq("user_id", userId);
         if (error) throw error;
-        console.log("[user-data] Review deleted:", review_id);
-
         return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ==================== REVIEW REPLIES ====================
+      case "add_reply": {
+        const { review_id, reply_text, parent_reply_id } = data;
+        const { data: newReply, error } = await supabase.from("review_replies").insert({
+          review_id, user_id: userId, reply_text,
+          parent_reply_id: parent_reply_id || null,
+        }).select().single();
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, reply: newReply }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "delete_reply": {
+        const { reply_id } = data;
+        const { error } = await supabase.from("review_replies").delete()
+          .eq("id", reply_id).eq("user_id", userId);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get_replies": {
+        const { review_id } = data;
+        const { data: replies, error } = await supabase.from("review_replies")
+          .select("*").eq("review_id", review_id)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+
+        // Get user profiles for replies
+        const userIds = [...new Set((replies || []).map(r => r.user_id))];
+        let profileMap = new Map();
+        if (userIds.length > 0) {
+          const { data: keyUsers } = await supabase.from("key_users")
+            .select("id, display_name").in("id", userIds);
+          keyUsers?.forEach(ku => profileMap.set(ku.id, { display_name: ku.display_name, avatar_url: null }));
+        }
+
+        const repliesWithProfiles = (replies || []).map(r => ({
+          ...r,
+          profiles: profileMap.get(r.user_id) || { display_name: "Anonymous", avatar_url: null },
+        }));
+
+        return new Response(JSON.stringify({ replies: repliesWithProfiles }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ==================== REVIEW REACTIONS ====================
+      case "toggle_reaction": {
+        const { review_id, reaction_type } = data;
+        const { data: existing } = await supabase.from("review_reactions")
+          .select("id, reaction_type").eq("review_id", review_id).eq("user_id", userId).maybeSingle();
+
+        if (existing) {
+          if (existing.reaction_type === reaction_type) {
+            await supabase.from("review_reactions").delete().eq("id", existing.id);
+            return new Response(JSON.stringify({ success: true, action: "removed" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          } else {
+            await supabase.from("review_reactions").update({ reaction_type }).eq("id", existing.id);
+            return new Response(JSON.stringify({ success: true, action: "updated" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          await supabase.from("review_reactions").insert({ review_id, user_id: userId, reaction_type });
+          return new Response(JSON.stringify({ success: true, action: "added" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // ==================== FOLLOWS ====================
+      case "toggle_follow": {
+        const { target_user_id } = data;
+        if (target_user_id === userId) {
+          return new Response(JSON.stringify({ error: "Cannot follow yourself" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: existing } = await supabase.from("user_follows")
+          .select("id").eq("follower_id", userId).eq("following_id", target_user_id).maybeSingle();
+        if (existing) {
+          await supabase.from("user_follows").delete().eq("id", existing.id);
+          return new Response(JSON.stringify({ success: true, action: "unfollowed" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } else {
+          await supabase.from("user_follows").insert({ follower_id: userId, following_id: target_user_id });
+          return new Response(JSON.stringify({ success: true, action: "followed" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      case "get_follow_counts": {
+        const { target_user_id } = data;
+        const uid = target_user_id || userId;
+        const { count: followers } = await supabase.from("user_follows")
+          .select("*", { count: "exact", head: true }).eq("following_id", uid);
+        const { count: following } = await supabase.from("user_follows")
+          .select("*", { count: "exact", head: true }).eq("follower_id", uid);
+        const { data: isFollowing } = await supabase.from("user_follows")
+          .select("id").eq("follower_id", userId).eq("following_id", uid).maybeSingle();
+        return new Response(JSON.stringify({ followers: followers || 0, following: following || 0, isFollowing: !!isFollowing }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -247,21 +279,10 @@ Deno.serve(async (req) => {
       // ==================== COLLECTIONS ====================
       case "create_collection": {
         const { name, description, is_public } = data;
-
-        const { data: newCollection, error } = await supabase
-          .from("collections")
-          .insert({
-            user_id: userId,
-            name,
-            description: description || null,
-            is_public: is_public || false,
-          })
-          .select()
-          .single();
-
+        const { data: newCollection, error } = await supabase.from("collections").insert({
+          user_id: userId, name, description: description || null, is_public: is_public || false,
+        }).select().single();
         if (error) throw error;
-        console.log("[user-data] Collection created:", newCollection.id);
-
         return new Response(JSON.stringify({ success: true, collection: newCollection }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -269,46 +290,24 @@ Deno.serve(async (req) => {
 
       case "add_to_collection": {
         const { collection_id, movie_id, title, poster_path } = data;
-
-        // Verify collection belongs to user
-        const { data: collection } = await supabase
-          .from("collections")
-          .select("id")
-          .eq("id", collection_id)
-          .eq("user_id", userId)
-          .single();
-
+        const { data: collection } = await supabase.from("collections").select("id")
+          .eq("id", collection_id).eq("user_id", userId).maybeSingle();
         if (!collection) {
           return new Response(JSON.stringify({ error: "Collection not found" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-        // Check if already exists
-        const { data: existing } = await supabase
-          .from("collection_movies")
-          .select("id")
-          .eq("collection_id", collection_id)
-          .eq("movie_id", movie_id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("collection_movies").select("id")
+          .eq("collection_id", collection_id).eq("movie_id", movie_id).maybeSingle();
         if (existing) {
           return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         const { error } = await supabase.from("collection_movies").insert({
-          collection_id,
-          movie_id,
-          title,
-          poster_path: poster_path || null,
+          collection_id, movie_id, title, poster_path: poster_path || null,
         });
-
         if (error) throw error;
-        console.log("[user-data] Movie added to collection:", collection_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -316,22 +315,10 @@ Deno.serve(async (req) => {
 
       case "delete_collection": {
         const { collection_id } = data;
-
-        // First delete all movies in the collection
-        await supabase
-          .from("collection_movies")
-          .delete()
-          .eq("collection_id", collection_id);
-
-        const { error } = await supabase
-          .from("collections")
-          .delete()
-          .eq("id", collection_id)
-          .eq("user_id", userId);
-
+        await supabase.from("collection_movies").delete().eq("collection_id", collection_id);
+        const { error } = await supabase.from("collections").delete()
+          .eq("id", collection_id).eq("user_id", userId);
         if (error) throw error;
-        console.log("[user-data] Collection deleted:", collection_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -340,34 +327,19 @@ Deno.serve(async (req) => {
       // ==================== WATCHLIST ====================
       case "add_to_watchlist": {
         const { movie_id, title, poster_path, rating, release_year, overview } = data;
-
-        // Check existing
-        const { data: existing } = await supabase
-          .from("watchlist")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("movie_id", movie_id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("watchlist").select("id")
+          .eq("user_id", userId).eq("movie_id", movie_id).maybeSingle();
         if (existing) {
           return new Response(JSON.stringify({ success: true, alreadyExists: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         const { error } = await supabase.from("watchlist").insert({
-          user_id: userId,
-          movie_id,
-          title,
-          poster_path: poster_path || null,
-          rating: rating || null,
-          release_year: release_year || null,
-          overview: overview || null,
+          user_id: userId, movie_id, title,
+          poster_path: poster_path || null, rating: rating || null,
+          release_year: release_year || null, overview: overview || null,
         });
-
         if (error) throw error;
-        console.log("[user-data] Added to watchlist:", movie_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -375,16 +347,9 @@ Deno.serve(async (req) => {
 
       case "remove_from_watchlist": {
         const { movie_id } = data;
-
-        const { error } = await supabase
-          .from("watchlist")
-          .delete()
-          .eq("user_id", userId)
-          .eq("movie_id", movie_id);
-
+        const { error } = await supabase.from("watchlist").delete()
+          .eq("user_id", userId).eq("movie_id", movie_id);
         if (error) throw error;
-        console.log("[user-data] Removed from watchlist:", movie_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -392,31 +357,16 @@ Deno.serve(async (req) => {
 
       case "remove_from_collection": {
         const { collection_id, movie_id } = data;
-
-        // Verify collection belongs to user
-        const { data: collection } = await supabase
-          .from("collections")
-          .select("id")
-          .eq("id", collection_id)
-          .eq("user_id", userId)
-          .single();
-
+        const { data: collection } = await supabase.from("collections").select("id")
+          .eq("id", collection_id).eq("user_id", userId).maybeSingle();
         if (!collection) {
           return new Response(JSON.stringify({ error: "Collection not found" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-        const { error } = await supabase
-          .from("collection_movies")
-          .delete()
-          .eq("collection_id", collection_id)
-          .eq("movie_id", movie_id);
-
+        const { error } = await supabase.from("collection_movies").delete()
+          .eq("collection_id", collection_id).eq("movie_id", movie_id);
         if (error) throw error;
-        console.log("[user-data] Movie removed from collection:", collection_id);
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -424,15 +374,13 @@ Deno.serve(async (req) => {
 
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
   } catch (error) {
     console.error("[user-data] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

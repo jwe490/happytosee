@@ -5,9 +5,8 @@ import {
   Star, Clock, Calendar, Play, Users, Pause,
   Film, Bookmark, BookmarkCheck,
   ChevronLeft, Eye, EyeOff, Tv, ChevronDown, ExternalLink,
-  Volume2, VolumeX, Maximize2
+  Volume2, VolumeX, Maximize2, Minimize2, X
 } from "lucide-react";
-import { useEngagementTracking } from "@/hooks/useEngagementTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -119,7 +118,7 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const formatRuntime = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
   const hasWatchProviders = details?.watchProviders && (details.watchProviders.flatrate.length > 0 || details.watchProviders.rent.length > 0);
 
-  const backdropIframeSrc = details?.trailerKey && showContent
+  const backdropIframeSrc = details?.trailerKey && showContent && !backdropExpanded
     ? `https://www.youtube.com/embed/${details.trailerKey}?autoplay=${backdropPaused ? 0 : 1}&mute=${backdropMuted ? 1 : 0}&controls=0&loop=1&playlist=${details.trailerKey}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1`
     : null;
 
@@ -130,50 +129,59 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       {isOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 bg-background" {...swipeHandlers}>
 
-          {/* Backdrop with trailer */}
-          <motion.div className="absolute inset-0 overflow-hidden" initial={{ scale: 1.05 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }}>
-            {backdropExpanded && details?.trailerKey ? (
-              /* Full-screen trailer */
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[100] bg-black flex items-center justify-center">
+          {/* Fullscreen trailer mode */}
+          <AnimatePresence>
+            {backdropExpanded && details?.trailerKey && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
                 <iframe src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&mute=0&controls=1&modestbranding=1`} className="w-full h-full" allow="autoplay; encrypted-media; fullscreen" allowFullScreen title="Trailer" />
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setBackdropExpanded(false)} className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition-colors">
-                  <ChevronLeft className="w-5 h-5" />
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setBackdropExpanded(false)}
+                  className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/10 backdrop-blur-xl text-white hover:bg-white/20 transition-colors border border-white/10">
+                  <X className="w-5 h-5" />
                 </motion.button>
               </motion.div>
-            ) : backdropIframeSrc ? (
-              <div className="absolute inset-0 z-0">
-                <iframe src={backdropIframeSrc} className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: "scale(1.5)", objectFit: "cover", opacity: 0.9 }} allow="autoplay; encrypted-media" title="Backdrop" />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
-
-                {/* Backdrop controls */}
-                <div className="absolute bottom-24 right-4 z-30 flex items-center gap-2">
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropPaused(!backdropPaused)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    {backdropPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                  </motion.button>
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropMuted(!backdropMuted)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    {backdropMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </motion.button>
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropExpanded(true)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    <Maximize2 className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {(details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
-                  <img src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl} alt="" className="w-full h-full object-cover opacity-15 blur-3xl scale-110" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
-              </>
             )}
-          </motion.div>
+          </AnimatePresence>
+
+          {/* Backdrop trailer — sticky to top, clean design */}
+          {backdropIframeSrc && (
+            <div className="absolute top-0 left-0 right-0 h-[280px] md:h-[340px] z-0 overflow-hidden">
+              <iframe src={backdropIframeSrc} className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: "scale(1.4)", opacity: 0.12 }} allow="autoplay; encrypted-media" title="Backdrop" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+
+              {/* Backdrop controls — bottom-right of the backdrop area */}
+              <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5">
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropPaused(!backdropPaused)}
+                  className="p-2 rounded-full bg-foreground/10 backdrop-blur-xl text-foreground/60 hover:text-foreground hover:bg-foreground/15 border border-foreground/5 transition-all">
+                  {backdropPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropMuted(!backdropMuted)}
+                  className="p-2 rounded-full bg-foreground/10 backdrop-blur-xl text-foreground/60 hover:text-foreground hover:bg-foreground/15 border border-foreground/5 transition-all">
+                  {backdropMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropExpanded(true)}
+                  className="p-2 rounded-full bg-foreground/10 backdrop-blur-xl text-foreground/60 hover:text-foreground hover:bg-foreground/15 border border-foreground/5 transition-all">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </motion.button>
+              </div>
+            </div>
+          )}
+
+          {/* Static backdrop fallback */}
+          {!backdropIframeSrc && (
+            <div className="absolute top-0 left-0 right-0 h-[280px] md:h-[340px] z-0 overflow-hidden">
+              {(details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
+                <img src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl} alt="" className="w-full h-full object-cover opacity-10 blur-2xl scale-110" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/80 to-background" />
+            </div>
+          )}
 
           {/* Nav buttons */}
           <div className="fixed top-4 left-4 z-[60] flex items-center gap-2">
             <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={handleBack}
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-background/50 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-background/60 active:scale-95 transition-all text-foreground min-h-[44px]">
               <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">{movieStack.length > 1 ? `Back` : 'Close'}</span>
+              <span className="text-sm font-medium">{movieStack.length > 1 ? 'Back' : 'Close'}</span>
             </motion.button>
           </div>
 
