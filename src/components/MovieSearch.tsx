@@ -27,7 +27,7 @@ const MovieSearch = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
-  // Fetch trending on mount
+  // Fetch trending on mount — get 30 movies for endless grid
   useEffect(() => {
     const fetchTrending = async () => {
       try {
@@ -35,7 +35,7 @@ const MovieSearch = () => {
           body: { category: "trending" },
         });
         if (!error && data?.movies) {
-          setTrendingMovies(data.movies.slice(0, 12));
+          setTrendingMovies(data.movies.slice(0, 30));
         }
       } catch (err) {
         console.error("Failed to fetch trending:", err);
@@ -311,28 +311,28 @@ const MovieSearch = () => {
             exit={{ opacity: 0 }}
             className="space-y-6 pt-4"
           >
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-3">
               {trendingMovies.map((movie, index) => (
                 <motion.button
                   key={movie.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.03 }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.35, ease: "easeOut" }}
                   onClick={() => handleMovieClick(movie)}
-                  className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-muted"
+                  className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-lg transition-shadow duration-300"
                 >
                   <img
                     src={movie.posterUrl}
                     alt={movie.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
-                  {/* Title overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <h3 className="text-white text-sm font-semibold line-clamp-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                      <h3 className="text-white text-xs sm:text-sm font-semibold line-clamp-2">
                         {movie.title}
                       </h3>
+                      <p className="text-white/60 text-[10px] mt-0.5">{movie.year}</p>
                     </div>
                   </div>
                 </motion.button>

@@ -133,45 +133,43 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
       {isOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 bg-background" {...swipeHandlers}>
 
-          {/* Sticky grainy gradient backdrop — fades on scroll */}
+          {/* Sticky grainy gradient backdrop — orange/blue theme, parallax fade */}
           <div 
-            className="absolute inset-x-0 top-0 h-[420px] z-0 pointer-events-none overflow-hidden transition-opacity duration-300"
-            style={{ opacity: gradientOpacity }}
+            className="absolute inset-x-0 top-0 h-[450px] z-0 pointer-events-none overflow-hidden"
+            style={{ 
+              opacity: gradientOpacity,
+              transform: `translateY(${scrollY * 0.3}px)`,
+              transition: 'opacity 0.4s ease-out',
+            }}
           >
-            {/* Multi-layer gradient */}
             <div 
               className="absolute inset-0"
               style={{
                 background: `
-                  radial-gradient(ellipse 80% 60% at 30% 20%, hsl(280 60% 55% / 0.25), transparent 60%),
-                  radial-gradient(ellipse 70% 50% at 70% 40%, hsl(200 70% 50% / 0.2), transparent 55%),
-                  radial-gradient(ellipse 60% 40% at 50% 60%, hsl(340 65% 55% / 0.15), transparent 50%),
-                  linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--card)) 40%, hsl(var(--background)) 100%)
+                  radial-gradient(ellipse 80% 60% at 25% 20%, hsl(25 85% 60% / 0.2), transparent 55%),
+                  radial-gradient(ellipse 70% 55% at 75% 35%, hsl(210 70% 55% / 0.18), transparent 50%),
+                  radial-gradient(ellipse 50% 40% at 50% 70%, hsl(35 80% 65% / 0.12), transparent 45%),
+                  linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--card)) 50%, hsl(var(--background)) 100%)
                 `,
               }}
             />
-            {/* Shimmer layer */}
             <div 
               className="absolute inset-0 animate-gradient-shift"
               style={{
                 background: `
-                  radial-gradient(circle at 25% 30%, hsl(45 80% 60% / 0.12), transparent 40%),
-                  radial-gradient(circle at 75% 60%, hsl(160 60% 50% / 0.1), transparent 40%)
+                  radial-gradient(circle at 30% 25%, hsl(30 90% 65% / 0.1), transparent 40%),
+                  radial-gradient(circle at 70% 55%, hsl(200 65% 55% / 0.08), transparent 40%)
                 `,
               }}
             />
-            {/* Grain texture */}
-            <div 
-              className="absolute inset-0"
-              style={{
-                opacity: 0.35,
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-                backgroundRepeat: "repeat",
-                mixBlendMode: "overlay",
-              }}
-            />
-            {/* Bottom fade to background */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+            {/* Grain */}
+            <div className="absolute inset-0" style={{
+              opacity: 0.25,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              backgroundRepeat: "repeat",
+              mixBlendMode: "overlay",
+            }} />
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
           </div>
 
           {/* Nav buttons */}

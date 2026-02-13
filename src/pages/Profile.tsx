@@ -376,6 +376,23 @@ const Profile = () => {
               {profile.favorite_quote && (
                 <p className="text-xs text-muted-foreground/80 mt-2 italic max-w-xs mx-auto">"{profile.favorite_quote}"</p>
               )}
+              {/* Share profile */}
+              {user?.id && (
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/u/${user.id}`;
+                    if (navigator.share) {
+                      navigator.share({ title: `${profile.display_name}'s Profile`, url });
+                    } else {
+                      navigator.clipboard.writeText(url);
+                      toast.success("Profile link copied!");
+                    }
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                >
+                  <Globe className="w-3 h-3" /> Share Profile
+                </button>
+              )}
             </div>
           )}
         </motion.div>

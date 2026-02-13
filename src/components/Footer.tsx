@@ -20,64 +20,82 @@ const Footer = () => {
   };
 
   return (
-    <footer className="relative border-t border-border overflow-hidden">
-      {/* Infinite animated gradient background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 animate-gradient-flow" style={{
-          background: `linear-gradient(
-            -45deg,
-            hsl(280 70% 50% / 0.12),
-            hsl(200 80% 50% / 0.1),
-            hsl(340 75% 55% / 0.12),
-            hsl(160 70% 45% / 0.1),
-            hsl(45 85% 55% / 0.12),
-            hsl(280 70% 50% / 0.12)
-          )`,
-          backgroundSize: '400% 400%',
-        }} />
-        <div className="absolute inset-0 animate-gradient-flow-reverse" style={{
-          background: `linear-gradient(
-            45deg,
-            hsl(45 80% 55% / 0.08),
-            hsl(320 70% 55% / 0.06),
-            hsl(180 60% 45% / 0.08),
-            hsl(280 65% 50% / 0.06),
-            hsl(45 80% 55% / 0.08)
-          )`,
-          backgroundSize: '300% 300%',
-        }} />
-        {/* Grain */}
-        <div className="absolute inset-0" style={{
-          opacity: 0.2,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-          mixBlendMode: "overlay",
-        }} />
-        <div className="absolute inset-0 bg-background/80" />
-      </div>
+    <footer className="relative border-t border-border bg-muted/30">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+        {/* CTA Section — side by side layout matching reference */}
+        <section className="rounded-3xl overflow-hidden relative" style={{
+          background: `linear-gradient(135deg, hsl(175 35% 72%) 0%, hsl(185 30% 75%) 30%, hsl(195 28% 78%) 60%, hsl(180 32% 74%) 100%)`,
+        }}>
+          <div className="flex flex-col md:flex-row items-center gap-8 p-8 sm:p-10 md:p-14">
+            {/* Left — Text */}
+            <div className="flex-1 space-y-4 text-center md:text-left">
+              <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal text-foreground/90 leading-[1.05] tracking-tight">
+                Ready to<br />dive in?
+              </h2>
+              <p className="text-sm sm:text-base text-foreground/60 max-w-sm">
+                Access now, and tell us about it!<br />Have more than 10+ Moods
+              </p>
+              <button
+                type="button"
+                onClick={handleExploreClick}
+                className="inline-flex items-center justify-center rounded-full px-8 py-3.5 text-sm font-semibold tracking-wider uppercase shadow-lg active:scale-95 transition-all duration-200"
+                style={{ backgroundColor: 'hsl(14 90% 62%)', color: 'white' }}
+              >
+                EXPLORE NOW
+              </button>
+            </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        {/* CTA block */}
-        <section className="rounded-3xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
-          <div className="p-6 sm:p-8 md:p-10 text-center space-y-5">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight">
-              Ready to dive in?
-            </h2>
-            <p className="text-base text-muted-foreground max-w-md mx-auto">
-              Access now, and tell us about it! Have more than 10+ moods.
-            </p>
-            <button
-              type="button"
-              onClick={handleExploreClick}
-              className="inline-flex items-center justify-center rounded-full px-8 py-3.5 text-sm font-semibold bg-primary text-primary-foreground shadow-lg hover:opacity-90 active:scale-95 transition-all duration-200"
-            >
-              EXPLORE NOW
-            </button>
+            {/* Right — Holographic animated box */}
+            <div className="relative w-64 h-44 sm:w-80 sm:h-56 md:w-96 md:h-64 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0">
+              {/* Animated holographic gradient */}
+              <div 
+                className="absolute inset-0 animate-gradient-flow"
+                style={{
+                  background: `linear-gradient(
+                    -45deg,
+                    hsl(340 60% 85%),
+                    hsl(280 50% 88%),
+                    hsl(200 60% 85%),
+                    hsl(160 40% 88%),
+                    hsl(45 50% 90%),
+                    hsl(320 55% 87%),
+                    hsl(200 60% 85%),
+                    hsl(340 60% 85%)
+                  )`,
+                  backgroundSize: '400% 400%',
+                }}
+              />
+              {/* Second layer for depth */}
+              <div 
+                className="absolute inset-0 animate-gradient-flow-reverse opacity-60"
+                style={{
+                  background: `linear-gradient(
+                    45deg,
+                    hsl(45 80% 92% / 0.6),
+                    hsl(280 40% 90% / 0.4),
+                    hsl(180 50% 88% / 0.6),
+                    hsl(320 50% 90% / 0.4),
+                    hsl(45 80% 92% / 0.6)
+                  )`,
+                  backgroundSize: '300% 300%',
+                }}
+              />
+              {/* Shimmer highlight */}
+              <div 
+                className="absolute inset-0 animate-gradient-shift"
+                style={{
+                  background: `radial-gradient(ellipse 50% 60% at 30% 40%, hsl(0 0% 100% / 0.45), transparent 60%),
+                               radial-gradient(ellipse 40% 50% at 70% 30%, hsl(0 0% 100% / 0.3), transparent 50%)`,
+                }}
+              />
+              {/* Glass border effect */}
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/30" />
+            </div>
           </div>
         </section>
 
         {/* Contact + socials + brand */}
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 items-start">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8 items-start">
           <div className="space-y-3 text-center sm:text-left">
             <button onClick={() => navigate("/")} className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity mx-auto sm:mx-0">
               <img src={logo} alt="MoodFlix" className="h-8 w-auto dark:invert" />
@@ -96,7 +114,7 @@ const Footer = () => {
 
           <div className="space-y-2 text-center sm:text-left">
             <p className="text-sm font-semibold text-foreground">Social media</p>
-            <div className="flex flex-col gap-2 items-center sm:items-start">
+            <div className="flex flex-col gap-1.5 items-center sm:items-start">
               <a href="https://youtube.com/@moodflix-x3x?si=ZVxBKhqsNMLm2zlr" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Youtube className="w-4 h-4" /> @moodflix-x3x
               </a>

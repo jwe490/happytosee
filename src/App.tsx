@@ -19,6 +19,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 
@@ -52,6 +53,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/person/:id" element={<Person />} />
                   <Route path="/assessment" element={<Assessment />} />
+                  <Route path="/u/:userId" element={<PublicProfile />} />
                   {/* Admin Routes */}
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route
