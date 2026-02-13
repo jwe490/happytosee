@@ -297,18 +297,26 @@ export function EnhancedReviewSection({ movieId, movieTitle, moviePoster }: Enha
                       <AnimatePresence mode="wait">
                         {isHidden ? (
                           <motion.div key="hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="relative cursor-pointer rounded-xl overflow-hidden" onClick={e => toggleSpoilerReveal(e, review.id)}>
-                            <div className="p-4 bg-orange-500/5 border border-orange-500/15 rounded-xl">
-                              <div className="flex items-center justify-center gap-2">
-                                <EyeOff className="w-4 h-4 text-orange-500" />
-                                <span className="text-sm font-medium text-orange-600">Spoiler — tap to reveal</span>
+                            className="relative cursor-pointer" onClick={e => toggleSpoilerReveal(e, review.id)}>
+                            <div className="p-4 rounded-xl bg-card border border-border relative overflow-hidden">
+                              {/* Blurred preview text */}
+                              <p className="text-sm text-muted-foreground leading-relaxed select-none" style={{ filter: "blur(6px)", WebkitUserSelect: "none" }}>
+                                {cleanText.slice(0, 120)}...
+                              </p>
+                              {/* Overlay */}
+                              <div className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-xl">
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border shadow-sm">
+                                  <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-medium text-foreground">Contains Spoilers</span>
+                                  <span className="text-[10px] text-muted-foreground">· Tap to reveal</span>
+                                </div>
                               </div>
                             </div>
                           </motion.div>
                         ) : (
                           <motion.div key="visible" initial={{ opacity: 0, filter: "blur(8px)" }} animate={{ opacity: 1, filter: "blur(0px)" }} transition={{ duration: 0.4 }}>
                             <p className="text-sm text-foreground leading-relaxed break-words">{cleanText}</p>
-                            <button onClick={e => toggleSpoilerReveal(e, review.id)} className="text-[11px] text-orange-500 hover:text-orange-600 mt-1.5 flex items-center gap-1">
+                            <button onClick={e => toggleSpoilerReveal(e, review.id)} className="text-[11px] text-muted-foreground hover:text-foreground mt-1.5 flex items-center gap-1 transition-colors">
                               <Eye className="w-3 h-3" /> Hide spoiler
                             </button>
                           </motion.div>
@@ -321,23 +329,36 @@ export function EnhancedReviewSection({ movieId, movieTitle, moviePoster }: Enha
                   {cleanText && !hasSpoiler && <p className="text-sm text-foreground leading-relaxed mt-2 break-words">{cleanText}</p>}
 
                   {/* Actions: Helpful + Reply */}
-                  <div className="flex items-center gap-1 mt-3">
-                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); toggleReaction(review.id, "helpful"); }} className="h-7 px-2.5 text-[11px] text-muted-foreground hover:text-foreground rounded-full gap-1" type="button">
-                      <ThumbsUp className="w-3 h-3" /> Helpful
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setReplyingTo(replyingTo === review.id ? null : review.id); setReplyText(""); }} className="h-7 px-2.5 text-[11px] text-muted-foreground hover:text-foreground rounded-full gap-1" type="button">
-                      <Reply className="w-3 h-3" /> Reply
-                    </Button>
+                  <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/50">
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={e => { e.stopPropagation(); toggleReaction(review.id, "helpful"); }} 
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${
+                        review.user_reaction === 'helpful' ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <ThumbsUp className={`w-3.5 h-3.5 ${review.user_reaction === 'helpful' ? 'fill-primary' : ''}`} />
+                      <span>Helpful</span>
+                      {review.helpful_count > 0 && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-secondary">{review.helpful_count}</span>}
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={e => { e.stopPropagation(); setReplyingTo(replyingTo === review.id ? null : review.id); setReplyText(""); }} 
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Reply</span>
+                    </motion.button>
                   </div>
 
                   {/* Reply thread */}
                   <AnimatePresence>
                     {replyingTo === review.id && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-2 space-y-2 overflow-hidden">
-                        <Textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder={`Reply to ${review.profiles?.display_name || "this review"}...`} className="min-h-[50px] text-sm resize-none rounded-xl" rows={2} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} />
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-3 space-y-2 overflow-hidden pl-4 border-l-2 border-primary/20">
+                        <Textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder={`Reply to ${review.profiles?.display_name || "this review"}...`} className="min-h-[60px] text-sm resize-none rounded-xl bg-secondary/30" rows={2} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} />
                         <div className="flex gap-2 justify-end">
                           <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setReplyingTo(null); }} type="button" className="rounded-full text-xs h-7">Cancel</Button>
-                          <Button size="sm" disabled={!replyText.trim()} onClick={e => { e.stopPropagation(); toggleReaction(review.id, "helpful"); setReplyingTo(null); setReplyText(""); }} type="button" className="rounded-full text-xs gap-1 h-7"><Send className="w-3 h-3" />Reply</Button>
+                          <Button size="sm" disabled={!replyText.trim()} onClick={e => { e.stopPropagation(); /* TODO: implement reply posting */ setReplyingTo(null); setReplyText(""); }} type="button" className="rounded-full text-xs gap-1 h-7"><Send className="w-3 h-3" />Reply</Button>
                         </div>
                       </motion.div>
                     )}

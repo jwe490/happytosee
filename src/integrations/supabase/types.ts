@@ -164,7 +164,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "collections_user_id_key_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_history: {
         Row: {
@@ -514,7 +522,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_key_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recommendation_logs: {
         Row: {
@@ -982,7 +998,15 @@ export type Database = {
           user_id?: string
           watched_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "watch_history_user_id_key_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       watchlist: {
         Row: {
@@ -1021,7 +1045,15 @@ export type Database = {
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_user_id_key_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "key_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
