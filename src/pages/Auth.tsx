@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, X, ArrowLeft, Shield } from "lucide-react";
+import { Loader2, X, ArrowLeft, Shield, Film, Sparkles } from "lucide-react";
 import { PersonaForm, PersonaData } from "@/components/auth/PersonaForm";
 import { KeyRevealCard } from "@/components/auth/KeyRevealCard";
 import { KeyLoginForm } from "@/components/auth/KeyLoginForm";
@@ -103,7 +103,27 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 animate-gradient-flow" style={{
+          background: `linear-gradient(-45deg,
+            hsl(280 60% 50% / 0.08),
+            hsl(200 70% 50% / 0.06),
+            hsl(340 65% 55% / 0.08),
+            hsl(160 60% 45% / 0.06),
+            hsl(280 60% 50% / 0.08)
+          )`,
+          backgroundSize: '400% 400%',
+        }} />
+        <div className="absolute inset-0" style={{
+          opacity: 0.15,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          mixBlendMode: "overlay",
+        }} />
+      </div>
+
       {/* Close */}
       <motion.button
         initial={{ opacity: 0 }}
@@ -115,7 +135,7 @@ const Auth = () => {
         <X className="w-5 h-5" />
       </motion.button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 relative z-10">
         <div className="w-full max-w-sm">
           <AnimatePresence mode="wait">
             {step === "choice" && (
@@ -131,28 +151,41 @@ const Auth = () => {
                   <motion.img
                     src={logo}
                     alt="MoodFlix"
-                    className="h-12 w-auto mx-auto mb-8"
+                    className="h-12 w-auto mx-auto mb-8 dark:invert"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                   />
-                  <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight">
                     Welcome to MoodFlix
                   </h1>
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    Movies that match your mood
+                  <p className="text-muted-foreground mt-3 text-base max-w-xs mx-auto">
+                    Movies that match your mood. Your personal cinema journey starts here.
                   </p>
+                </div>
+
+                {/* Feature highlights */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: Film, label: "Mood-Based Picks" },
+                    { icon: Sparkles, label: "AI Curation" },
+                  ].map(f => (
+                    <div key={f.label} className="flex items-center gap-2.5 p-3 rounded-xl bg-card/50 border border-border/50">
+                      <f.icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="space-y-3 pt-2">
                   <button
                     onClick={() => setStep("login")}
-                    className="w-full py-3.5 px-6 rounded-xl bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 active:scale-[0.98]"
+                    className="w-full py-3.5 px-6 rounded-xl bg-primary text-primary-foreground font-semibold transition-all hover:bg-primary/90 active:scale-[0.98] text-base"
                   >
                     Sign In with Key
                   </button>
                   <button
                     onClick={() => setStep("signup-persona")}
-                    className="w-full py-3.5 px-6 rounded-xl bg-secondary border border-border text-foreground font-medium transition-all hover:bg-muted active:scale-[0.98]"
+                    className="w-full py-3.5 px-6 rounded-xl bg-secondary border border-border text-foreground font-semibold transition-all hover:bg-muted active:scale-[0.98] text-base"
                   >
                     Create New Account
                   </button>
@@ -178,11 +211,11 @@ const Auth = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className="text-center mb-6">
-                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
-                  <h1 className="text-xl font-bold text-foreground">Create Your Profile</h1>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4 dark:invert" />
+                  <h1 className="text-2xl font-bold text-foreground">Create Your Profile</h1>
                   <p className="text-muted-foreground text-sm mt-1">Quick setup — takes 30 seconds</p>
                 </div>
-                <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-6">
                   <PersonaForm onSubmit={handlePersonaSubmit} isLoading={isSubmitting} />
                 </div>
               </motion.div>
@@ -197,11 +230,11 @@ const Auth = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className="text-center mb-6">
-                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
-                  <h1 className="text-xl font-bold text-foreground">Your Secret Key</h1>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4 dark:invert" />
+                  <h1 className="text-2xl font-bold text-foreground">Your Secret Key</h1>
                   <p className="text-muted-foreground text-sm mt-1">Save this — it's your only way to sign in</p>
                 </div>
-                <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-6">
                   <KeyRevealCard
                     secretKey={generatedKey}
                     displayName={personaData.displayName}
@@ -221,11 +254,11 @@ const Auth = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className="text-center mb-6">
-                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4" />
-                  <h1 className="text-xl font-bold text-foreground">Welcome Back</h1>
+                  <img src={logo} alt="MoodFlix" className="h-10 w-auto mx-auto mb-4 dark:invert" />
+                  <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
                   <p className="text-muted-foreground text-sm mt-1">Enter your key to continue</p>
                 </div>
-                <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-6">
                   <KeyLoginForm
                     onSubmit={handleLogin}
                     onSwitchToSignup={() => setStep("signup-persona")}
@@ -252,7 +285,7 @@ const Auth = () => {
       </div>
 
       {/* Footer */}
-      <div className="px-6 pb-8 text-center">
+      <div className="px-6 pb-8 text-center relative z-10">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Shield className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Secure & Private</span>

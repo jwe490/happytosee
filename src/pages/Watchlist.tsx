@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -14,7 +14,6 @@ import {
   MoreHorizontal, Share2, Edit, ChevronRight, GripVertical,
 } from "lucide-react";
 import { Movie } from "@/hooks/useMovieRecommendations";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -50,12 +49,20 @@ const Watchlist = () => {
 
   const navigate = useNavigate();
 
+  // Sync reorderedList when watchlist changes
+  useEffect(() => {
+    if (watchlist.length > 0 && reorderedList.length === 0) {
+      setReorderedList([...watchlist]);
+    }
+  }, [watchlist]);
+
   const filteredWatchlist = useMemo(() => {
-    let result = [...watchlist];
+    const source = sortBy === "custom" && reorderedList.length > 0 ? reorderedList : watchlist;
+    let result = [...source];
     if (searchQuery) {
       result = result.filter(m => m.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }
-    if (sortBy === "custom" && reorderedList.length > 0) return reorderedList;
+    if (sortBy === "custom") return result;
     switch (sortBy) {
       case "rating": result.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break;
       case "title": result.sort((a, b) => a.title.localeCompare(b.title)); break;
@@ -91,7 +98,7 @@ const Watchlist = () => {
 
   const handleReorder = (newOrder: WatchlistItem[]) => {
     setReorderedList(newOrder);
-    setSortBy("custom");
+    if (sortBy !== "custom") setSortBy("custom");
   };
 
   const stats = {
@@ -168,11 +175,18 @@ const Watchlist = () => {
                     <Button variant="outline" size="icon" className="shrink-0 rounded-full h-9 w-9"><SortAsc className="w-4 h-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setSortBy("date")} className={sortBy === "date" ? "bg-accent" : ""}><Clock className="w-4 h-4 mr-2" />Date Added</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("rating")} className={sortBy === "rating" ? "bg-accent" : ""}><Star className="w-4 h-4 mr-2" />Rating</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("title")} className={sortBy === "title" ? "bg-accent" : ""}><SortAsc className="w-4 h-4 mr-2" />Title</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSortBy("date"); setIsDragMode(false); }} className={sortBy === "date" ? "bg-accent" : ""}><Clock className="w-4 h-4 mr-2" />Date Added</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSortBy("rating"); setIsDragMode(false); }} className={sortBy === "rating" ? "bg-accent" : ""}><Star className="w-4 h-4 mr-2" />Rating</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSortBy("title"); setIsDragMode(false); }} className={sortBy === "title" ? "bg-accent" : ""}><SortAsc className="w-4 h-4 mr-2" />Title</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { setSortBy("custom"); setIsDragMode(!isDragMode); }}>
+                    <DropdownMenuItem onClick={() => { 
+                      const newDragMode = !isDragMode;
+                      setIsDragMode(newDragMode); 
+                      if (newDragMode) {
+                        setSortBy("custom");
+                        if (reorderedList.length === 0) setReorderedList([...watchlist]);
+                      }
+                    }}>
                       <GripVertical className="w-4 h-4 mr-2" />{isDragMode ? "Exit Reorder" : "Drag to Reorder"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -214,95 +228,74 @@ const Watchlist = () => {
                   <Button onClick={() => navigate("/")} className="rounded-full gap-2"><Sparkles className="w-4 h-4" />Discover Movies</Button>
                 )}
               </motion.div>
+            ) : isDragMode ? (
+              /* Drag mode — list only for reliable reorder */
+              <Reorder.Group axis="y" values={reorderedList} onReorder={handleReorder} className="space-y-2">
+                {reorderedList.map(movie => (
+                  <Reorder.Item key={movie.id} value={movie} className="group flex items-center gap-4 p-3 rounded-xl bg-card border border-border cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all">
+                    <GripVertical className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <div className="w-14 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+                      {movie.poster_path ? <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Film className="w-5 h-5 text-muted-foreground" /></div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate text-base">{movie.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                        {movie.release_year && <span>{movie.release_year}</span>}
+                        {movie.rating ? <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span> : null}
+                      </div>
+                    </div>
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
             ) : viewMode === "grid" ? (
-              isDragMode ? (
-                <Reorder.Group axis="x" values={filteredWatchlist} onReorder={handleReorder} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {filteredWatchlist.map(movie => (
-                    <Reorder.Item key={movie.id} value={movie} className="group relative cursor-grab active:cursor-grabbing">
-                      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm ring-1 ring-border/30 group-hover:ring-primary/50 transition-all">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <AnimatePresence mode="popLayout">
+                  {filteredWatchlist.map((movie, index) => (
+                    <motion.div key={movie.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: Math.min(index * 0.02, 0.2) }} whileHover={{ y: -6 }} className="group relative cursor-pointer" onClick={() => handleMovieClick(movie)}>
+                      <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-border/20 group-hover:ring-primary/40">
                         {movie.poster_path ? (
                           <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted"><Film className="w-10 h-10" /></div>
                         )}
-                        <div className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/60 backdrop-blur-sm">
-                          <GripVertical className="w-4 h-4 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <h3 className="font-semibold text-sm text-white line-clamp-2">{movie.title}</h3>
+                          <div className="flex items-center gap-2 text-white/70 text-xs mt-1">
+                            {movie.release_year && <span>{movie.release_year}</span>}
+                            {movie.rating ? <><span>•</span><span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span></> : null}
+                          </div>
                         </div>
                       </div>
-                      <p className="text-xs font-medium mt-2 line-clamp-1 text-foreground">{movie.title}</p>
-                    </Reorder.Item>
+                      <motion.button onClick={e => { e.stopPropagation(); removeFromWatchlist(movie.movie_id); }} whileTap={{ scale: 0.85 }} className="absolute top-2 right-2 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </motion.button>
+                    </motion.div>
                   ))}
-                </Reorder.Group>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  <AnimatePresence mode="popLayout">
-                    {filteredWatchlist.map((movie, index) => (
-                      <motion.div key={movie.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: Math.min(index * 0.02, 0.2) }} whileHover={{ y: -6 }} className="group relative cursor-pointer" onClick={() => handleMovieClick(movie)}>
-                        <div className="aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-border/20 group-hover:ring-primary/40">
-                          {movie.poster_path ? (
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted"><Film className="w-10 h-10" /></div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          <div className="absolute inset-x-0 bottom-0 p-3 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            <h3 className="font-semibold text-sm text-white line-clamp-2">{movie.title}</h3>
-                            <div className="flex items-center gap-2 text-white/70 text-xs mt-1">
-                              {movie.release_year && <span>{movie.release_year}</span>}
-                              {movie.rating ? <><span>•</span><span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span></> : null}
-                            </div>
-                          </div>
-                        </div>
-                        <motion.button onClick={e => { e.stopPropagation(); removeFromWatchlist(movie.movie_id); }} whileTap={{ scale: 0.85 }} className="absolute top-2 right-2 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </motion.button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )
+                </AnimatePresence>
+              </div>
             ) : (
               <div className="space-y-2">
-                {isDragMode ? (
-                  <Reorder.Group axis="y" values={filteredWatchlist} onReorder={handleReorder} className="space-y-2">
-                    {filteredWatchlist.map(movie => (
-                      <Reorder.Item key={movie.id} value={movie} className="group flex items-center gap-4 p-3 rounded-xl bg-card border border-border cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all">
-                        <GripVertical className="w-5 h-5 text-muted-foreground shrink-0" />
-                        <div className="w-14 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-                          {movie.poster_path ? <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Film className="w-5 h-5 text-muted-foreground" /></div>}
+                <AnimatePresence mode="popLayout">
+                  {filteredWatchlist.map((movie, index) => (
+                    <motion.div key={movie.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ delay: Math.min(index * 0.02, 0.2) }} className="group flex items-center gap-4 p-3 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-pointer" onClick={() => handleMovieClick(movie)}>
+                      <div className="w-14 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+                        {movie.poster_path ? <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Film className="w-5 h-5 text-muted-foreground" /></div>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate text-base">{movie.title}</h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                          {movie.release_year && <span>{movie.release_year}</span>}
+                          {movie.rating ? <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span> : null}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground truncate text-base">{movie.title}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                            {movie.release_year && <span>{movie.release_year}</span>}
-                            {movie.rating ? <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span> : null}
-                          </div>
-                        </div>
-                      </Reorder.Item>
-                    ))}
-                  </Reorder.Group>
-                ) : (
-                  <AnimatePresence mode="popLayout">
-                    {filteredWatchlist.map((movie, index) => (
-                      <motion.div key={movie.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ delay: Math.min(index * 0.02, 0.2) }} className="group flex items-center gap-4 p-3 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-pointer" onClick={() => handleMovieClick(movie)}>
-                        <div className="w-14 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-                          {movie.poster_path ? <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Film className="w-5 h-5 text-muted-foreground" /></div>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground truncate text-base">{movie.title}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                            {movie.release_year && <span>{movie.release_year}</span>}
-                            {movie.rating ? <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{movie.rating.toFixed(1)}</span> : null}
-                          </div>
-                          {movie.overview && <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">{movie.overview}</p>}
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); removeFromWatchlist(movie.movie_id); }} className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                )}
+                        {movie.overview && <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">{movie.overview}</p>}
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); removeFromWatchlist(movie.movie_id); }} className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </TabsContent>
