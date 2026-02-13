@@ -119,8 +119,8 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
   const formatRuntime = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
   const hasWatchProviders = details?.watchProviders && (details.watchProviders.flatrate.length > 0 || details.watchProviders.rent.length > 0);
 
-  const backdropIframeSrc = details?.trailerKey && showContent
-    ? `https://www.youtube.com/embed/${details.trailerKey}?autoplay=${backdropPaused ? 0 : 1}&mute=${backdropMuted ? 1 : 0}&controls=0&loop=1&playlist=${details.trailerKey}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1`
+  const backdropIframeSrc = details?.trailerKey && showContent && !backdropPaused
+    ? `https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&mute=${backdropMuted ? 1 : 0}&controls=0&loop=1&playlist=${details.trailerKey}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&origin=${window.location.origin}`
     : null;
 
   if (!currentMovie) return null;
@@ -134,36 +134,73 @@ const ExpandedMovieView = ({ movie, isOpen, onClose, onRequestMovieChange }: Exp
           <motion.div className="absolute inset-0 overflow-hidden" initial={{ scale: 1.05 }} animate={{ scale: 1 }} transition={{ duration: 0.4 }}>
             {backdropExpanded && details?.trailerKey ? (
               /* Full-screen trailer */
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[100] bg-black flex items-center justify-center">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 20 }} className="absolute inset-0 z-[100] bg-black flex items-center justify-center">
                 <iframe src={`https://www.youtube.com/embed/${details.trailerKey}?autoplay=1&mute=0&controls=1&modestbranding=1`} className="w-full h-full" allow="autoplay; encrypted-media; fullscreen" allowFullScreen title="Trailer" />
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setBackdropExpanded(false)} className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition-colors">
                   <ChevronLeft className="w-5 h-5" />
                 </motion.button>
               </motion.div>
-            ) : backdropIframeSrc ? (
-              <div className="absolute inset-0 z-0">
-                <iframe src={backdropIframeSrc} className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: "scale(1.5)", objectFit: "cover", opacity: 0.9 }} allow="autoplay; encrypted-media" title="Backdrop" />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
-
-                {/* Backdrop controls */}
-                <div className="absolute bottom-24 right-4 z-30 flex items-center gap-2">
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropPaused(!backdropPaused)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    {backdropPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                  </motion.button>
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropMuted(!backdropMuted)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    {backdropMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </motion.button>
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => setBackdropExpanded(true)} className="p-2 rounded-full bg-black/40 backdrop-blur-md text-white/80 hover:text-white border border-white/10 transition-colors">
-                    <Maximize2 className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              </div>
             ) : (
               <>
+                {/* Backdrop image - always visible as base layer */}
                 {(details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl) && (
-                  <img src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl} alt="" className="w-full h-full object-cover opacity-15 blur-3xl scale-110" />
+                  <img src={details?.backdropUrl || details?.posterUrl || currentMovie.posterUrl} alt="" className="w-full h-full object-cover" style={{ opacity: 0.35 }} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
+                
+                {/* Trailer iframe overlay - only when playing and trailer available */}
+                {backdropIframeSrc && (
+                  <div className="absolute inset-0">
+                    <iframe 
+                      src={backdropIframeSrc} 
+                      className="absolute inset-0 w-full h-full pointer-events-none" 
+                      style={{ transform: "scale(1.5)", opacity: 0.4 }} 
+                      allow="autoplay; encrypted-media" 
+                      title="Backdrop" 
+                    />
+                  </div>
+                )}
+                
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+
+                {/* Backdrop controls */}
+                {details?.trailerKey && showContent && (
+                  <div className="absolute bottom-24 right-4 z-30 flex items-center gap-2">
+                    <motion.button 
+                      whileTap={{ scale: 0.85 }} 
+                      onClick={() => setBackdropPaused(!backdropPaused)} 
+                      className="p-2.5 rounded-full bg-white/10 backdrop-blur-xl text-white/90 hover:text-white hover:bg-white/20 border border-white/10 transition-all"
+                    >
+                      <AnimatePresence mode="wait">
+                        {backdropPaused ? (
+                          <motion.div key="play" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 90 }}><Play className="w-4 h-4" /></motion.div>
+                        ) : (
+                          <motion.div key="pause" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 90 }}><Pause className="w-4 h-4" /></motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.85 }} 
+                      onClick={() => setBackdropMuted(!backdropMuted)} 
+                      className="p-2.5 rounded-full bg-white/10 backdrop-blur-xl text-white/90 hover:text-white hover:bg-white/20 border border-white/10 transition-all"
+                    >
+                      <AnimatePresence mode="wait">
+                        {backdropMuted ? (
+                          <motion.div key="muted" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><VolumeX className="w-4 h-4" /></motion.div>
+                        ) : (
+                          <motion.div key="unmuted" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><Volume2 className="w-4 h-4" /></motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.85 }} 
+                      onClick={() => setBackdropExpanded(true)} 
+                      className="p-2.5 rounded-full bg-white/10 backdrop-blur-xl text-white/90 hover:text-white hover:bg-white/20 border border-white/10 transition-all"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                )}
               </>
             )}
           </motion.div>
