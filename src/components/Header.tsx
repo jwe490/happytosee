@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield, Search } from "lucide-react";
+import { Menu, X, Bookmark, Home, User, Sparkles, LogIn, LogOut, Filter, Shield, Search, Clapperboard, Users } from "lucide-react";
 import { AccentColorPicker } from "@/components/AccentColorPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -64,6 +64,7 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
     { path: "/watchlist", label: "Watchlist", icon: Bookmark },
+    { path: "/community", label: "Community", icon: Users },
     { path: "/profile", label: "Profile", icon: User },
     { path: "/assessment", label: "Mood Match", icon: Sparkles },
   ];
@@ -146,6 +147,17 @@ const Header = ({ onOpenDiscovery, discoveryActive }: HeaderProps) => {
 
           {/* Right Side */}
           <div className="flex items-center gap-2">
+            {/* Trailer Reels button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleNavigation("/trailers")}
+              className={`h-9 w-9 ${location.pathname === "/trailers" ? "text-foreground bg-muted" : "text-muted-foreground"}`}
+              aria-label="Trailer Reels"
+            >
+              <Clapperboard className="w-5 h-5" />
+            </Button>
+
             {/* Search button */}
             <Button
               variant="ghost"
