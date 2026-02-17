@@ -1,48 +1,35 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, Smile, Heart, Zap, Moon, Coffee, Sparkles, Flame, CloudRain, Star, Music, Sun, Eye } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 
 import brainSvg from "@/assets/brain-element.svg";
 import popcornSvg from "@/assets/popcorn.svg";
 import filmCameraSvg from "@/assets/film-camera.svg";
 import movieReelSvg from "@/assets/movie-reel.svg";
 import juiceBottleSvg from "@/assets/juice-bottle.svg";
+import logoSvg from "@/assets/logo.svg";
 
-/* ── mood definitions ── */
-interface Mood {
-  icon: LucideIcon;
-  label: string;
-}
-
-const moods: Mood[] = [
-  { icon: Smile, label: "Happy" },
-  { icon: Heart, label: "Romantic" },
-  { icon: Zap, label: "Excited" },
-  { icon: Moon, label: "Chill" },
-  { icon: Coffee, label: "Cozy" },
-  { icon: Sparkles, label: "Inspired" },
-  { icon: Flame, label: "Thrilled" },
-  { icon: CloudRain, label: "Melancholy" },
-  { icon: Star, label: "Dreamy" },
-  { icon: Music, label: "Groovy" },
-  { icon: Sun, label: "Energetic" },
-  { icon: Eye, label: "Curious" },
+/* ── cycling sell lines (rotate every 3.5s) ── */
+const sellLines = [
+  "12+ Moods · 500K+ Movies · Infinite curations",
+  "AI reads your mood and picks the perfect film.",
+  "From blockbusters to hidden gems — curated for you.",
+  "Stop scrolling. Start feeling. Let AI find your movie.",
 ];
 
-/* ── animated text ── */
-const textContent = "Randomly generated text about 12+ Moods, 500k+ Movies, Infinite curations, etc... which sells my site well";
+/* ── emoji cycle ── */
+const emojis = ["😊", "😎", "🤯", "😴", "😡", "🤖", "😍", "🎬", "🍿", "🥰", "😢", "🤩"];
 
 /* ── popping elements ── */
 const poppingElements = [
-  { src: filmCameraSvg, alt: "Film camera", style: { top: "5%", left: "-10%" } as React.CSSProperties, delay: 0 },
-  { src: popcornSvg, alt: "Popcorn", style: { top: "8%", right: "-12%" } as React.CSSProperties, delay: 1 },
-  { src: movieReelSvg, alt: "Movie reel", style: { bottom: "15%", left: "-8%" } as React.CSSProperties, delay: 2 },
-  { src: juiceBottleSvg, alt: "Juice bottle", style: { bottom: "8%", right: "-10%" } as React.CSSProperties, delay: 3 },
+  { src: filmCameraSvg, alt: "Film camera", style: { top: "5%", left: "-12%" } as React.CSSProperties, delay: 0 },
+  { src: popcornSvg, alt: "Popcorn", style: { top: "8%", right: "-14%" } as React.CSSProperties, delay: 1 },
+  { src: movieReelSvg, alt: "Movie reel", style: { bottom: "18%", left: "-10%" } as React.CSSProperties, delay: 2 },
+  { src: juiceBottleSvg, alt: "Juice bottle", style: { bottom: "12%", right: "-12%" } as React.CSSProperties, delay: 3 },
 ];
 
-/* ── sparkles ── */
+/* ── sparkle positions ── */
 const sparklePositions = [
   { top: "12%", left: "18%", delay: 0 },
   { top: "20%", right: "12%", delay: 0.7 },
@@ -52,49 +39,79 @@ const sparklePositions = [
 
 /* ── component ── */
 const HeroSection = () => {
-  const [moodIdx, setMoodIdx] = useState(0);
-  const [textKey, setTextKey] = useState(0);
+  const [emojiIdx, setEmojiIdx] = useState(0);
+  const [lineIdx, setLineIdx] = useState(0);
 
-  const words = useMemo(() => textContent.split(" "), []);
-
-  const cycleMood = useCallback(() => {
-    setMoodIdx((i) => (i + 1) % moods.length);
-    setTextKey((k) => k + 1);
-  }, []);
-
+  /* auto-cycle sell lines every 3.5s */
   useEffect(() => {
     const id = setInterval(() => {
-      setMoodIdx((i) => (i + 1) % moods.length);
+      setLineIdx((i) => (i + 1) % sellLines.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, []);
+
+  /* auto-cycle emojis every 5s */
+  useEffect(() => {
+    const id = setInterval(() => {
+      setEmojiIdx((i) => (i + 1) % emojis.length);
     }, 5000);
     return () => clearInterval(id);
   }, []);
 
-  const CurrentIcon = moods[moodIdx].icon;
+  const cycleEmoji = useCallback(() => {
+    setEmojiIdx((i) => (i + 1) % emojis.length);
+  }, []);
+
+  const currentWords = useMemo(() => sellLines[lineIdx].split(" "), [lineIdx]);
 
   return (
-    <section
-      className="relative flex flex-col items-center bg-background overflow-hidden"
-      style={{ fontFamily: "'Manrope', sans-serif" }}
-    >
-      {/* ─── top spacing ─── */}
-      <div className="h-6 sm:h-10" />
+    <section className="relative flex flex-col items-center bg-background overflow-hidden">
+
+      {/* ─── top bar: logo + hamburger ─── */}
+      <div className="w-full max-w-[460px] mx-auto flex items-center justify-between px-5 pt-4 pb-2 relative z-20">
+        <motion.img
+          src={logoSvg}
+          alt="MoodFlix logo"
+          className="h-10 sm:h-12 w-auto"
+          draggable={false}
+          animate={{ filter: [
+            "drop-shadow(2px 2px 10px rgba(255,107,107,0.4))",
+            "drop-shadow(2px 2px 20px rgba(255,107,107,0.6))",
+            "drop-shadow(2px 2px 10px rgba(255,107,107,0.4))",
+          ]}}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.button
+          type="button"
+          className="w-11 h-11 rounded-xl bg-card flex flex-col items-center justify-center gap-[5px] cursor-pointer border border-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}
+          whileHover={{ translateY: -3, rotate: 180 }}
+          whileTap={{ scale: 0.92 }}
+          transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          aria-label="Open menu"
+        >
+          <span className="block w-5 h-[2.5px] rounded-full bg-foreground transition-transform" />
+          <span className="block w-5 h-[2.5px] rounded-full bg-foreground" />
+          <span className="block w-5 h-[2.5px] rounded-full bg-foreground transition-transform" />
+        </motion.button>
+      </div>
+
+      {/* ─── spacing ─── */}
+      <div className="h-3 sm:h-5" />
 
       {/* ─── main canvas ─── */}
-      <div className="relative w-full max-w-[400px] sm:max-w-[460px] mx-auto flex flex-col items-center px-5">
+      <div className="relative w-full max-w-[400px] sm:max-w-[440px] mx-auto flex flex-col items-center px-5">
 
-        {/* ── gradient blob – sweeps to the RIGHT like reference ── */}
-        <div className="absolute inset-0 -top-20 -bottom-16 -right-[40%] pointer-events-none" aria-hidden="true">
+        {/* ── gradient blob (pastel rainbow, sweeps right) ── */}
+        <div className="absolute inset-0 -top-24 -bottom-20 -right-[45%] -left-[25%] pointer-events-none" aria-hidden="true">
           <motion.div
             className="absolute w-full h-full"
             style={{
-              top: "0%",
-              left: "20%",
               borderRadius: "40% 60% 55% 45% / 50% 40% 60% 50%",
-              background:
-                "conic-gradient(from 180deg at 45% 50%, hsl(25 80% 88%) 0deg, hsl(50 75% 85%) 70deg, hsl(140 50% 85%) 140deg, hsl(195 55% 85%) 210deg, hsl(280 35% 88%) 290deg, hsl(25 80% 88%) 360deg)",
+              background: "conic-gradient(from 200deg at 50% 50%, hsl(200 70% 90%) 0deg, hsl(40 80% 92%) 90deg, hsl(50 85% 88%) 150deg, hsl(130 55% 88%) 220deg, hsl(195 60% 90%) 300deg, hsl(200 70% 90%) 360deg)",
               backgroundSize: "400% 400%",
-              filter: "blur(50px)",
-              opacity: 0.55,
+              filter: "blur(55px)",
+              opacity: 0.6,
             }}
             animate={{
               backgroundPosition: ["0% 50%", "50% 0%", "100% 50%", "50% 100%", "0% 50%"],
@@ -105,51 +122,56 @@ const HeroSection = () => {
                 "40% 60% 55% 45% / 50% 40% 60% 50%",
               ],
             }}
-            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
 
-        {/* ── emoji mood button – overlapping card top-right ── */}
+        {/* ── emoji mood button (overlapping card top-right) ── */}
         <motion.button
           type="button"
-          onClick={cycleMood}
-          className="absolute z-30 w-14 h-14 rounded-full bg-white flex items-center justify-center cursor-pointer border-[3px] border-white/80 hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={cycleEmoji}
+          className="absolute z-30 w-[60px] h-[60px] sm:w-[70px] sm:h-[70px] rounded-full bg-white flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           style={{
-            top: "-6px",
-            right: "8px",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            top: "-8px",
+            right: "12px",
+            border: "4px solid rgba(255,255,255,0.8)",
+            boxShadow: "0 10px 35px rgba(0,0,0,0.2)",
           }}
-          whileTap={{ scale: 0.88, rotate: -12 }}
-          whileHover={{ scale: 1.12, rotate: 10 }}
-          animate={{ scale: [1, 1.06, 1] }}
+          whileTap={{ scale: 0.88, rotate: -15 }}
+          whileHover={{ scale: 1.2, rotate: 15 }}
+          animate={{ scale: [1, 1.08, 1] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          aria-label={`Current mood: ${moods[moodIdx].label}. Click to change.`}
+          aria-label={`Current mood emoji. Click to change.`}
         >
           <AnimatePresence mode="wait">
-            <motion.div
-              key={moodIdx}
+            <motion.span
+              key={emojiIdx}
+              className="text-[28px] sm:text-[34px] leading-none select-none"
+              style={{
+                filter: "grayscale(100%) brightness(0) invert(1)",
+              }}
               initial={{ scale: 0, rotate: -45, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               exit={{ scale: 0, rotate: 45, opacity: 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
             >
-              <CurrentIcon className="w-6 h-6 text-foreground" strokeWidth={2.5} />
-            </motion.div>
+              {emojis[emojiIdx]}
+            </motion.span>
           </AnimatePresence>
         </motion.button>
 
-        {/* ─── ORANGE CARD ─── */}
+        {/* ─── CORAL CARD ─── */}
         <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, type: "spring", stiffness: 150, damping: 22 }}
-          className="relative z-10 w-full rounded-[28px] overflow-hidden"
+          transition={{ duration: 0.6, type: "spring", stiffness: 140, damping: 20 }}
+          className="relative z-10 w-full rounded-[32px] overflow-hidden"
           style={{
-            background: "linear-gradient(145deg, hsl(10 78% 62%), hsl(14 86% 59%), hsl(18 82% 56%))",
-            boxShadow: "0 30px 60px rgba(255,107,107,0.25), 0 12px 30px rgba(0,0,0,0.1)",
+            background: "linear-gradient(145deg, #E8775E 0%, #D4654E 100%)",
+            boxShadow: "0 35px 70px rgba(255,107,107,0.3), 0 15px 35px rgba(0,0,0,0.12)",
           }}
         >
-          {/* grain */}
+          {/* grain overlay */}
           <div
             className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-overlay"
             aria-hidden="true"
@@ -163,7 +185,7 @@ const HeroSection = () => {
             className="absolute inset-0 pointer-events-none"
             aria-hidden="true"
             style={{
-              background: "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.1) 0%, transparent 45%)",
+              background: "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%)",
             }}
           />
 
@@ -171,12 +193,12 @@ const HeroSection = () => {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
             <motion.div
               className="relative"
-              animate={{ scale: [1, 1.05, 1], opacity: [0.08, 0.12, 0.08] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ scale: [1, 1.06, 1], opacity: [0.08, 0.12, 0.08] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             >
               <span
-                className="block text-[72px] sm:text-[86px] font-black tracking-[-0.04em] text-white leading-[0.85] text-center"
-                style={{ fontFamily: "'Manrope', sans-serif" }}
+                className="block text-[72px] sm:text-[88px] font-black tracking-[-0.04em] text-white leading-[0.85] text-center"
+                style={{ fontFamily: "'Space Grotesk', 'Manrope', sans-serif" }}
               >
                 MOOD
                 <br />
@@ -184,13 +206,13 @@ const HeroSection = () => {
               </span>
               {/* reflection */}
               <span
-                className="block text-[72px] sm:text-[86px] font-black tracking-[-0.04em] text-white leading-[0.85] text-center"
+                className="block text-[72px] sm:text-[88px] font-black tracking-[-0.04em] text-white leading-[0.85] text-center"
                 style={{
-                  fontFamily: "'Manrope', sans-serif",
+                  fontFamily: "'Space Grotesk', 'Manrope', sans-serif",
                   transform: "scaleY(-1)",
-                  maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 55%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 55%)",
-                  opacity: 0.4,
+                  maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 50%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 50%)",
+                  opacity: 0.35,
                   marginTop: "-4px",
                 }}
               >
@@ -201,30 +223,32 @@ const HeroSection = () => {
             </motion.div>
           </div>
 
-          {/* ── word-by-word text ── */}
+          {/* ── cycling word-by-word text ── */}
           <div className="relative z-10 px-7 pt-10 pb-3">
-            <div className="min-h-[60px] flex items-start justify-center">
-              <p className="text-white/90 text-center text-[14px] sm:text-[15px] font-medium leading-[1.65] tracking-wide">
-                <AnimatePresence mode="wait">
-                  <motion.span key={textKey} className="inline">
-                    {words.map((word, i) => (
-                      <motion.span
-                        key={`${textKey}-${i}`}
-                        className="inline-block mr-[5px]"
-                        initial={{ opacity: 0, y: 16, scale: 0.85 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{
-                          delay: i * 0.055,
-                          duration: 0.5,
-                          ease: [0.34, 1.56, 0.64, 1],
-                        }}
-                      >
-                        {word}
-                      </motion.span>
-                    ))}
-                  </motion.span>
-                </AnimatePresence>
-              </p>
+            <div className="min-h-[56px] flex items-start justify-center">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={lineIdx}
+                  className="text-white/90 text-center text-[14px] sm:text-[15px] font-medium leading-[1.7] tracking-wide"
+                  style={{ textShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
+                >
+                  {currentWords.map((word, i) => (
+                    <motion.span
+                      key={`${lineIdx}-${i}`}
+                      className="inline-block mr-[5px]"
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{
+                        delay: i * 0.06,
+                        duration: 0.6,
+                        ease: [0.34, 1.56, 0.64, 1],
+                      }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </motion.p>
+              </AnimatePresence>
             </div>
           </div>
 
@@ -234,15 +258,15 @@ const HeroSection = () => {
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.6, type: "spring", stiffness: 130, damping: 18 }}
-              className="relative mx-auto w-[82%] sm:w-[78%] aspect-square"
+              className="relative mx-auto w-[80%] sm:w-[75%] aspect-square"
             >
-              {/* warm glow */}
+              {/* warm glow behind brain */}
               <motion.div
                 className="absolute inset-[10%] rounded-full"
                 style={{
                   background: "radial-gradient(circle, hsl(35 80% 75% / 0.25) 0%, transparent 55%)",
                 }}
-                animate={{ scale: [1, 1.1, 1], opacity: [0.25, 0.5, 0.25] }}
+                animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.5, 0.25] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 aria-hidden="true"
               />
@@ -252,9 +276,12 @@ const HeroSection = () => {
                 src={brainSvg}
                 alt="Creative brain illustration"
                 className="w-full h-full object-contain relative z-10"
-                style={{ filter: "drop-shadow(0 10px 30px rgba(0,0,0,0.2))" }}
+                style={{ filter: "drop-shadow(0 12px 35px rgba(0,0,0,0.25))" }}
                 draggable={false}
-                animate={{ y: [0, -10, 0], rotate: [0, 1, 0, -1, 0] }}
+                animate={{
+                  y: [0, -12, 0],
+                  rotate: [0, 2, 0, -2, 0],
+                }}
                 transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
               />
 
@@ -262,7 +289,7 @@ const HeroSection = () => {
               {poppingElements.map((el, i) => (
                 <motion.div
                   key={i}
-                  className="absolute w-[48px] h-[48px] sm:w-[56px] sm:h-[56px] z-20"
+                  className="absolute w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] z-20"
                   style={el.style}
                   aria-hidden="true"
                 >
@@ -270,7 +297,7 @@ const HeroSection = () => {
                     src={el.src}
                     alt={el.alt}
                     className="w-full h-full object-contain"
-                    style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" }}
+                    style={{ filter: "drop-shadow(0 5px 15px rgba(0,0,0,0.2))" }}
                     draggable={false}
                     animate={{
                       scale: [0, 1.3, 1, 1.15, 0],
@@ -312,7 +339,7 @@ const HeroSection = () => {
         </motion.div>
       </div>
 
-      {/* ─── CTA strip OUTSIDE card (below) ─── */}
+      {/* ─── CTA strip OUTSIDE card ─── */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -335,8 +362,27 @@ const HeroSection = () => {
         </Button>
       </motion.div>
 
-      {/* ─── spacing before next section ─── */}
-      <div className="h-12 sm:h-16" />
+      {/* ─── scroll indicator ─── */}
+      <motion.div
+        className="mt-8 mb-4 flex flex-col items-center gap-1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+      >
+        <motion.div
+          className="w-6 h-9 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center pt-1.5"
+          aria-hidden="true"
+        >
+          <motion.div
+            className="w-1 h-2 rounded-full bg-muted-foreground/50"
+            animate={{ y: [0, 8, 0], opacity: [1, 0.3, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </motion.div>
+
+      {/* ─── spacing ─── */}
+      <div className="h-6 sm:h-10" />
     </section>
   );
 };
